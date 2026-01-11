@@ -1,0 +1,11 @@
+# Environment variables
+.env
+.env.local
+.env.production
+
+# SvelteKit
+.svelte-kit
+build
+
+# OS
+Thumbs.db
