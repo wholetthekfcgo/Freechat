@@ -1,22 +1,34 @@
 <script lang="ts">
 	import type { Message } from '$lib/types/chat';
-	import Button from '$lib/components/ui/button/button.svelte';
-	import Textarea from '$lib/components/ui/textarea/textarea.svelte';
+	import MessageBubble from '$lib/components/MessageBubble.svelte';
+	import FloatingInput from '$lib/components/FloatingInput.svelte';
+	import ModelSelector from '$lib/components/ModelSelector.svelte';
 	import ScrollArea from '$lib/components/ui/scroll-area/scroll-area.svelte';
-	import AvatarFallback from '$lib/components/ui/avatar/avatar-fallback.svelte';
-	import Avatar from '$lib/components/ui/avatar/avatar.svelte';
-	import { Send, Bot, User } from 'lucide-svelte';
+	import { Trash2, Download, Settings } from 'lucide-svelte';
+	import Button from '$lib/components/ui/button/button.svelte';
 
 	let {
 		messages = [],
 		isLoading = false,
 		error = null,
-		onSendMessage
+		currentModel = 'z-ai/glm-4.5-air:free',
+		onSendMessage,
+		onClear,
+		onExport,
+		onModelChange
+	}: {
+		messages: Message[];
+		isLoading: boolean;
+		error: string | null;
+		currentModel?: string;
+		onSendMessage: (message: string) => void;
+		onClear?: () => void;
+		onExport?: (format: 'markdown' | 'json') => void;
+		onModelChange?: (model: string) => void;
 	} = $props();
 
 	let inputMessage = $state('');
 	let scrollAreaElement: HTMLElement;
-	let inputElement: HTMLTextAreaElement;
 
 	async function handleSubmit() {
 		if (!inputMessage.trim() || isLoading) return;
@@ -24,23 +36,6 @@
 		const message = inputMessage.trim();
 		inputMessage = '';
 		await onSendMessage(message);
-
-		// Reset auto-resize
-		if (inputElement) {
-			inputElement.style.height = 'auto';
-		}
-	}
-
-	function handleKeydown(event: KeyboardEvent) {
-		if (event.key === 'Enter' && !event.shiftKey) {
-			event.preventDefault();
-			handleSubmit();
-		}
-	}
-
-	function autoResize(element: HTMLTextAreaElement) {
-		element.style.height = 'auto';
-		element.style.height = element.scrollHeight + 'px';
 	}
 
 	function scrollToBottom() {
@@ -60,14 +55,56 @@
 <div class="flex flex-col h-screen bg-background">
 	<!-- Header -->
 	<header class="border-b border-border px-6 py-4">
-		<div class="flex items-center gap-3">
-			<div class="p-2 bg-primary rounded-md">
-				<Bot class="w-6 h-6 text-primary-foreground" />
+		<div class="flex items-center justify-between mb-4">
+			<!-- Title -->
+			<div class="flex items-center gap-3">
+				<div class="flex items-center justify-center w-10 h-10 bg-primary border border-primary">
+					<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-primary-foreground"><path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/></svg>
+				</div>
+				<div>
+					<h1 class="text-xl font-bold uppercase tracking-wide text-foreground">AI Chatbot</h1>
+					<p class="text-xs font-mono text-foreground/60">Powered by OpenRouter</p>
+				</div>
 			</div>
-			<div>
-				<h1 class="text-xl font-semibold text-foreground">AI Chatbot</h1>
-				<p class="text-sm text-muted-foreground">Powered by OpenRouter</p>
+
+			<!-- Action Buttons -->
+			<div class="flex items-center gap-2">
+				{#if onClear}
+					<Button
+						variant="ghost"
+						onclick={onClear}
+						class="h-9 px-3 text-foreground hover:bg-primary hover:text-primary-foreground"
+					>
+						<Trash2 class="w-4 h-4" />
+					</Button>
+				{/if}
+
+				{#if onExport}
+					<Button
+						variant="ghost"
+						onclick={() => onExport('markdown')}
+						class="h-9 px-3 text-foreground hover:bg-primary hover:text-primary-foreground"
+					>
+						<Download class="w-4 h-4" />
+					</Button>
+				{/if}
+
+				<Button
+					variant="ghost"
+					class="h-9 px-3 text-foreground hover:bg-primary hover:text-primary-foreground"
+				>
+					<Settings class="w-4 h-4" />
+				</Button>
 			</div>
+		</div>
+
+		<!-- Model Selector + Orange accent line -->
+		<div class="flex items-center justify-between">
+			<ModelSelector 
+				{currentModel} 
+				onModelChange={onModelChange} 
+			/>
+			<div class="h-[2px] bg-primary flex-1 ml-4"></div>
 		</div>
 	</header>
 
@@ -75,64 +112,45 @@
 	<div class="flex-1 overflow-hidden">
 		<ScrollArea class="h-full">
 			<div bind:this={scrollAreaElement} class="px-6 py-4">
-				{#each messages as message (message.content + message.role)}
-					<div class="mb-6 flex {message.role === 'user' ? 'justify-end' : 'justify-start'}">
-						<div class="flex gap-3 max-w-2xl {message.role === 'user' ? 'flex-row-reverse' : ''}">
-							<!-- Avatar -->
-							<Avatar class="w-8 h-8 flex-shrink-0">
-								{#if message.role === 'user'}
-									<AvatarFallback class="bg-primary text-primary-foreground rounded-md">
-										<User class="w-4 h-4" />
-									</AvatarFallback>
-								{:else}
-									<AvatarFallback class="bg-secondary text-foreground rounded-md">
-										<Bot class="w-4 h-4" />
-									</AvatarFallback>
-								{/if}
-							</Avatar>
-
-							<!-- Message Content -->
-							<div class="flex flex-col {message.role === 'user' ? 'items-end' : 'items-start'}">
-								<div
-									class="px-4 py-3 {message.role === 'user'
-										? 'bg-primary text-primary-foreground'
-										: 'bg-muted text-foreground'}"
-								>
-									<p class="whitespace-pre-wrap break-words">{message.content}</p>
-								</div>
-							</div>
+				{#if messages.length === 0}
+					<div class="flex items-center justify-center h-full min-h-[200px]">
+						<div class="text-center">
+							<p class="text-sm font-mono text-foreground/60 mb-2">// NO MESSAGES</p>
+							<p class="text-xs text-foreground/40">Start a conversation</p>
 						</div>
 					</div>
-				{/each}
+				{:else}
+					{#each messages as message (message.content + message.role)}
+						<MessageBubble {message} />
+					{/each}
+				{/if}
 
 				{#if isLoading}
-					<div class="mb-6 flex justify-start">
-						<div class="flex gap-3 max-w-2xl">
-							<Avatar class="w-8 h-8 flex-shrink-0">
-								<AvatarFallback class="bg-secondary text-foreground rounded-md">
-									<Bot class="w-4 h-4" />
-								</AvatarFallback>
-							</Avatar>
-							<div class="px-4 py-3 bg-muted text-foreground">
-								<div class="flex items-center gap-2">
-									<div class="w-2 h-2 bg-foreground/50 rounded-full animate-bounce"></div>
-									<div
-										class="w-2 h-2 bg-foreground/50 rounded-full animate-bounce"
-										style="animation-delay: 0.1s"
-									></div>
-									<div
-										class="w-2 h-2 bg-foreground/50 rounded-full animate-bounce"
-										style="animation-delay: 0.2s"
-									></div>
-								</div>
+					<div class="mb-6 flex gap-3">
+						<div
+							class="flex-shrink-0 w-8 h-8 flex items-center justify-center border border-border bg-muted text-foreground"
+						>
+							<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/></svg>
+						</div>
+						<div class="px-4 py-3 bg-muted text-foreground border border-border">
+							<div class="flex items-center gap-2">
+								<div class="w-8 h-[2px] bg-primary animate-pulse"></div>
+								<div
+									class="w-8 h-[2px] bg-primary animate-pulse"
+									style="animation-delay: 0.1s"
+								></div>
+								<div
+									class="w-8 h-[2px] bg-primary animate-pulse"
+									style="animation-delay: 0.2s"
+								></div>
 							</div>
 						</div>
 					</div>
 				{/if}
 
 				{#if error}
-					<div class="mb-6 bg-destructive/10 border border-destructive rounded-md px-4 py-3">
-						<p class="text-destructive">{error}</p>
+					<div class="mb-6 border border-destructive bg-destructive/10 px-4 py-3">
+						<p class="text-destructive font-mono text-sm">// ERROR: {error}</p>
 					</div>
 				{/if}
 			</div>
@@ -140,34 +158,5 @@
 	</div>
 
 	<!-- Input Area -->
-	<div class="border-t border-border px-6 py-4">
-		<div class="max-w-4xl mx-auto">
-			<div class="flex gap-3 items-end">
-				<div class="flex-1 relative">
-					<Textarea
-						bind:this={inputElement}
-						bind:value={inputMessage}
-						onkeydown={handleKeydown}
-						oninput={() => autoResize(inputElement)}
-						placeholder="Type your message... (Press Enter to send, Shift+Enter for new line)"
-						rows="1"
-						disabled={isLoading}
-						class="resize-none bg-muted border-border text-foreground placeholder:text-muted-foreground focus-visible:ring-primary"
-						style="min-height: 48px; max-height: 200px; overflow-y: auto;"
-					/>
-				</div>
-				<Button
-					onclick={handleSubmit}
-					disabled={isLoading || !inputMessage.trim()}
-					class="px-6 bg-primary text-primary-foreground hover:bg-primary/90 disabled:bg-muted disabled:text-muted-foreground"
-				>
-					{#if isLoading}
-						<span>Sending...</span>
-					{:else}
-						<Send class="w-4 h-4" />
-					{/if}
-				</Button>
-			</div>
-		</div>
-	</div>
+	<FloatingInput bind:value={inputMessage} onSubmit={handleSubmit} {isLoading} />
 </div>
