@@ -3,6 +3,9 @@
 .env.local
 .env.production
 
+# Dependencies
+node_modules/
+
 # SvelteKit
 .svelte-kit
 build
