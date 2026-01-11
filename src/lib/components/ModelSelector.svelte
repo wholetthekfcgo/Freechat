@@ -1,10 +1,9 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
 	import { cn } from '$lib/utils';
 
 	let {
 		class: className = '',
-		model = 'z-ai/glm-4.5-air:free',
+		model = $bindable('z-ai/glm-4.5-air:free'),
 		models = [
 			{ id: 'z-ai/glm-4.5-air:free', name: 'GLM 4.5 Air (Free)' },
 			{ id: 'openai/gpt-3.5-turbo', name: 'GPT-3.5 Turbo' },
@@ -21,19 +20,18 @@
 	} = $props();
 
 	let isOpen = $state(false);
-	let selectedModel = $state(model);
 
 	function toggle() {
 		isOpen = !isOpen;
 	}
 
 	function selectModel(modelId: string) {
-		selectedModel = modelId;
+		model = modelId;
 		isOpen = false;
 		onModelChange?.(modelId);
 	}
 
-	const selectedModelName = $derived(models.find((m) => m.id === selectedModel)?.name || models[0].name);
+	const selectedModelName = $derived(models.find((m) => m.id === model)?.name || models[0].name);
 
 	// Close dropdown when clicking outside
 	function handleClickOutside(event: MouseEvent) {
@@ -42,12 +40,9 @@
 			isOpen = false;
 		}
 	}
-
-	onMount(() => {
-		document.addEventListener('click', handleClickOutside);
-		return () => document.removeEventListener('click', handleClickOutside);
-	});
 </script>
+
+<svelte:window onclick={handleClickOutside} />
 
 <div class="model-selector relative">
 	<button
@@ -81,7 +76,7 @@
 				{#each models as modelOption}
 					<button
 						onclick={() => selectModel(modelOption.id)}
-						class="w-full text-left px-3 py-2 text-sm hover:bg-primary hover:text-primary-foreground transition-colors duration-200 {selectedModel ===
+						class="w-full text-left px-3 py-2 text-sm hover:bg-primary hover:text-primary-foreground transition-colors duration-200 {model ===
 						modelOption.id
 							? 'bg-primary text-primary-foreground'
 							: 'text-foreground'}"
