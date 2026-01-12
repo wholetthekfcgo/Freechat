@@ -26,7 +26,8 @@
 		}
 	}
 
-	function autoResize(element: HTMLTextAreaElement) {
+	function autoResize(event: Event) {
+		const element = event.target as HTMLTextAreaElement;
 		if (element) {
 			element.style.height = 'auto';
 			element.style.height = Math.min(element.scrollHeight, 200) + 'px';
@@ -47,7 +48,7 @@
 					bind:this={textareaElement}
 					bind:value
 					onkeydown={handleKeydown}
-					oninput={() => autoResize(textareaElement)}
+					oninput={autoResize}
 					{placeholder}
 					rows="1"
 					disabled={isLoading}

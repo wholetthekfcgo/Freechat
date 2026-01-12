@@ -1,11 +1,13 @@
 <script lang="ts">
 	import type { Message } from '$lib/types/chat';
 	import { Copy, Check } from 'lucide-svelte';
+	import { renderMarkdown } from '$lib/utils';
 
 	let { message }: { message: Message } = $props();
 
 	let showTimestamp = $state(false);
 	let copied = $state(false);
+	let isCodeBlock = $state(false);
 
 	async function copyToClipboard() {
 		await navigator.clipboard.writeText(message.content);
@@ -20,6 +22,14 @@
 			minute: '2-digit'
 		})
 	);
+
+	// Check if content contains code blocks
+	const renderedContent = $derived(renderMarkdown(message.content));
+	
+	// Detect if message contains code blocks
+	$effect(() => {
+		isCodeBlock = message.content.includes('```');
+	});
 </script>
 
 <article
@@ -48,11 +58,17 @@
 		<div
 			class="relative px-4 py-3 border {message.role === 'user'
 				? 'bg-primary text-primary-foreground border-primary'
-				: 'bg-muted text-foreground border-border'} hover:border-primary transition-colors duration-200"
+				: 'bg-muted text-foreground border-border'} hover:border-primary transition-colors duration-200 {isCodeBlock ? 'w-full' : ''}"
 		>
-			<p class="whitespace-pre-wrap break-words text-sm leading-relaxed">
-				{message.content}
-			</p>
+			{#if isCodeBlock}
+				<div class="prose prose-sm max-w-none dark:prose-invert">
+					{@html renderedContent}
+				</div>
+			{:else}
+				<p class="whitespace-pre-wrap break-words text-sm leading-relaxed">
+					{message.content}
+				</p>
+			{/if}
 
 			<!-- Copy Button -->
 			<button
@@ -76,3 +92,101 @@
 		{/if}
 	</div>
 </article>
+
+<style>
+	/* Highlight.js theme customization */
+	:global(.hljs) {
+		background: hsl(var(--muted)) !important;
+		padding: 1rem;
+		border-radius: 0.5rem;
+		font-size: 0.875rem;
+	}
+
+	/* Markdown content styling */
+	:global(.prose) {
+		--tw-prose-body: hsl(var(--foreground));
+		--tw-prose-headings: hsl(var(--foreground));
+		--tw-prose-links: hsl(var(--primary));
+		--tw-prose-bold: hsl(var(--foreground));
+		--tw-prose-code: hsl(var(--foreground));
+		--tw-prose-pre-code: hsl(var(--foreground));
+		--tw-prose-pre-bg: hsl(var(--muted));
+	}
+
+	:global(.prose h1),
+	:global(.prose h2),
+	:global(.prose h3),
+	:global(.prose h4),
+	:global(.prose h5),
+	:global(.prose h6) {
+		color: hsl(var(--foreground));
+		font-weight: 600;
+		margin-top: 1em;
+		margin-bottom: 0.5em;
+	}
+
+	:global(.prose p) {
+		margin-bottom: 0.75em;
+	}
+
+	:global(.prose code) {
+		background: hsl(var(--muted));
+		padding: 0.2em 0.4em;
+		border-radius: 0.25em;
+		font-size: 0.875em;
+	}
+
+	:global(.prose pre) {
+		background: hsl(var(--muted));
+		padding: 1rem;
+		border-radius: 0.5rem;
+		overflow-x: auto;
+		margin: 1em 0;
+	}
+
+	:global(.prose ul),
+	:global(.prose ol) {
+		padding-left: 1.5em;
+		margin-bottom: 0.75em;
+	}
+
+	:global(.prose li) {
+		margin-bottom: 0.25em;
+	}
+
+	:global(.prose a) {
+		color: hsl(var(--primary));
+		text-decoration: underline;
+	}
+
+	:global(.prose a:hover) {
+		opacity: 0.8;
+	}
+
+	:global(.prose blockquote) {
+		border-left: 3px solid hsl(var(--primary));
+		padding-left: 1em;
+		font-style: italic;
+		margin: 1em 0;
+		color: hsl(var(--foreground));
+		opacity: 0.8;
+	}
+
+	:global(.prose table) {
+		width: 100%;
+		border-collapse: collapse;
+		margin: 1em 0;
+	}
+
+	:global(.prose th),
+	:global(.prose td) {
+		border: 1px solid hsl(var(--border));
+		padding: 0.5em;
+		text-align: left;
+	}
+
+	:global(.prose th) {
+		background: hsl(var(--muted));
+		font-weight: 600;
+	}
+</style>

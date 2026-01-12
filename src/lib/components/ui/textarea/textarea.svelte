@@ -7,6 +7,7 @@
 		value = $bindable(),
 		class: className,
 		"data-slot": dataSlot = "textarea",
+		oninput,
 		...restProps
 	}: WithoutChildren<WithElementRef<HTMLTextareaAttributes>> = $props();
 </script>
@@ -19,5 +20,8 @@
 		className
 	)}
 	bind:value
+	oninput={(e) => {
+		if (oninput) oninput(e);
+	}}
 	{...restProps}
 ></textarea>
