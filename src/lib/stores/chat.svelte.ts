@@ -7,7 +7,7 @@ export const chatState = $state<ChatState>({
 	messages: [],
 	isLoading: false,
 	error: null,
-	currentModel: 'z-ai/glm-4.5-air:free',
+	currentModel: 'openai/gpt-oss-20b:free',
 	abortController: null,
 	canStopGeneration: false
 });

@@ -13,7 +13,7 @@
 		messages = [],
 		isLoading = false,
 		error = null,
-		currentModel = 'z-ai/glm-4.5-air:free',
+		currentModel = 'openai/gpt-oss-20b:free',
 		onSendMessage,
 		onClear,
 		onExport,

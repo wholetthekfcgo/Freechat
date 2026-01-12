@@ -5,7 +5,7 @@ export const load: PageServerLoad = async ({ cookies }) => {
 	const preferredModel = cookies.get('preferred-model');
 
 	return {
-		preferredModel: preferredModel || 'z-ai/glm-4.5-air:free'
+		preferredModel: preferredModel || 'openai/gpt-oss-20b:free'
 	};
 };
 

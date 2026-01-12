@@ -3,8 +3,11 @@
 
 	let {
 		class: className = '',
-		model = $bindable('z-ai/glm-4.5-air:free'),
-		models = [{ id: 'z-ai/glm-4.5-air:free', name: 'GLM 4.5 Air (Free)' }],
+		model = $bindable('openai/gpt-oss-20b:free'),
+		models = [
+			{ id: 'openai/gpt-oss-20b:free', name: 'GPT-OSS 20B (Free)' },
+			{ id: 'openai/gpt-oss-120b:free', name: 'GPT-OSS 120B (Free)' }
+		],
 		onModelChange
 	}: {
 		class?: string;
