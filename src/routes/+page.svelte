@@ -1,14 +1,17 @@
 <script lang="ts">
+	import { browser } from '$app/environment';
 	import ChatInterface from '$lib/components/ChatInterface.svelte';
 	import { chatState, chatActions } from '$lib/stores/chat.svelte.ts';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
 
-	// Initialize state from server data
-	if (data.initialModel && !chatState.currentModel) {
-		chatState.currentModel = data.initialModel;
-	}
+	// Initialize state from server data - only on client side
+	$effect(() => {
+		if (browser && data.initialModel && !chatState.currentModel) {
+			chatState.currentModel = data.initialModel;
+		}
+	});
 
 	// Create reactive derived values
 	const messages = $derived(chatState.messages);
