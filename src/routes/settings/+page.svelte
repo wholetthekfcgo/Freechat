@@ -4,13 +4,7 @@
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
 
-	const models = [
-		{ id: 'z-ai/glm-4.5-air:free', name: 'GLM 4.5 Air (Free)' },
-		{ id: 'openai/gpt-3.5-turbo', name: 'GPT-3.5 Turbo' },
-		{ id: 'openai/gpt-4', name: 'GPT-4' },
-		{ id: 'anthropic/claude-2', name: 'Claude 2' },
-		{ id: 'meta-llama/llama-2-70b-chat', name: 'Llama 2 70B' }
-	];
+	const models = [{ id: 'z-ai/glm-4.5-air:free', name: 'GLM 4.5 Air (Free)' }];
 </script>
 
 <svelte:head>

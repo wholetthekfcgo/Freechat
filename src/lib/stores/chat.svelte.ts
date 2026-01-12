@@ -19,7 +19,12 @@ export const chatHistory = $state<ChatHistory>({
 
 // Load chat history from localStorage on initialization
 function loadChatHistory(): void {
-	if (typeof browser === 'undefined') return;
+	if (!browser) return;
+	
+	if (typeof localStorage === 'undefined') {
+		console.warn('localStorage is not available');
+		return;
+	}
 	
 	try {
 		const stored = localStorage.getItem(STORAGE_KEY);
@@ -43,7 +48,12 @@ function loadChatHistory(): void {
 
 // Save chat history to localStorage
 function saveChatHistory(): void {
-	if (typeof browser === 'undefined') return;
+	if (!browser) return;
+	
+	if (typeof localStorage === 'undefined') {
+		console.warn('localStorage is not available');
+		return;
+	}
 	
 	try {
 		localStorage.setItem(STORAGE_KEY, JSON.stringify(chatHistory));

@@ -33,39 +33,37 @@
 </script>
 
 <article
-	class="message-bubble group relative mb-4 flex gap-3 {message.role === 'user'
-		? 'flex-row-reverse'
-		: 'flex-row'}"
+	class="message-bubble group relative mb-6 flex gap-4 animate-fade-in"
 	onmouseenter={() => (showTimestamp = true)}
 	onmouseleave={() => (showTimestamp = false)}
 >
 	<!-- Avatar -->
 	<div
-		class="flex-shrink-0 w-8 h-8 flex items-center justify-center border border-border {message.role ===
+		class="flex-shrink-0 w-10 h-10 flex items-center justify-center border {message.role ===
 		'user'
-			? 'bg-primary text-primary-foreground'
-			: 'bg-muted text-foreground'}"
+			? 'bg-primary border-primary text-primary-foreground shadow-medium'
+			: 'bg-card border-border text-foreground shadow-subtle'}"
 	>
 		{#if message.role === 'user'}
-			<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+			<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
 		{:else}
-			<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/></svg>
+			<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/></svg>
 		{/if}
 	</div>
 
 	<!-- Message Content -->
-	<div class="flex flex-col {message.role === 'user' ? 'items-end' : 'items-start'} max-w-2xl">
+	<div class="flex-1 max-w-none">
 		<div
-			class="relative px-4 py-3 border {message.role === 'user'
-				? 'bg-primary text-primary-foreground border-primary'
-				: 'bg-muted text-foreground border-border'} hover:border-primary transition-colors duration-200 {isCodeBlock ? 'w-full' : ''}"
+			class="relative p-5 border {message.role === 'user'
+				? 'bg-primary text-primary-foreground border-primary shadow-medium'
+				: 'bg-card text-foreground border-border shadow-subtle hover:border-primary/30'} transition-all duration-200"
 		>
 			{#if isCodeBlock}
-				<div class="prose prose-sm max-w-none dark:prose-invert">
+				<div class="prose prose-invert max-w-none">
 					{@html renderedContent}
 				</div>
 			{:else}
-				<p class="whitespace-pre-wrap break-words text-sm leading-relaxed">
+				<p class="whitespace-pre-wrap break-words text-body-md leading-relaxed font-body">
 					{message.content}
 				</p>
 			{/if}
@@ -73,20 +71,20 @@
 			<!-- Copy Button -->
 			<button
 				onclick={copyToClipboard}
-				class="absolute top-2 {message.role === 'user' ? 'left-2' : 'right-2'} opacity-0 group-hover:opacity-100 transition-opacity duration-200 p-1 bg-background border border-border hover:border-primary"
+				class="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200 p-2 bg-background border border-border hover:border-primary hover-lift click-shrink"
 				aria-label="Copy message"
 			>
 				{#if copied}
-					<Check class="w-3 h-3 text-primary" />
+					<Check class="w-3.5 h-3.5 text-primary" />
 				{:else}
-					<Copy class="w-3 h-3 text-foreground" />
+					<Copy class="w-3.5 h-3.5 text-muted-foreground" />
 				{/if}
 			</button>
 		</div>
 
 		<!-- Timestamp -->
 		{#if showTimestamp}
-			<p class="mt-1 text-xs font-mono text-foreground opacity-60">
+			<p class="mt-2 text-body-sm text-muted-foreground font-accent opacity-80">
 				{timestamp}
 			</p>
 		{/if}
@@ -94,15 +92,16 @@
 </article>
 
 <style>
-	/* Highlight.js theme customization */
+	/* Highlight.js noir theme */
 	:global(.hljs) {
-		background: hsl(var(--muted)) !important;
-		padding: 1rem;
-		border-radius: 0.5rem;
+		background: hsl(var(--card)) !important;
+		padding: 1.25rem;
 		font-size: 0.875rem;
+		border: 1px solid hsl(var(--border));
+		font-family: var(--font-body) !important;
 	}
 
-	/* Markdown content styling */
+	/* Markdown content styling - noir aesthetic */
 	:global(.prose) {
 		--tw-prose-body: hsl(var(--foreground));
 		--tw-prose-headings: hsl(var(--foreground));
@@ -110,7 +109,8 @@
 		--tw-prose-bold: hsl(var(--foreground));
 		--tw-prose-code: hsl(var(--foreground));
 		--tw-prose-pre-code: hsl(var(--foreground));
-		--tw-prose-pre-bg: hsl(var(--muted));
+		--tw-prose-pre-bg: hsl(var(--card));
+		font-family: var(--font-body);
 	}
 
 	:global(.prose h1),
@@ -120,73 +120,105 @@
 	:global(.prose h5),
 	:global(.prose h6) {
 		color: hsl(var(--foreground));
+		font-family: var(--font-display);
 		font-weight: 600;
-		margin-top: 1em;
-		margin-bottom: 0.5em;
-	}
-
-	:global(.prose p) {
+		letter-spacing: -0.02em;
+		margin-top: 1.5em;
 		margin-bottom: 0.75em;
 	}
 
+	:global(.prose h1) {
+		font-size: 1.75rem;
+	}
+
+	:global(.prose h2) {
+		font-size: 1.5rem;
+	}
+
+	:global(.prose h3) {
+		font-size: 1.25rem;
+	}
+
+	:global(.prose p) {
+		margin-bottom: 1em;
+		line-height: 1.7;
+	}
+
 	:global(.prose code) {
-		background: hsl(var(--muted));
-		padding: 0.2em 0.4em;
-		border-radius: 0.25em;
-		font-size: 0.875em;
+		background: hsl(var(--card));
+		padding: 0.2em 0.5em;
+		border: 1px solid hsl(var(--border));
+		font-size: 0.9em;
+		color: hsl(var(--primary));
 	}
 
 	:global(.prose pre) {
-		background: hsl(var(--muted));
-		padding: 1rem;
-		border-radius: 0.5rem;
+		background: hsl(var(--card));
+		padding: 1.25rem;
+		border: 1px solid hsl(var(--border));
 		overflow-x: auto;
-		margin: 1em 0;
+		margin: 1.5em 0;
+		box-shadow: var(--shadow-subtle);
+	}
+
+	:global(.prose pre code) {
+		background: transparent;
+		padding: 0;
+		border: none;
+		color: hsl(var(--foreground));
 	}
 
 	:global(.prose ul),
 	:global(.prose ol) {
-		padding-left: 1.5em;
-		margin-bottom: 0.75em;
+		padding-left: 1.75em;
+		margin-bottom: 1em;
 	}
 
 	:global(.prose li) {
-		margin-bottom: 0.25em;
+		margin-bottom: 0.5em;
 	}
 
 	:global(.prose a) {
 		color: hsl(var(--primary));
 		text-decoration: underline;
+		text-underline-offset: 2px;
+		transition: opacity 0.2s;
 	}
 
 	:global(.prose a:hover) {
-		opacity: 0.8;
+		opacity: 0.7;
 	}
 
 	:global(.prose blockquote) {
-		border-left: 3px solid hsl(var(--primary));
-		padding-left: 1em;
+		border-left: 2px solid hsl(var(--primary));
+		padding-left: 1.25em;
+		font-family: var(--font-accent);
 		font-style: italic;
-		margin: 1em 0;
-		color: hsl(var(--foreground));
-		opacity: 0.8;
+		margin: 1.5em 0;
+		color: hsl(var(--muted-foreground));
 	}
 
 	:global(.prose table) {
 		width: 100%;
 		border-collapse: collapse;
-		margin: 1em 0;
+		margin: 1.5em 0;
+		font-size: 0.875rem;
 	}
 
 	:global(.prose th),
 	:global(.prose td) {
 		border: 1px solid hsl(var(--border));
-		padding: 0.5em;
+		padding: 0.75em;
 		text-align: left;
 	}
 
 	:global(.prose th) {
-		background: hsl(var(--muted));
+		background: hsl(var(--card));
+		font-family: var(--font-display);
 		font-weight: 600;
+	}
+
+	:global(.prose tr:hover) {
+		background: hsl(var(--card));
 	}
 </style>

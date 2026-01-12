@@ -39,46 +39,48 @@
 	const charPercent = $derived((charCount / maxChars) * 100);
 </script>
 
-<div class="floating-input border-t border-border bg-background p-4">
-	<div class="max-w-4xl mx-auto">
-		<div class="flex gap-3 items-end">
-			<!-- Textarea -->
+<div class="floating-input border-t border-border bg-background p-6">
+	<div class="max-w-5xl mx-auto">
+		<div class="flex gap-4 items-end">
+			<!-- Textarea - Dominant -->
 			<div class="flex-1 relative">
 				<Textarea
 					bind:this={textareaElement}
 					bind:value
 					onkeydown={handleKeydown}
 					oninput={autoResize}
-					{placeholder}
+					placeholder="// Enter your message..."
 					rows="1"
 					disabled={isLoading}
-					class="resize-none bg-muted border-border text-foreground placeholder:text-muted-foreground focus-visible:ring-0 focus-visible:border-primary focus:border-2"
-					style="min-height: 48px; max-height: 200px; overflow-y: auto;"
+					class="resize-none bg-card border-border text-foreground placeholder:text-muted-foreground focus-visible:ring-0 focus:border-primary shadow-inset text-body-md"
+					style="min-height: 56px; max-height: 240px; overflow-y: auto; font-family: var(--font-body);"
 				/>
 				
-				<!-- Character counter -->
-				<div class="absolute bottom-2 right-2 text-xs font-mono text-foreground/60">
-					{charCount}/{maxChars}
-					{#if charPercent > 90}
-						<span class="text-primary ml-1">!</span>
-					{/if}
+				<!-- Character counter - minimalist -->
+				<div class="absolute bottom-2 right-3 text-body-sm font-mono text-muted-foreground opacity-60">
+					{charCount}
 				</div>
 			</div>
 
-			<!-- Send Button -->
+			<!-- Send Button - Integrated -->
 			<Button
 				onclick={() => !isLoading && value.trim() && onSubmit()}
 				disabled={isLoading || !value.trim()}
 				variant="default"
-				class="px-6 h-auto min-h-48 bg-primary text-primary-foreground hover:bg-primary/90 disabled:bg-muted disabled:text-muted-foreground border-0"
-				style="min-height: 48px;"
+				class="px-8 min-w-24 h-auto bg-primary text-primary-foreground hover:bg-primary/90 disabled:bg-muted disabled:text-muted-foreground border-0 shadow-medium hover-lift click-shrink text-body-md"
+				style="min-height: 56px;"
 			>
 				{#if isLoading}
-					<span class="text-sm">SENDING...</span>
+					<span class="font-mono">...</span>
 				{:else}
-					<Send class="w-4 h-4" />
+					<span class="font-display font-semibold">SEND</span>
 				{/if}
 			</Button>
+		</div>
+		
+		<!-- Helper text -->
+		<div class="mt-3 text-center text-body-sm text-muted-foreground font-accent opacity-60">
+			Press Enter to send · Shift+Enter for new line
 		</div>
 	</div>
 </div>
