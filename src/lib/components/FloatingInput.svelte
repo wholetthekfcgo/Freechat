@@ -27,8 +27,10 @@
 	}
 
 	function autoResize(element: HTMLTextAreaElement) {
-		element.style.height = 'auto';
-		element.style.height = Math.min(element.scrollHeight, 200) + 'px';
+		if (element) {
+			element.style.height = 'auto';
+			element.style.height = Math.min(element.scrollHeight, 200) + 'px';
+		}
 	}
 
 	const charCount = $derived(value.length);

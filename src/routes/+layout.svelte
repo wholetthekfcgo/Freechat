@@ -8,8 +8,10 @@
 	<meta name="description" content="AI Chatbot powered by OpenRouter" />
 </svelte:head>
 
-<div class="fixed top-4 right-4 z-50">
-	<ThemeSwitcher />
+<div class="bg-background text-foreground min-h-screen">
+	<div class="fixed top-4 right-4 z-50">
+		<ThemeSwitcher />
+	</div>
+	
+	<slot />
 </div>
-
-<slot />

@@ -9,7 +9,7 @@
   --card-foreground: 0 0% 100%;
   --popover: 0 0% 10%;
   --popover-foreground: 0 0% 100%;
-  --primary: 25 100% 50%;
+  --primary: 30 100% 50%;
   --primary-foreground: 0 0% 100%;
   --secondary: 0 0% 10%;
   --secondary-foreground: 0 0% 100%;
@@ -21,7 +21,7 @@
   --destructive-foreground: 0 0% 100%;
   --border: 0 0% 20%;
   --input: 0 0% 20%;
-  --ring: 25 100% 50%;
+  --ring: 30 100% 50%;
   --chart-1: 220 70% 50%;
   --chart-2: 160 60% 45%;
   --chart-3: 30 80% 55%;
@@ -29,12 +29,12 @@
   --chart-5: 340 75% 55%;
   --sidebar: 0 0% 10%;
   --sidebar-foreground: 0 0% 100%;
-  --sidebar-primary: 25 100% 50%;
+  --sidebar-primary: 30 100% 50%;
   --sidebar-primary-foreground: 0 0% 100%;
   --sidebar-accent: 0 0% 10%;
   --sidebar-accent-foreground: 0 0% 100%;
   --sidebar-border: 0 0% 20%;
-  --sidebar-ring: 25 100% 50%;
+  --sidebar-ring: 30 100% 50%;
 }
 
 @layer base {
@@ -70,4 +70,25 @@
   * {
     border-radius: 0 !important;
   }
+}
+
+/* Force primary color to work until Tailwind is fixed */
+.bg-primary {
+  background-color: hsl(30 100% 50%) !important;
+}
+
+.text-primary-foreground {
+  color: hsl(0 0% 100%) !important;
+}
+
+.border-primary {
+  border-color: hsl(30 100% 50%) !important;
+}
+
+.hover\:bg-primary:hover {
+  background-color: hsl(30 100% 50%) !important;
+}
+
+.hover\:text-primary-foreground:hover {
+  color: hsl(0 0% 100%) !important;
 }
