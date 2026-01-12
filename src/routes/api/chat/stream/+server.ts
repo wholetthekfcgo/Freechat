@@ -10,12 +10,46 @@ export const POST: RequestHandler = async ({ request }) => {
 	const body = (await request.json()) as ChatRequest;
 
 	const encoder = new TextEncoder();
+	let chunkCount = 0;
+	
 	const stream = new ReadableStream({
 		async start(controller) {
 			try {
-				await streamOpenRouter(apiKey, body, (content) => {
-					controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content })}\n\n`));
+				await streamOpenRouter(apiKey, body, (content, metadata) => {
+					// Handle error chunks
+					if (metadata?.error) {
+						controller.enqueue(
+							encoder.encode(
+								`data: ${JSON.stringify({
+									error: metadata.error,
+									finishReason: metadata.finishReason || 'error'
+								})}\n\n`
+							)
+						);
+						return;
+					}
+
+					// Handle content chunks - immediately flush to client
+					if (content) {
+						chunkCount++;
+						console.log(`[Backend] Sending chunk #${chunkCount}:`, content.substring(0, 50) + '...');
+						controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content })}\n\n`));
+					}
+
+					// Handle final chunks with usage or completion info
+					if (metadata?.usage || metadata?.finishReason) {
+						console.log('[Backend] Sending final chunk:', metadata);
+						controller.enqueue(
+							encoder.encode(
+								`data: ${JSON.stringify({
+									usage: metadata.usage,
+									finishReason: metadata.finishReason
+								})}\n\n`
+							)
+						);
+					}
 				});
+				console.log(`[Backend] Stream complete. Total chunks: ${chunkCount}`);
 				controller.enqueue(encoder.encode('data: [DONE]\n\n'));
 				controller.close();
 			} catch (error) {
@@ -23,7 +57,8 @@ export const POST: RequestHandler = async ({ request }) => {
 				controller.enqueue(
 					encoder.encode(
 						`data: ${JSON.stringify({
-							error: error instanceof Error ? error.message : 'Unknown error'
+							error: error instanceof Error ? error.message : 'Unknown error',
+							finishReason: 'error'
 						})}\n\n`
 					)
 				);
@@ -36,7 +71,8 @@ export const POST: RequestHandler = async ({ request }) => {
 		headers: {
 			'Content-Type': 'text/event-stream',
 			'Cache-Control': 'no-cache',
-			Connection: 'keep-alive'
+			Connection: 'keep-alive',
+			'X-Accel-Buffering': 'no' // Disable nginx buffering
 		}
 	});
 };

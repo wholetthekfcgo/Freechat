@@ -34,7 +34,7 @@ export async function callOpenRouter(
 export async function streamOpenRouter(
   apiKey: string,
   request: ChatRequest,
-  onChunk: (content: string) => void
+  onChunk: (content: string, metadata?: { usage?: any; finishReason?: string; error?: any }) => void
 ): Promise<void> {
   const response = await fetch(OPENROUTER_API_URL, {
     method: 'POST',
@@ -48,6 +48,7 @@ export async function streamOpenRouter(
       model: request.model,
       messages: request.messages,
       stream: true,
+      streamOptions: { includeUsage: true },
       temperature: request.temperature || 0.7,
       max_tokens: request.max_tokens || 1000
     })
@@ -76,15 +77,49 @@ export async function streamOpenRouter(
 
     for (const line of lines) {
       const trimmed = line.trim();
+      
+      // Skip empty lines and done marker
       if (trimmed === '' || trimmed === 'data: [DONE]') continue;
+      
+      // Skip SSE comments (keep-alive messages)
+      if (trimmed.startsWith(':')) {
+        console.debug('SSE comment:', trimmed);
+        continue;
+      }
+      
+      // Parse data lines
       if (trimmed.startsWith('data: ')) {
         try {
           const data = JSON.parse(trimmed.slice(6));
+          
+          // Check for errors in the chunk
+          if (data.error) {
+            const errorMessage = data.error.message || 'Unknown stream error';
+            const errorCode = data.error.code || 'stream_error';
+            onChunk('', {
+              error: { code: errorCode, message: errorMessage },
+              finishReason: data.choices?.[0]?.finish_reason
+            });
+            throw new Error(errorMessage);
+          }
+          
+          // Extract content delta
           const content = data.choices?.[0]?.delta?.content;
+          const finishReason = data.choices?.[0]?.finish_reason;
+          const usage = data.usage;
+          
+          // IMPORTANT: Immediately callback with content, don't buffer
           if (content) {
-            onChunk(content);
+            onChunk(content, { finishReason, usage });
+          } else if (finishReason || usage) {
+            // Final chunk with usage stats or completion
+            onChunk('', { finishReason, usage });
           }
         } catch (e) {
+          // Don't log errors for intentionally thrown stream errors
+          if (e instanceof Error && e.message.includes('stream error')) {
+            throw e;
+          }
           console.error('Error parsing SSE data:', e);
         }
       }

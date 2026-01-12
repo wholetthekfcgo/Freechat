@@ -1,4 +1,5 @@
 import type { Message, ChatState, ChatConversation, ChatHistory } from '$lib/types/chat';
+import { browser } from '$app/environment';
 
 const STORAGE_KEY = 'chat-history';
 
@@ -78,6 +79,7 @@ export const chatActions = {
 
 		try {
 			if (stream) {
+				console.log('[Client] Starting stream request...');
 				const response = await fetch('/api/chat/stream', {
 					method: 'POST',
 					headers: { 'Content-Type': 'application/json' },
@@ -93,47 +95,78 @@ export const chatActions = {
 				}
 
 				const reader = response.body?.getReader();
+				if (!reader) {
+					throw new Error('No response body');
+				}
+				
 				const decoder = new TextDecoder();
 				let assistantContent = '';
+				let buffer = '';
+				let chunkCount = 0;
 
+				console.log('[Client] Starting to read stream...');
 				while (true) {
-					const { done, value } = await reader!.read();
-					if (done) break;
+					const { done, value } = await reader.read();
+					if (done) {
+						console.log(`[Client] Stream reading complete. Total chunks received: ${chunkCount}`);
+						break;
+					}
 
-					const chunk = decoder.decode(value);
-					const lines = chunk.split('\n');
+					buffer += decoder.decode(value, { stream: true });
+					const lines = buffer.split('\n');
+					buffer = lines.pop() || '';
 
 					for (const line of lines) {
-						if (line.startsWith('data: ')) {
-							const data = line.slice(6);
-							if (data === '[DONE]') continue;
+						const trimmed = line.trim();
+						if (!trimmed.startsWith('data: ') || trimmed === 'data: [DONE]') continue;
 
-							try {
-								const parsed = JSON.parse(data);
-								if (parsed.content) {
-									assistantContent += parsed.content;
+						try {
+							const data = JSON.parse(trimmed.slice(6));
+							chunkCount++;
 
-									// Update messages reactively
-									const messages = [...chatState.messages];
-									const lastMessage = messages[messages.length - 1];
-
-									if (lastMessage?.role === 'assistant') {
-										lastMessage.content = assistantContent;
-									} else {
-										messages.push({
-											role: 'assistant',
-											content: assistantContent,
-											timestamp: new Date()
-										});
-									}
-
-									chatState.messages = messages;
-								} else if (parsed.error) {
-									throw new Error(parsed.error);
-								}
-							} catch (e) {
-								console.error('Error parsing SSE:', e);
+							// Handle error chunks
+							if (data.error) {
+								console.error('[Client] Error chunk received:', data.error);
+								throw new Error(data.error.message || 'Stream error occurred');
 							}
+
+							// Handle content chunks
+							if (data.content) {
+								assistantContent += data.content;
+								console.log(`[Client] Chunk #${chunkCount}: "${data.content.substring(0, 30)}..." (total: ${assistantContent.length} chars)`);
+
+								// Update messages reactively
+								const messages = [...chatState.messages];
+								const lastMessage = messages[messages.length - 1];
+
+								if (lastMessage?.role === 'assistant') {
+									lastMessage.content = assistantContent;
+								} else {
+									messages.push({
+										role: 'assistant',
+										content: assistantContent,
+										timestamp: new Date()
+									});
+								}
+
+								chatState.messages = messages;
+							}
+
+							// Handle usage statistics (final chunk)
+							if (data.usage) {
+								console.log('[Client] Usage statistics:', data.usage);
+							}
+
+							// Check for completion
+							if (data.finishReason && data.finishReason !== 'stop') {
+								console.warn('[Client] Stream finished with reason:', data.finishReason);
+							}
+						} catch (e) {
+							// Re-throw intentional errors
+							if (e instanceof Error && e.message.includes('Stream error')) {
+								throw e;
+							}
+							console.error('[Client] Error parsing SSE:', e);
 						}
 					}
 				}
