@@ -34,4 +34,20 @@ export interface ChatState {
 	isLoading: boolean;
 	error: string | null;
 	currentModel: string;
+	abortController: AbortController | null;
+	canStopGeneration: boolean;
+}
+
+export interface ChatConversation {
+	id: string;
+	title: string;
+	messages: Message[];
+	model: string;
+	createdAt: Date;
+	updatedAt: Date;
+}
+
+export interface ChatHistory {
+	conversations: ChatConversation[];
+	currentConversationId: string | null;
 }
