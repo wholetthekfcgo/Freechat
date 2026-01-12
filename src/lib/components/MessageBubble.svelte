@@ -13,7 +13,13 @@
 		setTimeout(() => (copied = false), 2000);
 	}
 
-	const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+	// Make timestamp reactive based on message timestamp
+	const timestamp = $derived(
+		new Date(message.timestamp).toLocaleTimeString([], {
+			hour: '2-digit',
+			minute: '2-digit'
+		})
+	);
 </script>
 
 <article

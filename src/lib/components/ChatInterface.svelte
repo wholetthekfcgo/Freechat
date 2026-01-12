@@ -6,6 +6,7 @@
 	import ScrollArea from '$lib/components/ui/scroll-area/scroll-area.svelte';
 	import { Trash2, Download, Settings } from 'lucide-svelte';
 	import Button from '$lib/components/ui/button/button.svelte';
+	import { tick } from 'svelte';
 
 	let {
 		messages = [],
@@ -38,16 +39,21 @@
 		await onSendMessage(message);
 	}
 
-	function scrollToBottom() {
-		if (scrollAreaElement) {
-			scrollAreaElement.scrollTop = scrollAreaElement.scrollHeight;
-		}
-	}
+	// Optimize scrolling with $effect.pre
+	$effect.pre(() => {
+		// Only track messages length, not entire messages array
+		messages.length;
 
-	// Scroll to bottom when messages change
-	$effect(() => {
-		if (messages.length > 0) {
-			setTimeout(scrollToBottom, 0);
+		if (scrollAreaElement) {
+			const shouldScroll =
+				scrollAreaElement.offsetHeight + scrollAreaElement.scrollTop >
+				scrollAreaElement.scrollHeight - 50;
+
+			if (shouldScroll) {
+				tick().then(() => {
+					scrollAreaElement.scrollTo(0, scrollAreaElement.scrollHeight);
+				});
+			}
 		}
 	});
 </script>

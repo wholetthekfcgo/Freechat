@@ -1,27 +1,43 @@
 <script lang="ts">
 	import ChatInterface from '$lib/components/ChatInterface.svelte';
-	import { chatStore } from '$lib/stores/chat';
+	import { chatState, chatActions } from '$lib/stores/chat.svelte.ts';
+	import type { PageData } from './$types';
+
+	let { data }: { data: PageData } = $props();
+
+	// Initialize state from server data
+	if (data.initialModel && !chatState.currentModel) {
+		chatState.currentModel = data.initialModel;
+	}
+
+	// Create reactive derived values
+	const messages = $derived(chatState.messages);
+	const isLoading = $derived(chatState.isLoading);
+	const error = $derived(chatState.error);
+	const currentModel = $derived(chatState.currentModel);
 
 	async function handleSendMessage(message: string) {
-		await chatStore.sendMessage(message, true);
+		await chatActions.sendMessage(message, true);
 	}
 
 	function handleClear() {
-		chatStore.clearMessages();
+		chatActions.clearMessages();
 	}
 
 	function handleExport(format: 'markdown' | 'json') {
-		const messages = $chatStore.messages;
+		const exportMessages = messages;
 		let content = '';
 		let filename = '';
 		let type = '';
 
 		if (format === 'markdown') {
-			content = messages.map((m) => `## ${m.role.toUpperCase()}\n\n${m.content}\n\n`).join('---\n\n');
+			content = exportMessages
+				.map((m) => `## ${m.role.toUpperCase()}\n\n${m.content}\n\n`)
+				.join('---\n\n');
 			filename = `chat-export-${Date.now()}.md`;
 			type = 'text/markdown';
 		} else {
-			content = JSON.stringify(messages, null, 2);
+			content = JSON.stringify(exportMessages, null, 2);
 			filename = `chat-export-${Date.now()}.json`;
 			type = 'application/json';
 		}
@@ -36,17 +52,17 @@
 	}
 
 	function handleModelChange(model: string) {
-		chatStore.setModel(model);
+		chatActions.setModel(model);
 	}
 </script>
 
-<ChatInterface 
-  messages={$chatStore.messages}
-  isLoading={$chatStore.isLoading}
-  error={$chatStore.error}
-  currentModel={$chatStore.currentModel}
-  onSendMessage={handleSendMessage}
-  onClear={handleClear}
-  onExport={handleExport}
-  onModelChange={handleModelChange}
+<ChatInterface
+	{messages}
+	{isLoading}
+	{error}
+	{currentModel}
+	onSendMessage={handleSendMessage}
+	onClear={handleClear}
+	onExport={handleExport}
+	onModelChange={handleModelChange}
 />
