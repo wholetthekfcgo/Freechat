@@ -4,7 +4,7 @@
 	import FloatingInput from '$lib/components/FloatingInput.svelte';
 	import ModelSelector from '$lib/components/ModelSelector.svelte';
 	import ScrollArea from '$lib/components/ui/scroll-area/scroll-area.svelte';
-	import { Trash2, Download, Settings, Plus, Square, RotateCcw } from 'lucide-svelte';
+	import { Trash2, Download, Plus, Square, RotateCcw } from 'lucide-svelte';
 	import Button from '$lib/components/ui/button/button.svelte';
 	import { tick } from 'svelte';
 	import { chatState, chatActions, chatHistory } from '$lib/stores/chat.svelte.ts';
@@ -157,7 +157,7 @@
 					class="h-8 w-8 p-0 text-muted-foreground hover:text-foreground hover:bg-muted click-shrink"
 					title="Chat History"
 				>
-					<Settings class="w-3.5 h-3.5" />
+					<Plus class="w-3.5 h-3.5" />
 				</Button>
 			</div>
 		</div>
