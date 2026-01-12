@@ -1,5 +1,6 @@
 import { createOpenaiChat } from '@tanstack/ai-openai';
 import { getAIConfig } from '../env';
+import { logger } from '../utils/logger';
 
 /**
  * TanStack AI adapter configured for OpenRouter
@@ -18,11 +19,10 @@ import { getAIConfig } from '../env';
 export function createModelAdapter(model: string) {
 	const config = getAIConfig();
 	
-	console.log('Creating adapter with config:', {
+	logger.debug('Creating model adapter', {
 		model,
 		hasApiKey: !!config.apiKey,
-		baseURL: config.baseURL,
-		apiKeyPrefix: config.apiKey ? config.apiKey.substring(0, 10) + '...' : 'none'
+		baseURL: config.baseURL
 	});
 
 	return createOpenaiChat(model, config.apiKey, {

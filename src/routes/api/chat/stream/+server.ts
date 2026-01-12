@@ -1,13 +1,29 @@
 import type { RequestHandler } from './$types';
 import { streamOpenRouter } from '$lib/utils/openrouter';
-import type { ChatRequest } from '$lib/types/chat';
 import { getOpenRouterKey } from '$lib/env';
+import { logger } from '$lib/utils/logger';
+import { ChatRequestSchema } from '$lib/schemas/validation';
 
 export const POST: RequestHandler = async ({ request }) => {
 	// Get API key using validated env accessor
 	const apiKey = getOpenRouterKey();
 
-	const body = (await request.json()) as ChatRequest;
+	let body;
+	try {
+		// Validate request body
+		const rawBody = await request.json();
+		body = ChatRequestSchema.parse(rawBody);
+		logger.info('Request validated', { model: body.model, messageCount: body.messages.length });
+	} catch (error) {
+		logger.error('Invalid request body', error);
+		return new Response(
+			JSON.stringify({
+				error: 'Invalid request',
+				details: error instanceof Error ? error.message : 'Validation failed'
+			}),
+			{ status: 400, headers: { 'Content-Type': 'application/json' } }
+		);
+	}
 
 	const encoder = new TextEncoder();
 	let chunkCount = 0;
@@ -32,13 +48,12 @@ export const POST: RequestHandler = async ({ request }) => {
 					// Handle content chunks - immediately flush to client
 					if (content) {
 						chunkCount++;
-						console.log(`[Backend] Sending chunk #${chunkCount}:`, content.substring(0, 50) + '...');
 						controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content })}\n\n`));
 					}
 
 					// Handle final chunks with usage or completion info
 					if (metadata?.usage || metadata?.finishReason) {
-						console.log('[Backend] Sending final chunk:', metadata);
+						logger.info('Sending final chunk', metadata);
 						controller.enqueue(
 							encoder.encode(
 								`data: ${JSON.stringify({
@@ -49,11 +64,11 @@ export const POST: RequestHandler = async ({ request }) => {
 						);
 					}
 				});
-				console.log(`[Backend] Stream complete. Total chunks: ${chunkCount}`);
+				logger.info('Stream complete', { totalChunks: chunkCount });
 				controller.enqueue(encoder.encode('data: [DONE]\n\n'));
 				controller.close();
 			} catch (error) {
-				console.error('Stream error:', error);
+				logger.error('Stream error', error);
 				controller.enqueue(
 					encoder.encode(
 						`data: ${JSON.stringify({

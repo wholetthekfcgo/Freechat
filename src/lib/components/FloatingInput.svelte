@@ -2,6 +2,8 @@
 	import Textarea from '$lib/components/ui/textarea/textarea.svelte';
 	import Button from '$lib/components/ui/button/button.svelte';
 	import { Send } from 'lucide-svelte';
+	import { draftManager } from '$lib/utils/draft';
+	import { onMount } from 'svelte';
 
 	let {
 		value = $bindable(),
@@ -16,11 +18,33 @@
 	} = $props();
 
 	let textareaElement: HTMLTextAreaElement;
+	let showDraftRestored = $state(false);
+
+	// Load draft on mount
+	onMount(() => {
+		const draft = draftManager.load();
+		if (draft) {
+			value = draft;
+			showDraftRestored = true;
+			setTimeout(() => {
+				showDraftRestored = false;
+			}, 3000);
+		}
+	});
+
+	// Auto-save draft as user types
+	$effect(() => {
+		if (value && !isLoading) {
+			draftManager.save(value);
+		}
+	});
 
 	function handleKeydown(event: KeyboardEvent) {
 		if (event.key === 'Enter' && !event.shiftKey) {
 			event.preventDefault();
 			if (!isLoading && value.trim()) {
+				// Clear draft when sending
+				draftManager.clear();
 				onSubmit();
 			}
 		}
@@ -79,8 +103,16 @@
 		</div>
 		
 		<!-- Helper text -->
-		<div class="mt-3 text-center text-body-sm text-muted-foreground font-accent opacity-60">
-			Press Enter to send · Shift+Enter for new line
+		<div class="mt-3 flex items-center justify-center gap-4">
+			<span class="text-body-sm text-muted-foreground font-accent opacity-60">
+				Press Enter to send · Shift+Enter for new line
+			</span>
+			
+			{#if showDraftRestored}
+				<span class="text-body-sm text-primary font-accent animate-fade-in" aria-live="polite">
+					✓ Draft restored
+				</span>
+			{/if}
 		</div>
 	</div>
 </div>

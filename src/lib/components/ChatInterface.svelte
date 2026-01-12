@@ -102,6 +102,7 @@
 						onclick={handleStopGeneration}
 						class="h-8 w-8 p-0 text-destructive hover:bg-destructive hover:text-destructive-foreground click-shrink"
 						title="Stop generation"
+						aria-label="Stop generating response"
 					>
 						<Square class="w-3.5 h-3.5" />
 					</Button>
@@ -111,7 +112,8 @@
 					variant="ghost"
 					onclick={handleNewChat}
 					class="h-8 w-8 p-0 text-muted-foreground hover:text-foreground hover:bg-muted click-shrink"
-					title="New Chat"
+					title="New Chat (Ctrl+K)"
+					aria-label="Start new chat"
 				>
 					<Plus class="w-3.5 h-3.5" />
 				</Button>
@@ -121,7 +123,8 @@
 						variant="ghost"
 						onclick={handleRegenerate}
 						class="h-8 w-8 p-0 text-muted-foreground hover:text-foreground hover:bg-muted click-shrink"
-						title="Regenerate"
+						title="Regenerate response"
+						aria-label="Regenerate last response"
 					>
 						<RotateCcw class="w-3.5 h-3.5" />
 					</Button>
@@ -132,7 +135,8 @@
 						variant="ghost"
 						onclick={onClear}
 						class="h-8 w-8 p-0 text-muted-foreground hover:text-foreground hover:bg-muted click-shrink"
-						title="Clear"
+						title="Clear messages"
+						aria-label="Clear all messages"
 					>
 						<Trash2 class="w-3.5 h-3.5" />
 					</Button>
@@ -143,19 +147,22 @@
 						variant="ghost"
 						onclick={() => onExport('markdown')}
 						class="h-8 w-8 p-0 text-muted-foreground hover:text-foreground hover:bg-muted click-shrink"
-						title="Export"
+						title="Export conversation"
+						aria-label="Export conversation as markdown"
 					>
 						<Download class="w-3.5 h-3.5" />
 					</Button>
 				{/if}
 
-				<div class="w-px h-4 bg-border mx-1"></div>
+				<div class="w-px h-4 bg-border mx-1" aria-hidden="true"></div>
 
 				<Button
 					variant="ghost"
 					onclick={() => (showSidebar = !showSidebar)}
 					class="h-8 w-8 p-0 text-muted-foreground hover:text-foreground hover:bg-muted click-shrink"
-					title="Chat History"
+					title="Toggle chat history"
+					aria-label="Toggle chat history sidebar"
+					aria-pressed={showSidebar}
 				>
 					<Plus class="w-3.5 h-3.5" />
 				</Button>
@@ -231,7 +238,7 @@
 							</div>
 						</div>
 					{:else}
-						{#each messages as message (message.content + message.role)}
+						{#each messages as message (message.id)}
 							<MessageBubble {message} />
 						{/each}
 					{/if}

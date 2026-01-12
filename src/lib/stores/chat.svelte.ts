@@ -1,7 +1,10 @@
 import type { Message, ChatState, ChatConversation, ChatHistory } from '$lib/types/chat';
 import { browser } from '$app/environment';
+import { logger } from '$lib/utils/logger';
+import { encrypt, decrypt } from '$lib/utils/encryption';
 
-const STORAGE_KEY = 'chat-history';
+const STORAGE_KEY = 'chat-history-encrypted';
+const STORAGE_VERSION = 'v1'; // For future migrations
 
 export const chatState = $state<ChatState>({
 	messages: [],
@@ -22,27 +25,42 @@ function loadChatHistory(): void {
 	if (!browser) return;
 	
 	if (typeof localStorage === 'undefined') {
-		console.warn('localStorage is not available');
+		logger.warn('localStorage is not available');
 		return;
 	}
 	
 	try {
 		const stored = localStorage.getItem(STORAGE_KEY);
 		if (stored) {
-			const parsed = JSON.parse(stored);
-			chatHistory.conversations = parsed.conversations.map((conv: any) => ({
-				...conv,
-				createdAt: new Date(conv.createdAt),
-				updatedAt: new Date(conv.updatedAt),
-				messages: conv.messages.map((msg: any) => ({
-					...msg,
-					timestamp: new Date(msg.timestamp)
-				}))
-			}));
-			chatHistory.currentConversationId = parsed.currentConversationId;
+			// Try to decrypt the data
+			const decrypted = decrypt<ChatHistory & { version?: string }>(stored);
+			
+			if (decrypted) {
+				// Successfully decrypted - parse dates and add IDs
+				chatHistory.conversations = decrypted.conversations.map((conv) => ({
+					...conv,
+					createdAt: new Date(conv.createdAt),
+					updatedAt: new Date(conv.updatedAt),
+					messages: conv.messages.map((msg) => ({
+						...msg,
+						id: msg.id || crypto.randomUUID(),
+						timestamp: new Date(msg.timestamp)
+					}))
+				}));
+				chatHistory.currentConversationId = decrypted.currentConversationId;
+				logger.info('Chat history loaded and decrypted', { 
+					conversationCount: chatHistory.conversations.length 
+				});
+			} else {
+				// Decryption failed - data might be corrupted or from old version
+				logger.warn('Failed to decrypt chat history, clearing storage');
+				localStorage.removeItem(STORAGE_KEY);
+			}
 		}
 	} catch (error) {
-		console.error('Failed to load chat history:', error);
+		logger.error('Failed to load chat history', error);
+		// Clear corrupted data
+		localStorage.removeItem(STORAGE_KEY);
 	}
 }
 
@@ -51,14 +69,26 @@ function saveChatHistory(): void {
 	if (!browser) return;
 	
 	if (typeof localStorage === 'undefined') {
-		console.warn('localStorage is not available');
+		logger.warn('localStorage is not available');
 		return;
 	}
 	
 	try {
-		localStorage.setItem(STORAGE_KEY, JSON.stringify(chatHistory));
+		// Encrypt before saving
+		const dataToSave = {
+			...chatHistory,
+			version: STORAGE_VERSION,
+			savedAt: new Date().toISOString()
+		};
+		
+		const encrypted = encrypt(dataToSave);
+		localStorage.setItem(STORAGE_KEY, encrypted);
+		
+		logger.debug('Chat history encrypted and saved', { 
+			conversationCount: chatHistory.conversations.length 
+		});
 	} catch (error) {
-		console.error('Failed to save chat history:', error);
+		logger.error('Failed to save chat history', error);
 	}
 }
 
@@ -79,17 +109,17 @@ export const chatActions = {
 		chatState.abortController = abortController;
 		chatState.canStopGeneration = true;
 
-		// Add user message with timestamp
+		// Add user message with timestamp and unique ID
 		chatState.messages = [
 			...chatState.messages,
-			{ role: 'user', content, timestamp: new Date() }
+			{ id: crypto.randomUUID(), role: 'user', content, timestamp: new Date() }
 		];
 		chatState.isLoading = true;
 		chatState.error = null;
 
 		try {
 			if (stream) {
-				console.log('[Client] Starting stream request...');
+				logger.streamStart();
 				const response = await fetch('/api/chat/stream', {
 					method: 'POST',
 					headers: { 'Content-Type': 'application/json' },
@@ -114,11 +144,10 @@ export const chatActions = {
 				let buffer = '';
 				let chunkCount = 0;
 
-				console.log('[Client] Starting to read stream...');
 				while (true) {
 					const { done, value } = await reader.read();
 					if (done) {
-						console.log(`[Client] Stream reading complete. Total chunks received: ${chunkCount}`);
+						logger.streamComplete(chunkCount);
 						break;
 					}
 
@@ -136,14 +165,14 @@ export const chatActions = {
 
 							// Handle error chunks
 							if (data.error) {
-								console.error('[Client] Error chunk received:', data.error);
+								logger.error('Error chunk received', data.error);
 								throw new Error(data.error.message || 'Stream error occurred');
 							}
 
 							// Handle content chunks
 							if (data.content) {
 								assistantContent += data.content;
-								console.log(`[Client] Chunk #${chunkCount}: "${data.content.substring(0, 30)}..." (total: ${assistantContent.length} chars)`);
+								logger.streamChunk(chunkCount, data.content, assistantContent.length);
 
 								// Update messages reactively
 								const messages = [...chatState.messages];
@@ -153,6 +182,7 @@ export const chatActions = {
 									lastMessage.content = assistantContent;
 								} else {
 									messages.push({
+										id: crypto.randomUUID(),
 										role: 'assistant',
 										content: assistantContent,
 										timestamp: new Date()
@@ -164,19 +194,19 @@ export const chatActions = {
 
 							// Handle usage statistics (final chunk)
 							if (data.usage) {
-								console.log('[Client] Usage statistics:', data.usage);
+								logger.info('Usage statistics received', data.usage);
 							}
 
 							// Check for completion
 							if (data.finishReason && data.finishReason !== 'stop') {
-								console.warn('[Client] Stream finished with reason:', data.finishReason);
+								logger.warn(`Stream finished with reason: ${data.finishReason}`, { finishReason: data.finishReason });
 							}
 						} catch (e) {
 							// Re-throw intentional errors
 							if (e instanceof Error && e.message.includes('Stream error')) {
 								throw e;
 							}
-							console.error('[Client] Error parsing SSE:', e);
+							logger.error('Error parsing SSE', e);
 						}
 					}
 				}
@@ -201,7 +231,7 @@ export const chatActions = {
 
 				chatState.messages = [
 					...chatState.messages,
-					{ role: 'assistant', content: assistantMessage, timestamp: new Date() }
+					{ id: crypto.randomUUID(), role: 'assistant', content: assistantMessage, timestamp: new Date() }
 				];
 			}
 

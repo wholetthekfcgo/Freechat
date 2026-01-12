@@ -1,4 +1,5 @@
 import type { ChatRequest, ChatResponse } from '$lib/types/chat';
+import { logger } from '$lib/utils/logger';
 
 const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions';
 
@@ -83,7 +84,7 @@ export async function streamOpenRouter(
       
       // Skip SSE comments (keep-alive messages)
       if (trimmed.startsWith(':')) {
-        console.debug('SSE comment:', trimmed);
+        logger.debug('SSE keep-alive received');
         continue;
       }
       
@@ -100,6 +101,7 @@ export async function streamOpenRouter(
               error: { code: errorCode, message: errorMessage },
               finishReason: data.choices?.[0]?.finish_reason
             });
+            // Re-throw the error immediately
             throw new Error(errorMessage);
           }
           
@@ -120,7 +122,7 @@ export async function streamOpenRouter(
           if (e instanceof Error && e.message.includes('stream error')) {
             throw e;
           }
-          console.error('Error parsing SSE data:', e);
+          logger.error('Error parsing SSE data', e);
         }
       }
     }

@@ -2,7 +2,9 @@
 	import { browser } from '$app/environment';
 	import ChatInterface from '$lib/components/ChatInterface.svelte';
 	import { chatState, chatActions } from '$lib/stores/chat.svelte.ts';
+	import { errorTracker, withErrorHandling } from '$lib/utils/error-tracker';
 	import type { PageData } from './$types';
+	import ErrorBoundary from '$lib/components/ErrorBoundary.svelte';
 
 	let { data }: { data: PageData } = $props();
 
@@ -19,9 +21,10 @@
 	const error = $derived(chatState.error);
 	const currentModel = $derived(chatState.currentModel);
 
-	async function handleSendMessage(message: string) {
+	// Wrap async handlers with error tracking
+	const handleSendMessage = withErrorHandling(async (message: string) => {
 		await chatActions.sendMessage(message, true);
-	}
+	}, 'ChatInterface.sendMessage');
 
 	function handleClear() {
 		chatActions.clearMessages();
@@ -57,15 +60,51 @@
 	function handleModelChange(model: string) {
 		chatActions.setModel(model);
 	}
+
+	// Keyboard shortcuts
+	$effect(() => {
+		if (!browser) return;
+
+		const handleKeydown = (e: KeyboardEvent) => {
+			// Ctrl+Enter or Cmd+Enter - Send message (handled by FloatingInput)
+			// Ctrl+K or Cmd+K - Clear input
+			if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+				e.preventDefault();
+				const input = document.querySelector('textarea') as HTMLTextAreaElement;
+				if (input) {
+					input.value = '';
+					input.focus();
+				}
+			}
+
+			// Escape - Stop generation
+			if (e.key === 'Escape' && chatState.canStopGeneration) {
+				e.preventDefault();
+				chatActions.stopGeneration();
+			}
+
+			// Ctrl+/ or Cmd+/ - Show keyboard shortcuts help
+			if ((e.ctrlKey || e.metaKey) && e.key === '/') {
+				e.preventDefault();
+				// TODO: Show keyboard shortcuts modal
+				alert('Keyboard Shortcuts:\nCtrl+Enter: Send message\nCtrl+K: Clear input\nEscape: Stop generation');
+			}
+		};
+
+		window.addEventListener('keydown', handleKeydown);
+		return () => window.removeEventListener('keydown', handleKeydown);
+	});
 </script>
 
-<ChatInterface
-	{messages}
-	{isLoading}
-	{error}
-	{currentModel}
-	onSendMessage={handleSendMessage}
-	onClear={handleClear}
-	onExport={handleExport}
-	onModelChange={handleModelChange}
-/>
+<ErrorBoundary componentName="PageComponent" onRetry={() => handleSendMessage('')}>
+	<ChatInterface
+		{messages}
+		{isLoading}
+		{error}
+		{currentModel}
+		onSendMessage={handleSendMessage}
+		onClear={handleClear}
+		onExport={handleExport}
+		onModelChange={handleModelChange}
+	/>
+</ErrorBoundary>
