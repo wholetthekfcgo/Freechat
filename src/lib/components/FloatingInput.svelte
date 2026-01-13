@@ -63,9 +63,9 @@
 	const charPercent = $derived((charCount / maxChars) * 100);
 </script>
 
-<div class="floating-input border-t border-border bg-background p-6 sticky bottom-0 z-50">
+<div class="floating-input bg-background sticky bottom-0 z-50 p-6">
 	<div class="max-w-4xl mx-auto">
-		<div class="flex gap-4 items-end">
+		<div class="flex gap-4 items-center justify-center bg-card border border-border shadow-lg rounded-lg p-4">
 			<!-- Textarea - Dominant -->
 			<div class="flex-1 relative">
 				<Textarea
@@ -76,7 +76,7 @@
 					placeholder="// Enter your message..."
 					rows="1"
 					disabled={isLoading}
-					class="resize-none bg-card border-border text-foreground placeholder:text-muted-foreground focus-visible:ring-0 focus:border-primary shadow-inset text-body-md"
+					class="resize-none bg-transparent text-foreground placeholder:text-muted-foreground focus-visible:ring-0 text-body-md"
 					style="min-height: 64px; max-height: 240px; overflow-y: auto; font-family: var(--font-body);"
 				/>
 				
