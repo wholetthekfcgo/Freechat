@@ -121,7 +121,7 @@
 <svelte:window onclick={handleClickOutside} />
 
 <div class="floating-input bg-background sticky bottom-0 z-50">
-	<div class="max-w-2xl mx-auto">
+	<div class="max-w-4xl mx-auto">
 		<div class="flex items-center justify-center bg-card shadow-lg rounded-lg p-4">
 			<!-- Textarea with inline buttons -->
 			<div class="flex-1 relative">
