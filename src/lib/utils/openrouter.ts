@@ -1,5 +1,8 @@
 import type { ChatRequest, ChatResponse } from '$lib/types/chat';
 import { logger } from '$lib/utils/logger';
+import { openRouterCircuitBreaker } from '$lib/backend/core/circuit-breaker';
+import { classifyError, shouldTripCircuitBreaker } from '$lib/backend/utils/error-classifier';
+import { getOrCreateCorrelationId, addCorrelationHeader } from '$lib/backend/utils/correlation';
 
 const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions';
 
@@ -8,44 +11,74 @@ export async function callOpenRouter(
   request: ChatRequest,
   timeoutMs: number = 30000
 ): Promise<ChatResponse> {
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  // Wrap in circuit breaker for resilience
+  return openRouterCircuitBreaker.execute(async () => {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
-  try {
-    const response = await fetch(OPENROUTER_API_URL, {
-      method: 'POST',
-      headers: {
+    try {
+      // Add correlation tracking
+      const headers = new Headers({
         'Authorization': `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
         'HTTP-Referer': typeof window !== 'undefined' ? window.location.href : '',
         'X-Title': 'AI Chatbot'
-      },
-      body: JSON.stringify({
-        model: request.model,
-        messages: request.messages,
-        stream: false,
-        temperature: request.temperature || 0.7,
-        max_tokens: request.max_tokens || 1000
-      }),
-      signal: controller.signal
-    });
+      });
+      
+      // Add correlation ID if available (server-side)
+      if (typeof window === 'undefined') {
+        const correlationId = getOrCreateCorrelationId(headers);
+        addCorrelationHeader(headers, correlationId);
+      }
 
-    clearTimeout(timeoutId);
+      const response = await fetch(OPENROUTER_API_URL, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          model: request.model,
+          messages: request.messages,
+          stream: false,
+          temperature: request.temperature || 0.7,
+          max_tokens: request.max_tokens || 1000
+        }),
+        signal: controller.signal
+      });
 
-    if (!response.ok) {
-      const error = await response.text();
-      throw new Error(`OpenRouter API error: ${response.status} - ${error}`);
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        const error = await response.text();
+        const errorObj = new Error(`OpenRouter API error: ${response.status} - ${error}`);
+        
+        // Check if this should trip the circuit breaker
+        if (shouldTripCircuitBreaker(errorObj)) {
+          logger.error('Circuit breaker trip condition detected', {
+            status: response.status,
+            error: errorObj.message
+          });
+        }
+        
+        throw errorObj;
+      }
+
+      return response.json();
+    } catch (error) {
+      clearTimeout(timeoutId);
+      
+      // Classify error for better logging and handling
+      const classification = classifyError(error);
+      logger.error('OpenRouter request failed', error, {
+        category: classification.category,
+        severity: classification.severity,
+        retryable: classification.retryable
+      });
+      
+      if (error instanceof Error && error.name === 'AbortError') {
+        throw new Error('Request timeout - server took too long to respond');
+      }
+      throw error;
     }
-
-    return response.json();
-  } catch (error) {
-    clearTimeout(timeoutId);
-    
-    if (error instanceof Error && error.name === 'AbortError') {
-      throw new Error('Request timeout - server took too long to respond');
-    }
-    throw error;
-  }
+  });
 }
 
 export async function streamOpenRouter(

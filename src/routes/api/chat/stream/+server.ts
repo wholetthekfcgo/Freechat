@@ -3,117 +3,180 @@ import { streamOpenRouter } from '$lib/utils/openrouter';
 import { getOpenRouterKey } from '$lib/env';
 import { logger } from '$lib/utils/logger';
 import { ChatRequestSchema } from '$lib/schemas/validation';
+import { classifyError } from '$lib/backend/utils/error-classifier';
+import { getOrCreateCorrelationId, setCorrelationContext, clearCorrelationContext } from '$lib/backend/utils/correlation';
+import { withTimeout } from '$lib/backend/middleware/timeout';
 
-export const POST: RequestHandler = async ({ request }) => {
-	// Validate content length before parsing
-	const contentLength = request.headers.get('content-length');
-	if (contentLength && parseInt(contentLength) > 1_000_000) { // 1MB limit
-		logger.error('Request payload too large', { size: contentLength });
-		return new Response(
-			JSON.stringify({
-				error: 'Payload too large',
-				details: 'Request body exceeds 1MB limit'
-			}),
-			{ status: 413, headers: { 'Content-Type': 'application/json' } }
-		);
-	}
-
-	// Validate content type
-	const contentType = request.headers.get('content-type');
-	if (!contentType?.includes('application/json')) {
-		logger.error('Invalid content type', { contentType });
-		return new Response(
-			JSON.stringify({
-				error: 'Invalid content type',
-				details: 'Content-Type must be application/json'
-			}),
-			{ status: 415, headers: { 'Content-Type': 'application/json' } }
-		);
-	}
-
-	// Get API key using validated env accessor
-	const apiKey = getOpenRouterKey();
-
-	let body;
-	try {
-		// Validate request body
-		const rawBody = await request.json();
-		body = ChatRequestSchema.parse(rawBody);
-		logger.info('Request validated', { model: body.model, messageCount: body.messages.length });
-	} catch (error) {
-		logger.error('Invalid request body', error);
-		return new Response(
-			JSON.stringify({
-				error: 'Invalid request',
-				details: error instanceof Error ? error.message : 'Validation failed'
-			}),
-			{ status: 400, headers: { 'Content-Type': 'application/json' } }
-		);
-	}
-
-	const encoder = new TextEncoder();
-	let chunkCount = 0;
+const baseHandler: RequestHandler = async ({ request }) => {
+	// Add correlation tracking
+	const correlationId = getOrCreateCorrelationId(request.headers);
+	setCorrelationContext(correlationId);
 	
-	const stream = new ReadableStream({
-		async start(controller) {
-			try {
-				await streamOpenRouter(apiKey, body, (content, metadata) => {
-					// Handle error chunks
-					if (metadata?.error) {
-						controller.enqueue(
-							encoder.encode(
-								`data: ${JSON.stringify({
-									error: metadata.error,
-									finishReason: metadata.finishReason || 'error'
-								})}\n\n`
-							)
-						);
-						return;
-					}
+	try {
+		logger.info('Processing stream request', {
+			correlationId,
+			url: request.url
+		});
 
-					// Handle content chunks - immediately flush to client
-					if (content) {
-						chunkCount++;
-						controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content })}\n\n`));
-					}
+		// Validate content length before parsing
+		const contentLength = request.headers.get('content-length');
+		if (contentLength && parseInt(contentLength) > 1_000_000) { // 1MB limit
+			logger.error('Request payload too large', { size: contentLength, correlationId });
+			return new Response(
+				JSON.stringify({
+					error: 'Payload too large',
+					details: 'Request body exceeds 1MB limit',
+					correlationId
+				}),
+				{ status: 413, headers: { 'Content-Type': 'application/json', 'x-correlation-id': correlationId } }
+			);
+		}
 
-					// Handle final chunks with usage or completion info
-					if (metadata?.usage || metadata?.finishReason) {
-						logger.info('Sending final chunk', metadata);
-						controller.enqueue(
-							encoder.encode(
-								`data: ${JSON.stringify({
-									usage: metadata.usage,
-									finishReason: metadata.finishReason
-								})}\n\n`
-							)
-						);
-					}
-				});
-				logger.info('Stream complete', { totalChunks: chunkCount });
-				controller.enqueue(encoder.encode('data: [DONE]\n\n'));
-				controller.close();
-			} catch (error) {
-				logger.error('Stream error', error);
-				controller.enqueue(
-					encoder.encode(
-						`data: ${JSON.stringify({
-							error: error instanceof Error ? error.message : 'Unknown error',
-							finishReason: 'error'
-						})}\n\n`
-					)
-				);
-				controller.close();
+		// Validate content type
+		const contentType = request.headers.get('content-type');
+		if (!contentType?.includes('application/json')) {
+			logger.error('Invalid content type', { contentType, correlationId });
+			return new Response(
+				JSON.stringify({
+					error: 'Invalid content type',
+					details: 'Content-Type must be application/json',
+					correlationId
+				}),
+				{ status: 415, headers: { 'Content-Type': 'application/json', 'x-correlation-id': correlationId } }
+			);
+		}
+
+		// Get API key using validated env accessor
+		const apiKey = getOpenRouterKey();
+
+		let body;
+		try {
+			// Validate request body
+			const rawBody = await request.json();
+			body = ChatRequestSchema.parse(rawBody);
+			
+			logger.info('Stream request validated', { 
+				correlationId,
+				model: body.model, 
+				messageCount: body.messages.length 
+			});
+		} catch (error) {
+			const classification = classifyError(error);
+			logger[classification.logLevel]('Invalid request body', error, { correlationId });
+			
+			return new Response(
+				JSON.stringify({
+					error: 'Invalid request',
+					details: error instanceof Error ? error.message : 'Validation failed',
+					correlationId
+				}),
+				{ status: 400, headers: { 'Content-Type': 'application/json', 'x-correlation-id': correlationId } }
+			);
+		}
+
+		const encoder = new TextEncoder();
+		let chunkCount = 0;
+		
+		const stream = new ReadableStream({
+			async start(controller) {
+				try {
+					await streamOpenRouter(apiKey, body, (content, metadata) => {
+						// Handle error chunks
+						if (metadata?.error) {
+							const errorData = {
+								error: metadata.error,
+								finishReason: metadata.finishReason || 'error',
+								correlationId
+							};
+							
+							logger.error('Stream error', metadata.error, { correlationId });
+							
+							controller.enqueue(
+								encoder.encode(`data: ${JSON.stringify(errorData)}\n\n`)
+							);
+							return;
+						}
+
+						// Handle content chunks - immediately flush to client
+						if (content) {
+							chunkCount++;
+							controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content, correlationId })}\n\n`));
+							
+							logger.streamChunk(chunkCount, content, content.length);
+						}
+
+						// Handle final chunks with usage or completion info
+						if (metadata?.usage || metadata?.finishReason) {
+							logger.info('Sending final chunk', { ...metadata, correlationId });
+							controller.enqueue(
+								encoder.encode(
+									`data: ${JSON.stringify({
+										usage: metadata.usage,
+										finishReason: metadata.finishReason,
+										correlationId
+									})}\n\n`
+								)
+							);
+						}
+					});
+					
+					logger.info('Stream complete', { totalChunks: chunkCount, correlationId });
+					controller.enqueue(encoder.encode('data: [DONE]\n\n'));
+					controller.close();
+				} catch (error) {
+					const classification = classifyError(error);
+					
+					logger[classification.logLevel]('Stream error', error, {
+						correlationId,
+						category: classification.category
+					});
+					
+					controller.enqueue(
+						encoder.encode(
+							`data: ${JSON.stringify({
+								error: classification.userMessage,
+								details: error instanceof Error ? error.message : 'Unknown error',
+								finishReason: 'error',
+								correlationId
+							})}\n\n`
+						)
+					);
+					controller.close();
+				}
 			}
-		}
-	});
+		});
 
-	return new Response(stream, {
-		headers: {
-			'Content-Type': 'text/event-stream',
-			'Cache-Control': 'no-cache',
-			Connection: 'keep-alive',
-			'X-Accel-Buffering': 'no' // Disable nginx buffering
-		}
-	});
+		return new Response(stream, {
+			headers: {
+				'Content-Type': 'text/event-stream',
+				'Cache-Control': 'no-cache',
+				Connection: 'keep-alive',
+				'X-Accel-Buffering': 'no', // Disable nginx buffering
+				'x-correlation-id': correlationId
+			}
+		});
+	} catch (error) {
+		const classification = classifyError(error);
+		
+		logger[classification.logLevel]('Stream API error', error, {
+			correlationId,
+			category: classification.category
+		});
+
+		return new Response(
+			JSON.stringify({
+				error: classification.userMessage,
+				details: error instanceof Error ? error.message : 'Unknown error',
+				correlationId
+			}),
+			{ 
+				status: 500,
+				headers: { 'Content-Type': 'application/json', 'x-correlation-id': correlationId } 
+			}
+		);
+	} finally {
+		clearCorrelationContext();
+	}
 };
+
+export const POST = withTimeout(baseHandler);

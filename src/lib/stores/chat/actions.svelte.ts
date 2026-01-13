@@ -66,6 +66,11 @@ export async function sendMessage(content: string, stream = true): Promise<void>
 	try {
 		// Wrap API call with rate limiting and retry logic
 		await withRateLimitAndRetry(async () => {
+			// Check if user aborted before starting the request
+			if (abortController.signal.aborted) {
+				throw new DOMException('Request was aborted', 'AbortError');
+			}
+			
 			if (stream) {
 				logger.streamStart();
 				const response = await queueRequest(

@@ -261,7 +261,8 @@ export function calculateBackoff(
 export async function withRetry<T>(
 	fn: () => Promise<T>,
 	maxRetries = 3,
-	baseDelay = 1000
+	baseDelay = 1000,
+	signal?: AbortSignal
 ): Promise<T> {
 	let lastError: Error | undefined;
 
@@ -270,6 +271,12 @@ export async function withRetry<T>(
 			return await fn();
 		} catch (error) {
 			lastError = error instanceof Error ? error : new Error(String(error));
+
+			// Don't retry if the request was aborted by user
+			if (lastError.name === 'AbortError' || (signal?.aborted)) {
+				logger.debug('Request aborted by user, not retrying', { attempt: attempt + 1 });
+				throw lastError;
+			}
 
 			if (attempt < maxRetries) {
 				const delay = calculateBackoff(attempt, baseDelay);
