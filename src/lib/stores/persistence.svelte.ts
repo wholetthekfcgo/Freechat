@@ -32,10 +32,10 @@ export async function load(): Promise<ChatHistory> {
 	
 	try {
 		// Try encrypted version first
-		const encrypted = await idb.get<string>(STORES.CHAT_HISTORY, STORAGE_KEY);
-		if (encrypted) {
+		const encryptedRecord = await idb.get<{ id: string; encrypted: string }>(STORES.CHAT_HISTORY, STORAGE_KEY);
+		if (encryptedRecord && encryptedRecord.encrypted) {
 			try {
-				const decrypted = await decrypt<ChatHistory & { version?: string }>(encrypted);
+				const decrypted = await decrypt<ChatHistory & { version?: string }>(encryptedRecord.encrypted);
 				
 				if (decrypted) {
 					// Successfully decrypted - parse dates and add IDs
@@ -148,7 +148,8 @@ export async function save(history: ChatHistory): Promise<void> {
 		}
 		
 		// Save encrypted version
-		const success = await idb.set(STORES.CHAT_HISTORY, { id: STORAGE_KEY, data: encrypted });
+		const encryptedData = { id: STORAGE_KEY, encrypted };
+		const success = await idb.set(STORES.CHAT_HISTORY, encryptedData);
 		
 		if (!success) {
 			logger.error('Failed to save chat history: storage quota exceeded');

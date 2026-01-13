@@ -18,7 +18,7 @@
 		placeholder?: string;
 	} = $props();
 
-	let textareaElement: HTMLTextAreaElement;
+	let textareaRef = $state(null);
 	let showDraftRestored = $state(false);
 
 	// Load draft on mount
@@ -59,6 +59,20 @@
 		}
 	}
 
+	function resetTextareaHeight() {
+		// Use requestAnimationFrame to ensure the ref is available
+		requestAnimationFrame(() => {
+			if (textareaRef && typeof textareaRef !== 'string') {
+				// Access the actual DOM element through the ref
+				const element = textareaRef;
+				if (element && 'style' in element) {
+					element.style.height = 'auto';
+					element.style.height = '80px'; // Reset to min-height
+				}
+			}
+		});
+	}
+
 	const charCount = $derived(value.length);
 	const maxChars = 4000;
 	const charPercent = $derived((charCount / maxChars) * 100);
@@ -79,7 +93,7 @@
 			<!-- Textarea with inline buttons -->
 			<div class="flex-1 relative">
 				<Textarea
-					bind:this={textareaElement}
+					bind:this={textareaRef}
 					bind:value
 					onkeydown={handleKeydown}
 					oninput={autoResize}
@@ -103,7 +117,7 @@
 					<div class="flex gap-2">
 						<!-- Clear Button -->
 						<button
-							onclick={() => { value = ''; draftManager.clear(); }}
+							onclick={() => { value = ''; draftManager.clear(); resetTextareaHeight(); }}
 							class="p-2 w-8 h-8 rounded-md bg-muted/50 hover:bg-muted text-muted-foreground hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center transition-colors"
 							disabled={isLoading || !value.trim()}
 							title="Clear input"
