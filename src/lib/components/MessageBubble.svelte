@@ -63,7 +63,7 @@
 		<div
 			class="relative p-5 border {message.role === 'user'
 				? 'bg-primary text-primary-foreground border-primary shadow-medium'
-				: 'bg-card text-foreground border-border shadow-subtle hover:border-primary/30'} transition-all duration-200 {message.role === 'user' ? 'inline-block text-left max-w-[80%]' : 'inline-block max-w-[80%]'}"
+				: 'bg-card text-foreground border-border shadow-subtle hover:border-primary/30'} transition-all duration-200 {message.role === 'user' ? 'inline-block text-left max-w-[93%]' : 'inline-block max-w-[93%]'}"
 		>
 			{#if isCodeBlock}
 				<div class="prose prose-invert max-w-none">
