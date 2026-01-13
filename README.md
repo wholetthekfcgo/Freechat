@@ -1,6 +1,6 @@
-# NOIR.CHAT
+# FREECHAT.CC
 
-A modern, production-hardened AI chatbot built with SvelteKit, powered by OpenRouter API.
+Free as in Freedom - A modern, production-hardened AI chatbot built with SvelteKit, powered by OpenRouter API.
 
 ## 🛡️ Production-Ready Features
 

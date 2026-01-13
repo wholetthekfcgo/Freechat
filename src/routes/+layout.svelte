@@ -38,8 +38,8 @@
 </script>
 
 <svelte:head>
-	<title>AI Chatbot</title>
-	<meta name="description" content="AI Chatbot powered by OpenRouter" />
+	<title>Freechat - Free as in Freedom</title>
+	<meta name="description" content="Freechat.cc - Free AI Chatbot powered by OpenRouter. Free as in Freedom." />
 	<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https://openrouter.ai https://*.openrouter.ai; font-src 'self' data: https://fonts.gstatic.com;">
 </svelte:head>
 

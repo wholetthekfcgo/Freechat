@@ -40,7 +40,7 @@
 </script>
 
 <article
-	class="message-bubble group relative mb-6 flex gap-4 animate-fade-in"
+	class="message-bubble group relative mb-6 flex gap-4 animate-fade-in {message.role === 'user' ? 'flex-row-reverse' : ''}"
 	onmouseenter={() => (showTimestamp = true)}
 	onmouseleave={() => (showTimestamp = false)}
 >
@@ -49,21 +49,21 @@
 		class="flex-shrink-0 w-10 h-10 flex items-center justify-center border {message.role ===
 		'user'
 			? 'bg-primary border-primary text-primary-foreground shadow-medium'
-			: 'bg-card border-border text-foreground shadow-subtle'}"
+			: 'bg-card border-border text-foreground shadow-subtle overflow-hidden'}"
 	>
 		{#if message.role === 'user'}
 			<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
 		{:else}
-			<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/></svg>
+			<img src="/favicon.png" alt="AI" class="w-full h-full object-cover" />
 		{/if}
 	</div>
 
 	<!-- Message Content -->
-	<div class="flex-1 max-w-none">
+	<div class="flex-1 {message.role === 'user' ? 'text-right' : 'text-left'}">
 		<div
 			class="relative p-5 border {message.role === 'user'
 				? 'bg-primary text-primary-foreground border-primary shadow-medium'
-				: 'bg-card text-foreground border-border shadow-subtle hover:border-primary/30'} transition-all duration-200"
+				: 'bg-card text-foreground border-border shadow-subtle hover:border-primary/30'} transition-all duration-200 {message.role === 'user' ? 'inline-block text-left' : ''}"
 		>
 			{#if isCodeBlock}
 				<div class="prose prose-invert max-w-none">
@@ -91,7 +91,7 @@
 
 		<!-- Timestamp -->
 		{#if showTimestamp}
-			<p class="mt-2 text-body-sm text-muted-foreground font-accent opacity-80">
+			<p class="mt-2 text-body-sm text-muted-foreground font-accent opacity-80 {message.role === 'user' ? 'text-right' : 'text-left'}">
 				{timestamp}
 			</p>
 		{/if}
