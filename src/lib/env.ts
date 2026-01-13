@@ -18,9 +18,9 @@ export function validateEnv() {
 	return true;
 }
 
-// Type-safe env accessor
+// Type-safe env accessor (server-side only)
 export const getOpenRouterKey = () => {
-	const key = env.OPENROUTER_API_KEY || process.env.OPENROUTER_API_KEY;
+	const key = env.OPENROUTER_API_KEY;
 
 	if (!key) {
 		throw new Error('OPENROUTER_API_KEY is not configured');

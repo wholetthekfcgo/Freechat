@@ -2,39 +2,40 @@
  * Persistence Layer - Chat History Storage
  * 
  * Handles loading and saving chat history with encryption,
- * quota management, and error recovery.
+ * quota management, and error recovery using IndexedDB.
  */
 
 import { browser } from '$app/environment';
 import { logger } from '$lib/utils/logger';
 import { encrypt, decrypt } from '$lib/utils/encryption';
-import { safeSaveToStorage, safeLoadFromStorage, safeRemoveFromStorage } from '$lib/utils/storage-quota';
+import { idb, STORES } from '$lib/utils/indexeddb';
 import type { ChatHistory } from '$lib/types/chat';
 
 const STORAGE_VERSION = 'v1';
+const STORAGE_KEY = 'chat-history';
+const UNENCRYPTED_KEY = 'chat-history-unencrypted';
 
 /**
- * Load chat history from localStorage
+ * Load chat history from IndexedDB
  * 
- * @param storageKey - Key to use for storage
  * @returns Loaded chat history or default empty history
  */
-export function load(storageKey: string): ChatHistory {
+export async function load(): Promise<ChatHistory> {
 	if (!browser) {
 		return { conversations: [], currentConversationId: null };
 	}
 	
-	if (typeof localStorage === 'undefined') {
-		logger.warn('localStorage is not available');
+	if (typeof indexedDB === 'undefined') {
+		logger.warn('IndexedDB is not available');
 		return { conversations: [], currentConversationId: null };
 	}
 	
 	try {
 		// Try encrypted version first
-		const encrypted = localStorage.getItem(storageKey);
+		const encrypted = await idb.get<string>(STORES.CHAT_HISTORY, STORAGE_KEY);
 		if (encrypted) {
 			try {
-				const decrypted = decrypt<ChatHistory & { version?: string }>(encrypted);
+				const decrypted = await decrypt<ChatHistory & { version?: string }>(encrypted);
 				
 				if (decrypted) {
 					// Successfully decrypted - parse dates and add IDs
@@ -65,14 +66,22 @@ export function load(storageKey: string): ChatHistory {
 		}
 		
 		// Try unencrypted fallback
-		const unencryptedKey = storageKey + '-unencrypted';
-		const fallback = localStorage.getItem(unencryptedKey);
+		const fallback = await idb.get<ChatHistory & { version?: string }>(STORES.CHAT_HISTORY, UNENCRYPTED_KEY);
 		if (fallback) {
 			logger.warn('Loading unencrypted fallback data');
-			const data = JSON.parse(fallback);
+			const conversations = fallback.conversations.map((conv) => ({
+				...conv,
+				createdAt: new Date(conv.createdAt),
+				updatedAt: new Date(conv.updatedAt),
+				messages: conv.messages.map((msg) => ({
+					...msg,
+					id: msg.id || crypto.randomUUID(),
+					timestamp: new Date(msg.timestamp)
+				}))
+			}));
 			return {
-				conversations: data.conversations || [],
-				currentConversationId: data.currentConversationId || null
+				conversations,
+				currentConversationId: fallback.currentConversationId || null
 			};
 		}
 		
@@ -82,8 +91,8 @@ export function load(storageKey: string): ChatHistory {
 		logger.error('Failed to load chat history', error);
 		// Clear corrupted data
 		try {
-			localStorage.removeItem(storageKey);
-			localStorage.removeItem(storageKey + '-unencrypted');
+			await idb.delete(STORES.CHAT_HISTORY, STORAGE_KEY);
+			await idb.delete(STORES.CHAT_HISTORY, UNENCRYPTED_KEY);
 		} catch (e) {
 			// Ignore
 		}
@@ -92,16 +101,15 @@ export function load(storageKey: string): ChatHistory {
 }
 
 /**
- * Save chat history to localStorage with encryption and fallback
+ * Save chat history to IndexedDB with encryption and fallback
  * 
  * @param history - Chat history to save
- * @param storageKey - Key to use for storage
  */
-export function save(history: ChatHistory, storageKey: string): void {
+export async function save(history: ChatHistory): Promise<void> {
 	if (!browser) return;
 	
-	if (typeof localStorage === 'undefined') {
-		logger.warn('localStorage is not available');
+	if (typeof indexedDB === 'undefined') {
+		logger.warn('IndexedDB is not available');
 		return;
 	}
 	
@@ -117,18 +125,19 @@ export function save(history: ChatHistory, storageKey: string): void {
 		
 		try {
 			// Try to encrypt
-			encrypted = encrypt(dataToSave);
+			encrypted = await encrypt(dataToSave);
 		} catch (encryptionError) {
 			// Encryption failed - save unencrypted with warning
 			logger.error('Encryption failed, saving unencrypted', encryptionError);
 			
 			const fallbackData = {
+				id: UNENCRYPTED_KEY,
 				...dataToSave,
 				_encryptionFailed: true,
 				_fallbackTimestamp: new Date().toISOString()
 			};
 			
-			const success = safeSaveToStorage(storageKey + '-unencrypted', JSON.stringify(fallbackData));
+			const success = await idb.set(STORES.CHAT_HISTORY, fallbackData);
 			
 			if (!success) {
 				logger.error('Failed to save unencrypted fallback');
@@ -139,18 +148,17 @@ export function save(history: ChatHistory, storageKey: string): void {
 		}
 		
 		// Save encrypted version
-		const success = safeSaveToStorage(storageKey, encrypted);
+		const success = await idb.set(STORES.CHAT_HISTORY, { id: STORAGE_KEY, data: encrypted });
 		
 		if (!success) {
 			logger.error('Failed to save chat history: storage quota exceeded');
 		} else {
 			// Successfully saved encrypted, remove any unencrypted fallback
-			safeRemoveFromStorage(storageKey + '-unencrypted');
+			await idb.delete(STORES.CHAT_HISTORY, UNENCRYPTED_KEY);
 		}
 		
-		logger.debug('Chat history encrypted and saved', { 
-			conversationCount: history.conversations.length 
-		});
+		const conversationCount = history?.conversations?.length ?? 0;
+		logger.debug('Chat history encrypted and saved', { conversationCount });
 	} catch (error) {
 		logger.error('Failed to save chat history', error);
 	}
@@ -159,16 +167,15 @@ export function save(history: ChatHistory, storageKey: string): void {
 /**
  * Clear all chat history from storage
  * 
- * @param storageKey - Key to clear
  */
-export function clear(storageKey: string): void {
-	if (!browser || typeof localStorage === 'undefined') {
+export async function clear(): Promise<void> {
+	if (!browser || typeof indexedDB === 'undefined') {
 		return;
 	}
 
 	try {
-		localStorage.removeItem(storageKey);
-		localStorage.removeItem(storageKey + '-unencrypted');
+		await idb.delete(STORES.CHAT_HISTORY, STORAGE_KEY);
+		await idb.delete(STORES.CHAT_HISTORY, UNENCRYPTED_KEY);
 		logger.info('Cleared chat history from storage');
 	} catch (error) {
 		logger.error('Failed to clear chat history', error);

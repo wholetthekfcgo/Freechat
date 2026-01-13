@@ -1,20 +1,28 @@
 <script lang="ts">
 	import { browser } from '$app/environment';
+	import { onMount } from 'svelte';
+	import { idb, STORES } from '$lib/utils/indexeddb';
 
 	let theme = $state<'light' | 'dark'>('dark');
 
-	// Initialize theme
-	if (browser) {
-		const savedTheme = localStorage.getItem('theme') as 'light' | 'dark' | null;
-		theme = savedTheme || 'dark';
-	}
+	// Initialize theme from IndexedDB
+	onMount(async () => {
+		if (browser) {
+			const stored = await idb.get<{ id: string; value: 'light' | 'dark' }>(STORES.THEME, 'current');
+			theme = stored?.value || 'dark';
+			
+			// Apply theme immediately
+			document.documentElement.classList.toggle('dark', theme === 'dark');
+		}
+	});
 
-	// Update theme when state changes - directly manipulate DOM in effect
+	// Update theme when state changes
 	$effect(() => {
 		if (browser) {
 			// Direct DOM manipulation is acceptable in $effect for side effects
 			document.documentElement.classList.toggle('dark', theme === 'dark');
-			localStorage.setItem('theme', theme);
+			// Save to IndexedDB
+			idb.set(STORES.THEME, { id: 'current', value: theme });
 		}
 	});
 

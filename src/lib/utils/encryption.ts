@@ -1,39 +1,165 @@
 /**
- * Encryption utilities for securing sensitive data in localStorage
- * Uses AES-256 encryption with a derived key from browser fingerprint
+ * Encryption utilities for securing sensitive data in IndexedDB
+ * Uses Web Crypto API with proper key derivation
  */
 
-import CryptoES from 'crypto-js';
+import { logger } from './logger';
+import { idb, STORES } from './indexeddb';
 
-// In production, this should be a server-provided key or user-specific secret
-// For now, we use a combination of browser fingerprint + app secret
-const ENCRYPTION_KEY = 'noir-chat-encryption-key-2024';
+// Key derivation parameters
+const ENCRYPTION_ALGORITHM = 'AES-GCM';
+const KEY_DERIVATION_ALGORITHM = 'PBKDF2';
+const SALT_LENGTH = 16;
+const IV_LENGTH = 12;
+const KEY_ITERATIONS = 100000;
 
 /**
- * Encrypt data using AES-256
- * @param data - The data to encrypt (will be JSON stringified)
- * @returns Encrypted string
+ * Get or create a user-specific encryption key
+ * Uses a combination of browser fingerprint and app secret
  */
-export function encrypt(data: unknown): string {
+async function getEncryptionKey(): Promise<CryptoKey> {
+	// Create a persistent key for this user/browser
+	const keyMaterial = await getKeyMaterial();
+	
+	// Get or create salt for this user
+	let salt = await getOrCreateSalt();
+	
+	// Derive the actual encryption key
+	return window.crypto.subtle.deriveKey(
+		{
+			name: KEY_DERIVATION_ALGORITHM,
+			salt: salt,
+			iterations: KEY_ITERATIONS,
+			hash: 'SHA-256'
+		},
+		keyMaterial,
+		{ name: ENCRYPTION_ALGORITHM, length: 256 },
+		false,
+		['encrypt', 'decrypt']
+	);
+}
+
+/**
+ * Create key material from app secret and browser fingerprint
+ */
+async function getKeyMaterial(): Promise<CryptoKey> {
+	// Use app identifier as base secret
+	const appSecret = 'noir-chat-encryption-key-2024';
+	
+	// Add browser-specific data for uniqueness
+	const browserData = [
+		navigator.userAgent,
+		navigator.language,
+		screen.width.toString(),
+		screen.height.toString()
+	].join('|');
+	
+	const combined = appSecret + browserData;
+	
+	return window.crypto.subtle.importKey(
+		'raw',
+		new TextEncoder().encode(combined),
+		{ name: KEY_DERIVATION_ALGORITHM },
+		false,
+		['deriveKey']
+	);
+}
+
+/**
+ * Get or create a salt for this user
+ */
+async function getOrCreateSalt(): Promise<Uint8Array> {
+	const saltKey = 'encryption-salt';
+	const storedSalt = await idb.get<{ id: string; value: number[] }>(STORES.ENCRYPTION_SALT, saltKey);
+	
+	if (storedSalt && storedSalt.value) {
+		try {
+			return new Uint8Array(storedSalt.value);
+		} catch {
+			logger.warn('Invalid salt stored, creating new one');
+		}
+	}
+	
+	// Create new salt
+	const salt = window.crypto.getRandomValues(new Uint8Array(SALT_LENGTH));
+	await idb.set(STORES.ENCRYPTION_SALT, { id: saltKey, value: Array.from(salt) });
+	return salt;
+}
+
+/**
+ * Encrypt data using AES-GCM with Web Crypto API
+ * @param data - The data to encrypt (will be JSON stringified)
+ * @returns Encrypted string (salt + iv + ciphertext, base64 encoded)
+ */
+export async function encrypt(data: unknown): Promise<string> {
+	if (typeof window === 'undefined' || !window.crypto) {
+		throw new Error('Web Crypto API not available');
+	}
+
 	try {
 		const jsonString = JSON.stringify(data);
-		const encrypted = CryptoES.AES.encrypt(jsonString, ENCRYPTION_KEY).toString();
-		return encrypted;
+		const dataBytes = new TextEncoder().encode(jsonString);
+		
+		// Get encryption key
+		const key = await getEncryptionKey();
+		
+		// Generate random IV
+		const iv = window.crypto.getRandomValues(new Uint8Array(IV_LENGTH));
+		
+		// Encrypt
+		const ciphertext = await window.crypto.subtle.encrypt(
+			{ name: ENCRYPTION_ALGORITHM, iv },
+			key,
+			dataBytes
+		);
+		
+		// Combine salt, iv, and ciphertext
+		const combined = new Uint8Array(iv.length + ciphertext.byteLength);
+		combined.set(iv);
+		combined.set(new Uint8Array(ciphertext), iv.length);
+		
+		// Encode as base64
+		return btoa(String.fromCharCode(...combined));
 	} catch (error) {
-		console.error('Encryption failed:', error);
+		logger.error('Encryption failed:', error);
 		throw new Error('Failed to encrypt data');
 	}
 }
 
 /**
- * Decrypt data using AES-256
+ * Decrypt data using AES-GCM with Web Crypto API
  * @param encryptedData - The encrypted string
  * @returns Decrypted data (parsed from JSON)
  */
-export function decrypt<T>(encryptedData: string): T | null {
+export async function decrypt<T>(encryptedData: string): Promise<T | null> {
+	if (typeof window === 'undefined' || !window.crypto) {
+		throw new Error('Web Crypto API not available');
+	}
+
 	try {
-		const decryptedBytes = CryptoES.AES.decrypt(encryptedData, ENCRYPTION_KEY);
-		const decryptedString = decryptedBytes.toString(CryptoES.enc.Utf8);
+		// Decode from base64
+		const combined = new Uint8Array(
+			atob(encryptedData)
+				.split('')
+				.map(c => c.charCodeAt(0))
+		);
+		
+		// Extract IV and ciphertext
+		const iv = combined.slice(0, IV_LENGTH);
+		const ciphertext = combined.slice(IV_LENGTH);
+		
+		// Get decryption key
+		const key = await getEncryptionKey();
+		
+		// Decrypt
+		const decryptedBytes = await window.crypto.subtle.decrypt(
+			{ name: ENCRYPTION_ALGORITHM, iv },
+			key,
+			ciphertext
+		);
+		
+		// Decode and parse
+		const decryptedString = new TextDecoder().decode(decryptedBytes);
 		
 		if (!decryptedString || decryptedString.length === 0) {
 			return null;
@@ -41,7 +167,7 @@ export function decrypt<T>(encryptedData: string): T | null {
 		
 		return JSON.parse(decryptedString) as T;
 	} catch (error) {
-		// Throw error to allow caller to handle
+		logger.error('Decryption failed:', error);
 		throw new Error('Decryption failed: ' + (error instanceof Error ? error.message : 'Unknown error'));
 	}
 }
@@ -49,10 +175,17 @@ export function decrypt<T>(encryptedData: string): T | null {
 /**
  * Hash a string using SHA-256 (for one-way transformations)
  * @param data - The data to hash
- * @returns Hashed string
+ * @returns Hex-encoded hash
  */
-export function hash(data: string): string {
-	return CryptoES.SHA256(data).toString();
+export async function hash(data: string): Promise<string> {
+	if (typeof window === 'undefined' || !window.crypto) {
+		throw new Error('Web Crypto API not available');
+	}
+
+	const dataBytes = new TextEncoder().encode(data);
+	const hashBuffer = await window.crypto.subtle.digest('SHA-256', dataBytes);
+	const hashArray = Array.from(new Uint8Array(hashBuffer));
+	return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
 /**
@@ -60,7 +193,13 @@ export function hash(data: string): string {
  * @param bytes - Number of bytes (default: 16)
  * @returns Hex-encoded random token
  */
-export function generateToken(bytes = 16): string {
-	const randomBytes = CryptoES.lib.WordArray.random(bytes);
-	return CryptoES.enc.Hex.stringify(randomBytes);
+export async function generateToken(bytes = 16): Promise<string> {
+	if (typeof window === 'undefined' || !window.crypto) {
+		throw new Error('Web Crypto API not available');
+	}
+
+	const randomBytes = window.crypto.getRandomValues(new Uint8Array(bytes));
+	return Array.from(randomBytes)
+		.map(b => b.toString(16).padStart(2, '0'))
+		.join('');
 }

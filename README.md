@@ -6,7 +6,7 @@ A modern, production-hardened AI chatbot built with SvelteKit, powered by OpenRo
 
 ### Security & Safety
 - **XSS Protection**: All user content sanitized with DOMPurify
-- **localStorage Management**: Automatic quota checking and cleanup
+- **IndexedDB Storage**: Secure, persistent data storage with encryption
 - **Request Queueing**: Prevents concurrent API calls
 - **Rate Limiting**: Built-in throttling (20 req/min, 2 req/sec)
 - **Stream Recovery**: Prevents data loss on network failures
@@ -90,7 +90,8 @@ ai-chatbot/
 │   │   │   └── chat.svelte.ts
 │   │   ├── utils/            # Utility functions
 │   │   │   ├── sanitize.ts           # XSS protection
-│   │   │   ├── storage-quota.ts      # localStorage management
+│   │   │   ├── indexeddb.ts          # IndexedDB wrapper
+│   │   │   ├── storage-quota.ts      # Storage quota management
 │   │   │   ├── request-queue.ts      # API concurrency control
 │   │   │   ├── rate-limiter.ts       # Rate limiting
 │   │   │   ├── stream-recovery.ts    # Partial stream recovery
@@ -149,14 +150,14 @@ Built-in protection against API abuse:
 - **Automatic retry**: Up to 3 attempts with exponential backoff
 
 ### Data Encryption
-Chat history is encrypted before storing in localStorage:
+Chat history is encrypted before storing in IndexedDB:
 
 ```typescript
 // Automatic encryption/decryption
 import { encrypt, decrypt } from '$lib/utils/encryption';
 
-const encrypted = encrypt(chatHistory);
-const decrypted = decrypt<ChatHistory>(encrypted);
+const encrypted = await encrypt(chatHistory);
+const decrypted = await decrypt<ChatHistory>(encrypted);
 ```
 
 ## 🎨 Design Philosophy

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import Textarea from '$lib/components/ui/textarea/textarea.svelte';
 	import Button from '$lib/components/ui/button/button.svelte';
-	import { Send } from 'lucide-svelte';
+	import { Send } from '@lucide/svelte';
 	import { draftManager } from '$lib/utils/draft';
 	import { onMount } from 'svelte';
 
@@ -63,7 +63,7 @@
 	const charPercent = $derived((charCount / maxChars) * 100);
 </script>
 
-<div class="floating-input border-t border-border bg-background p-6">
+<div class="floating-input border-t border-border bg-background p-6 sticky bottom-0 z-50">
 	<div class="max-w-5xl mx-auto">
 		<div class="flex gap-4 items-end">
 			<!-- Textarea - Dominant -->

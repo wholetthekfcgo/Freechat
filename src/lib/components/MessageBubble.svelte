@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { Message } from '$lib/types/chat';
-	import { Copy, Check } from 'lucide-svelte';
+	import { Copy, Check } from '@lucide/svelte';
 	import { renderMarkdown } from '$lib/utils';
 	import { sanitizeHTML, isSafePlainText } from '$lib/utils/sanitize';
 

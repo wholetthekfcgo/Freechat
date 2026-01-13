@@ -8,14 +8,9 @@
 import type { Message, ChatConversation } from '$lib/types/chat';
 import { chatState, chatHistory } from './state.svelte.js';
 import { logger } from '$lib/utils/logger';
-import { encrypt, decrypt } from '$lib/utils/encryption';
-import { safeSaveToStorage, safeRemoveFromStorage } from '$lib/utils/storage-quota';
 import { queueRequest, abortAllRequests } from '$lib/utils/request-queue';
 import { withRateLimitAndRetry, recordApiRequest } from '$lib/utils/rate-limiter';
 import { save as saveChatHistory, load as loadChatHistory, clear as clearChatHistory } from '../persistence.svelte.js';
-
-const STORAGE_KEY = 'chat-history-encrypted';
-const STORAGE_VERSION = 'v1';
 
 /**
  * Generate a title for the conversation based on first message
@@ -31,11 +26,11 @@ function generateTitle(messages: Message[]): string {
 }
 
 /**
- * Save chat history to localStorage with encryption
+ * Save chat history to IndexedDB with encryption
  * Implements fallback mechanism for encryption failures
  */
-function saveCurrentHistory(): void {
-	saveChatHistory(chatHistory, STORAGE_KEY);
+async function saveCurrentHistory(): Promise<void> {
+	await saveChatHistory(chatHistory);
 }
 
 /**
@@ -231,7 +226,7 @@ export async function sendMessage(content: string, stream = true): Promise<void>
 	chatState.abortController = null;
 	
 	// Save current conversation to history with quota check
-	saveCurrentConversation();
+	await saveCurrentConversation();
 }
 
 /**
@@ -268,11 +263,11 @@ export async function regenerateLastResponse(): Promise<void> {
 /**
  * Save current conversation to history
  */
-export function saveCurrentConversation(): void {
+export async function saveCurrentConversation(): Promise<void> {
 	if (chatState.messages.length === 0) return;
 
 	const conversation: ChatConversation = {
-		id: chatHistory.currentConversationId || crypto.randomUUID(),
+		id: chatHistory?.currentConversationId || crypto.randomUUID(),
 		title: generateTitle(chatState.messages),
 		messages: chatState.messages,
 		model: chatState.currentModel,
@@ -280,18 +275,23 @@ export function saveCurrentConversation(): void {
 		updatedAt: new Date()
 	};
 
-	const existingIndex = chatHistory.conversations.findIndex(
+	const conversations = chatHistory?.conversations ?? [];
+	const existingIndex = conversations.findIndex(
 		c => c.id === conversation.id
 	);
 
 	if (existingIndex >= 0) {
-		chatHistory.conversations[existingIndex] = conversation;
+		conversations[existingIndex] = conversation;
 	} else {
-		chatHistory.conversations.unshift(conversation);
+		conversations.unshift(conversation);
 	}
 
-	chatHistory.currentConversationId = conversation.id;
-	saveCurrentHistory();
+	if (chatHistory) {
+		chatHistory.conversations = conversations;
+		chatHistory.currentConversationId = conversation.id;
+	}
+	
+	await saveCurrentHistory();
 }
 
 /**
@@ -299,24 +299,26 @@ export function saveCurrentConversation(): void {
  * 
  * @param conversationId - ID of conversation to load
  */
-export function loadConversation(conversationId: string): void {
-	const conversation = chatHistory.conversations.find(c => c.id === conversationId);
-	if (conversation) {
+export async function loadConversation(conversationId: string): Promise<void> {
+	const conversation = chatHistory?.conversations?.find(c => c.id === conversationId);
+	if (conversation && chatHistory) {
 		chatState.messages = conversation.messages;
 		chatState.currentModel = conversation.model;
 		chatHistory.currentConversationId = conversationId;
-		saveCurrentHistory();
+		await saveCurrentHistory();
 	}
 }
 
 /**
  * Start a new chat session
  */
-export function startNewChat(): void {
+export async function startNewChat(): Promise<void> {
 	chatState.messages = [];
 	chatState.error = null;
-	chatHistory.currentConversationId = null;
-	saveCurrentHistory();
+	if (chatHistory) {
+		chatHistory.currentConversationId = null;
+	}
+	await saveCurrentHistory();
 }
 
 /**
@@ -324,16 +326,18 @@ export function startNewChat(): void {
  * 
  * @param conversationId - ID of conversation to delete
  */
-export function deleteConversation(conversationId: string): void {
+export async function deleteConversation(conversationId: string): Promise<void> {
+	if (!chatHistory?.conversations) return;
+	
 	chatHistory.conversations = chatHistory.conversations.filter(
 		c => c.id !== conversationId
 	);
 	
 	if (chatHistory.currentConversationId === conversationId) {
-		startNewChat();
+		await startNewChat();
+	} else {
+		await saveCurrentHistory();
 	}
-	
-	saveCurrentHistory();
 }
 
 /**
@@ -342,12 +346,12 @@ export function deleteConversation(conversationId: string): void {
  * @param conversationId - ID of conversation to rename
  * @param newTitle - New title for conversation
  */
-export function renameConversation(conversationId: string, newTitle: string): void {
-	const conversation = chatHistory.conversations.find(c => c.id === conversationId);
+export async function renameConversation(conversationId: string, newTitle: string): Promise<void> {
+	const conversation = chatHistory?.conversations?.find(c => c.id === conversationId);
 	if (conversation) {
 		conversation.title = newTitle;
 		conversation.updatedAt = new Date();
-		saveCurrentHistory();
+		await saveCurrentHistory();
 	}
 }
 

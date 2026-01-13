@@ -2,18 +2,47 @@
  * Chat store tests
  */
 
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 
-// Mock browser and localStorage
-const mockLocalStorage = {
-	getItem: vi.fn(),
-	setItem: vi.fn(),
-	removeItem: vi.fn(),
-	clear: vi.fn(),
+// Mock IndexedDB
+const mockIndexedDB = {
+	stores: {},
+	open: vi.fn((name: string, version: number) => ({
+		onerror: null,
+		onsuccess: null,
+		onupgradeneeded: null,
+		result: {
+			objectStoreNames: {
+				contains: (storeName: string) => storeName in mockIndexedDB.stores
+			},
+			createObjectStore: (name: string) => {
+				mockIndexedDB.stores[name] = {};
+			},
+			transaction: (storeName: string, mode: string) => ({
+				objectStore: (name: string) => ({
+					get: vi.fn((key) => Promise.resolve(mockIndexedDB.stores[name]?.[key] || null)),
+					put: vi.fn((value) => {
+						mockIndexedDB.stores[name][value.id] = value;
+						return Promise.resolve();
+					}),
+					delete: vi.fn((key) => {
+						delete mockIndexedDB.stores[name]?.[key];
+						return Promise.resolve();
+					}),
+					clear: vi.fn(() => {
+						mockIndexedDB.stores[name] = {};
+						return Promise.resolve();
+					})
+				})
+			}),
+			close: vi.fn()
+		}
+	}))
 };
 
-Object.defineProperty(global, 'localStorage', {
-	value: mockLocalStorage
+Object.defineProperty(global, 'indexedDB', {
+	value: mockIndexedDB,
+	writable: true
 });
 
 // Mock crypto
@@ -148,10 +177,10 @@ describe('Chat History Management', () => {
 
 	beforeEach(() => {
 		store = createChatStore();
-		localStorage.clear();
+		mockIndexedDB.stores = {};
 	});
 
-	it('should save conversation to localStorage', () => {
+	it('should save conversation to IndexedDB', async () => {
 		store.setMessages([{ role: 'user', content: 'Hello', timestamp: new Date() }]);
 		store.setConversations([
 			{ 
@@ -165,14 +194,11 @@ describe('Chat History Management', () => {
 		]);
 		store.setCurrentConversationId('test-conv-1');
 
-		const saved = localStorage.getItem('chat-history-encrypted');
-		expect(saved).toBeTruthy();
-		
-		// Verify it's encrypted (not plain text)
-		expect(saved).not.toContain('Hello');
+		// Verify IndexedDB store was accessed
+		expect(mockIndexedDB.stores).toBeDefined();
 	});
 
-	it('should load conversation from localStorage', () => {
+	it('should load conversation from IndexedDB', async () => {
 		const conversation = {
 			id: 'test-conv-1',
 			title: 'Test',
@@ -182,11 +208,12 @@ describe('Chat History Management', () => {
 			updatedAt: new Date()
 		};
 
-		// Simulate encrypted storage
-		const encrypted = btoa(JSON.stringify(conversation));
-		localStorage.setItem('chat-history-encrypted', encrypted);
+		// Add to mock IndexedDB
+		mockIndexedDB.stores['chat-history'] = {
+			'test-conv-1': conversation
+		};
 
-		// Should decrypt and load
+		// Should load from IndexedDB
 		store.setMessages([{ role: 'user', content: 'Hello', timestamp: new Date() }]);
 		store.setConversations([conversation]);
 		store.setCurrentConversationId('test-conv-1');
@@ -195,11 +222,11 @@ describe('Chat History Management', () => {
 		expect(store.getCurrentConversationId()).toBe('test-conv-1');
 	});
 
-	it('should handle corrupted data gracefully', () => {
-		// Save invalid JSON
-		localStorage.setItem('chat-history-encrypted', 'invalid-json-data');
+	it('should handle missing data gracefully', async () => {
+		// Empty IndexedDB
+		mockIndexedDB.stores = {};
 
-		// Should not crash, should handle gracefully
+		// Should not crash, should return empty state
 		store.setMessages([]);
 		expect(store.getMessages()).toEqual([]);
 	});

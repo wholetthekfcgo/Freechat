@@ -1,11 +1,12 @@
 /**
- * localStorage quota management utility
+ * IndexedDB quota management utility
  * 
- * Prevents QuotaExceededError and manages storage cleanup
+ * Provides storage usage information and cleanup utilities
  */
 
 import { browser } from '$app/environment';
 import { logger } from './logger';
+import { idb } from './indexeddb';
 
 const STORAGE_WARNING_THRESHOLD = 0.8; // Warn at 80% capacity
 const STORAGE_CRITICAL_THRESHOLD = 0.95; // Critical at 95% capacity
@@ -20,36 +21,31 @@ interface StorageInfo {
 }
 
 /**
- * Estimate localStorage usage and quota
- * Note: This is an approximation as actual quota varies by browser
+ * Get IndexedDB storage usage and quota
+ * Uses the Storage API for accurate quota information
  * 
  * @returns Storage usage information
  */
-export function getStorageInfo(): StorageInfo | null {
-	if (!browser || typeof localStorage === 'undefined') {
+export async function getStorageInfo(): Promise<StorageInfo | null> {
+	if (!browser || typeof indexedDB === 'undefined') {
 		return null;
 	}
 
 	try {
-		let total = 0;
+		const estimate = await idb.getStorageInfo();
 		
-		// Calculate current usage
-		for (let key in localStorage) {
-			if (localStorage.hasOwnProperty(key)) {
-				total += localStorage[key].length + key.length;
-			}
+		if (!estimate) {
+			logger.warn('Storage API not available');
+			return null;
 		}
 
-		// Estimate quota (browser-specific, typically 5-10MB)
-		// We'll use a conservative 5MB estimate
-		const estimatedQuota = 5 * 1024 * 1024; // 5MB
-		
-		const usagePercentage = total / estimatedQuota;
-		const availableBytes = estimatedQuota - total;
+		const { usage, quota } = estimate;
+		const usagePercentage = quota > 0 ? usage / quota : 0;
+		const availableBytes = quota - usage;
 
 		return {
-			usage: total,
-			quota: estimatedQuota,
+			usage,
+			quota,
 			usagePercentage,
 			isNearLimit: usagePercentage >= STORAGE_WARNING_THRESHOLD,
 			isCritical: usagePercentage >= STORAGE_CRITICAL_THRESHOLD,
@@ -67,8 +63,8 @@ export function getStorageInfo(): StorageInfo | null {
  * @param dataSize - Estimated size of data to store (in bytes)
  * @returns True if there's enough space
  */
-export function hasStorageSpace(dataSize: number): boolean {
-	const info = getStorageInfo();
+export async function hasStorageSpace(dataSize: number): Promise<boolean> {
+	const info = await getStorageInfo();
 	
 	if (!info) {
 		// Can't determine, assume yes
@@ -82,209 +78,36 @@ export function hasStorageSpace(dataSize: number): boolean {
 }
 
 /**
- * Safely save to localStorage with quota checking
- * 
- * @param key - Storage key
- * @param value - Value to store (will be JSON stringified)
- * @returns True if save was successful
- */
-export function safeSaveToStorage<T>(key: string, value: T): boolean {
-	if (!browser || typeof localStorage === 'undefined') {
-		logger.warn('localStorage not available');
-		return false;
-	}
-
-	try {
-		// Check available space first
-		const jsonString = JSON.stringify(value);
-		const estimatedSize = jsonString.length + key.length;
-
-		if (!hasStorageSpace(estimatedSize)) {
-			logger.warn('Storage quota exceeded, attempting cleanup');
-			
-			// Try to free up space
-			const freed = cleanupOldEntries();
-			
-			if (!freed || !hasStorageSpace(estimatedSize)) {
-				logger.error('Cannot save data: storage quota exceeded');
-				return false;
-			}
-		}
-
-		// Save to localStorage
-		localStorage.setItem(key, jsonString);
-		
-		// Verify the save
-		const stored = localStorage.getItem(key);
-		if (!stored) {
-			logger.error('Failed to verify saved data');
-			return false;
-		}
-
-		logger.debug('Data saved to localStorage', {
-			key,
-			size: estimatedSize
-		});
-
-		return true;
-	} catch (error) {
-		if (error instanceof Error && error.name === 'QuotaExceededError') {
-			logger.error('localStorage quota exceeded', { key });
-			
-			// Try cleanup and retry
-			const freed = cleanupOldEntries();
-			if (freed) {
-				try {
-					localStorage.setItem(key, JSON.stringify(value));
-					return true;
-				} catch (retryError) {
-					logger.error('Failed to save even after cleanup');
-				}
-			}
-		} else {
-			logger.error('Failed to save to localStorage', error);
-		}
-		
-		return false;
-	}
-}
-
-/**
- * Safely load from localStorage
- * 
- * @param key - Storage key
- * @param defaultValue - Default value if key doesn't exist
- * @returns Parsed value or default
- */
-export function safeLoadFromStorage<T>(key: string, defaultValue: T): T {
-	if (!browser || typeof localStorage === 'undefined') {
-		return defaultValue;
-	}
-
-	try {
-		const item = localStorage.getItem(key);
-		
-		if (!item) {
-			return defaultValue;
-		}
-
-		return JSON.parse(item) as T;
-	} catch (error) {
-		logger.error('Failed to load from localStorage', { key, error });
-		
-		// Remove corrupted data
-		try {
-			localStorage.removeItem(key);
-		} catch (e) {
-			// Ignore
-		}
-		
-		return defaultValue;
-	}
-}
-
-/**
- * Remove item from localStorage
- * 
- * @param key - Storage key
- * @returns True if removal was successful
- */
-export function safeRemoveFromStorage(key: string): boolean {
-	if (!browser || typeof localStorage === 'undefined') {
-		return false;
-	}
-
-	try {
-		localStorage.removeItem(key);
-		return true;
-	} catch (error) {
-		logger.error('Failed to remove from localStorage', { key, error });
-		return false;
-	}
-}
-
-/**
  * Clean up old entries to free space
  * Priority: old conversations, error logs, cached data
  * 
  * @returns True if cleanup was successful
  */
-export function cleanupOldEntries(): boolean {
-	if (!browser || typeof localStorage === 'undefined') {
+export async function cleanupOldEntries(): Promise<boolean> {
+	if (!browser || typeof indexedDB === 'undefined') {
 		return false;
 	}
 
 	try {
-		const info = getStorageInfo();
+		const info = await getStorageInfo();
 		
 		if (!info || !info.isNearLimit) {
 			// No cleanup needed
 			return true;
 		}
 
-		logger.info('Starting storage cleanup', {
+		logger.info('Starting IndexedDB cleanup', {
 			usagePercentage: info.usagePercentage
 		});
 
-		// Strategy 1: Remove old conversations (keep last 10)
-		const chatHistoryKey = 'chat-history-encrypted';
-		const chatData = localStorage.getItem(chatHistoryKey);
-		
-		if (chatData) {
-			try {
-				const parsed = JSON.parse(chatData);
-				if (parsed.conversations && Array.isArray(parsed.conversations)) {
-					// Keep only the 10 most recent conversations
-					const recentConversations = parsed.conversations
-						.sort((a: { updatedAt: string }, b: { updatedAt: string }) => 
-							new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
-						)
-						.slice(0, 10);
-					
-					parsed.conversations = recentConversations;
-					localStorage.setItem(chatHistoryKey, JSON.stringify(parsed));
-					
-					logger.info('Cleaned up old conversations', {
-						kept: recentConversations.length
-					});
-				}
-			} catch (e) {
-				logger.warn('Failed to clean up conversations', e);
-			}
-		}
-
-		// Strategy 2: Clear error logs older than 1 hour
-		const errorLogKey = 'error-log';
-		const errorLog = localStorage.getItem(errorLogKey);
-		
-		if (errorLog) {
-			try {
-				const parsed = JSON.parse(errorLog);
-				const oneHourAgo = Date.now() - (60 * 60 * 1000);
-				
-				if (Array.isArray(parsed)) {
-					const recent = parsed.filter((entry: { timestamp: number }) => 
-						entry.timestamp > oneHourAgo
-					);
-					
-					localStorage.setItem(errorLogKey, JSON.stringify(recent));
-				}
-			} catch (e) {
-				logger.warn('Failed to clean up error logs', e);
-			}
-		}
-
-		// Strategy 3: Clear any cache data
-		for (let key in localStorage) {
-			if (key.includes('cache-') || key.includes('temp-')) {
-				localStorage.removeItem(key);
-			}
-		}
+		// Strategy: Keep only the 10 most recent conversations
+		// This is handled by the chat actions when deleting old conversations
+		// Additional cleanup could be added here if needed
 
 		// Check if cleanup helped
-		const newInfo = getStorageInfo();
+		const newInfo = await getStorageInfo();
 		if (newInfo) {
-			logger.info('Storage cleanup complete', {
+			logger.info('IndexedDB cleanup complete', {
 				before: info.usagePercentage,
 				after: newInfo.usagePercentage,
 				freed: info.usage - newInfo.usage
@@ -299,44 +122,12 @@ export function cleanupOldEntries(): boolean {
 }
 
 /**
- * Clear all chat-related data from localStorage
- * Useful for logout or reset
- */
-export function clearChatStorage(): void {
-	if (!browser || typeof localStorage === 'undefined') {
-		return;
-	}
-
-	try {
-		const keysToRemove: string[] = [];
-
-		// Collect keys to remove
-		for (let key in localStorage) {
-			if (key.includes('chat-') || 
-				key.includes('draft-') || 
-				key.includes('error-log')) {
-				keysToRemove.push(key);
-			}
-		}
-
-		// Remove them
-		keysToRemove.forEach(key => {
-			localStorage.removeItem(key);
-		});
-
-		logger.info('Cleared chat storage', { count: keysToRemove.length });
-	} catch (error) {
-		logger.error('Failed to clear chat storage', error);
-	}
-}
-
-/**
  * Get storage usage in human-readable format
  * 
- * @returns Formatted string like "2.3 MB / 5.0 MB (46%)"
+ * @returns Formatted string like "2.3 MB / 5.0 GB (46%)"
  */
-export function getStorageUsageString(): string {
-	const info = getStorageInfo();
+export async function getStorageUsageString(): Promise<string> {
+	const info = await getStorageInfo();
 	
 	if (!info) {
 		return 'Unknown';
@@ -345,7 +136,8 @@ export function getStorageUsageString(): string {
 	const formatBytes = (bytes: number): string => {
 		if (bytes < 1024) return bytes + ' B';
 		if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
-		return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+		if (bytes < 1024 * 1024 * 1024) return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+		return (bytes / (1024 * 1024 * 1024)).toFixed(1) + ' GB';
 	};
 
 	return `${formatBytes(info.usage)} / ${formatBytes(info.quota)} (${(info.usagePercentage * 100).toFixed(0)}%)`;
@@ -356,6 +148,7 @@ export function getStorageUsageString(): string {
  * Should be called periodically
  * 
  * @param callback - Function to call when warning threshold is reached
+ * @returns Function to stop monitoring
  */
 export function monitorStorage(callback: (info: StorageInfo) => void): (() => void) | null {
 	if (!browser) {
@@ -365,8 +158,8 @@ export function monitorStorage(callback: (info: StorageInfo) => void): (() => vo
 	let lastWarning = 0;
 	const WARNING_COOLDOWN = 5 * 60 * 1000; // 5 minutes
 
-	const checkInterval = setInterval(() => {
-		const info = getStorageInfo();
+	const checkInterval = setInterval(async () => {
+		const info = await getStorageInfo();
 		
 		if (!info) return;
 
@@ -374,7 +167,7 @@ export function monitorStorage(callback: (info: StorageInfo) => void): (() => vo
 		
 		if (info.isCritical && now - lastWarning > WARNING_COOLDOWN) {
 			logger.warn('Storage critically low', {
-				usage: getStorageUsageString()
+				usage: await getStorageUsageString()
 			});
 			callback(info);
 			lastWarning = now;

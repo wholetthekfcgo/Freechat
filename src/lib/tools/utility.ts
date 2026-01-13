@@ -70,15 +70,13 @@ export const calculatorDef = toolDefinition({
 });
 
 export const calculator = calculatorDef.server(async ({ expression }) => {
-	// Safe evaluation of mathematical expressions
-	// Note: In production, use a proper math expression parser
+	// Safe evaluation of mathematical expressions using mathjs
 	try {
-		// Remove any potentially dangerous characters
-		const sanitized = expression.replace(/[^0-9+\-*/().\s^a-z]/gi, '');
+		// Import mathjs dynamically (only when needed)
+		const { evaluate } = await import('mathjs');
 		
-		// Use Function constructor for safe math evaluation
-		// This is still basic - consider using mathjs for production
-		const result = Function(`"use strict"; return (${sanitized})`)();
+		// Evaluate the expression safely
+		const result = evaluate(expression);
 		
 		if (typeof result !== 'number' || !isFinite(result)) {
 			throw new Error('Invalid calculation result');

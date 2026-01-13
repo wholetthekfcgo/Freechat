@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { logger } from '$lib/utils/logger';
 	import { errorTracker } from '$lib/utils/error-tracker';
-	import { AlertCircle, RefreshCw } from 'lucide-svelte';
+	import { AlertCircle, RefreshCw } from '@lucide/svelte';
 	import Button from './ui/button/button.svelte';
 	import type { Snippet } from 'svelte';
 

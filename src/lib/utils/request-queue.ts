@@ -39,7 +39,7 @@ class RequestQueue {
 		abort: () => void,
 		priority = 0
 	): Promise<T> {
-		const requestId = `req-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+		const requestId = `req-${Date.now()}-${crypto.randomUUID().slice(0, 8)}`;
 
 		return new Promise((resolve, reject) => {
 			const queuedRequest: QueuedRequest<T> = {

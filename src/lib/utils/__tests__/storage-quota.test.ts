@@ -1,173 +1,166 @@
 /**
- * Unit tests for storage quota utilities
+ * Unit tests for IndexedDB storage quota utilities
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import {
 	getStorageInfo,
 	hasStorageSpace,
-	safeSaveToStorage,
-	safeLoadFromStorage,
 	cleanupOldEntries,
 	getStorageUsageString
 } from '../storage-quota';
 
-// Mock localStorage
-const localStorageMock = (() => {
-	let store: Record<string, string> = {};
+// Mock IndexedDB and storage API
+const mockStorageEstimate = {
+	usage: 1024 * 1024, // 1MB
+	quota: 1024 * 1024 * 1024 // 1GB
+};
 
-	return {
-		getItem: (key: string) => store[key] || null,
-		setItem: (key: string, value: string) => {
-			store[key] = value;
-		},
-		removeItem: (key: string) => {
-			delete store[key];
-		},
-		clear: () => {
-			store = {};
-		},
-		get length() {
-			return Object.keys(store).length;
-		},
-		key: (index: number) => Object.keys(store)[index] || null
-	};
-})();
-
-Object.defineProperty(global, 'localStorage', {
-	value: localStorageMock
+Object.defineProperty(navigator, 'storage', {
+	value: {
+		estimate: async () => mockStorageEstimate
+	},
+	writable: true
 });
 
 describe('getStorageInfo', () => {
-	beforeEach(() => {
-		localStorage.clear();
-	});
-
-	it('should return storage info', () => {
-		localStorage.setItem('test', 'data');
-		const info = getStorageInfo();
+	it('should return storage info from Storage API', async () => {
+		const info = await getStorageInfo();
 		
 		expect(info).not.toBeNull();
-		expect(info?.usage).toBeGreaterThan(0);
-		expect(info?.quota).toBe(5 * 1024 * 1024); // 5MB
+		expect(info?.usage).toBe(1024 * 1024);
+		expect(info?.quota).toBe(1024 * 1024 * 1024);
+		expect(info?.usagePercentage).toBeCloseTo(0.001, 3);
 	});
 
-	it('should return zero usage for empty storage', () => {
-		const info = getStorageInfo();
+	it('should calculate usage percentage correctly', async () => {
+		mockStorageEstimate.usage = 512 * 1024 * 1024; // 512MB
+		mockStorageEstimate.quota = 1024 * 1024 * 1024; // 1GB
 		
-		expect(info?.usage).toBe(0);
-		expect(info?.usagePercentage).toBe(0);
+		const info = await getStorageInfo();
+		expect(info?.usagePercentage).toBeCloseTo(0.5, 1);
+	});
+
+	it('should detect near limit condition', async () => {
+		mockStorageEstimate.usage = 850 * 1024 * 1024; // 850MB
+		mockStorageEstimate.quota = 1024 * 1024 * 1024; // 1GB
+		
+		const info = await getStorageInfo();
+		expect(info?.isNearLimit).toBe(true);
+	});
+
+	it('should detect critical condition', async () => {
+		mockStorageEstimate.usage = 960 * 1024 * 1024; // 960MB
+		mockStorageEstimate.quota = 1024 * 1024 * 1024; // 1GB
+		
+		const info = await getStorageInfo();
+		expect(info?.isCritical).toBe(true);
+	});
+
+	it('should return null when Storage API unavailable', async () => {
+		// @ts-ignore - testing error condition
+		navigator.storage = undefined;
+		
+		const info = await getStorageInfo();
+		expect(info).toBeNull();
 	});
 });
 
 describe('hasStorageSpace', () => {
 	beforeEach(() => {
-		localStorage.clear();
+		mockStorageEstimate.usage = 100 * 1024 * 1024; // 100MB
+		mockStorageEstimate.quota = 1024 * 1024 * 1024; // 1GB
 	});
 
-	it('should return true when there is space', () => {
-		const hasSpace = hasStorageSpace(1000);
+	it('should return true when there is space', async () => {
+		const hasSpace = await hasStorageSpace(10 * 1024 * 1024); // 10MB
 		expect(hasSpace).toBe(true);
 	});
 
-	it('should return false when approaching limit', () => {
-		// Fill storage to near limit
-		const largeData = 'x'.repeat(4 * 1024 * 1024); // ~4MB
-		localStorage.setItem('large', largeData);
-		
-		const hasSpace = hasStorageSpace(2 * 1024 * 1024); // Need 2MB more
+	it('should return false when not enough space', async () => {
+		mockStorageEstimate.usage = 900 * 1024 * 1024; // 900MB
+		const hasSpace = await hasStorageSpace(200 * 1024 * 1024); // 200MB with 20% buffer
 		expect(hasSpace).toBe(false);
 	});
-});
 
-describe('safeSaveToStorage', () => {
-	beforeEach(() => {
-		localStorage.clear();
+	it('should add 20% buffer for overhead', async () => {
+		mockStorageEstimate.usage = 800 * 1024 * 1024; // 800MB
+		const hasSpace = await hasStorageSpace(200 * 1024 * 1024); // 200MB needs 240MB with buffer
+		expect(hasSpace).toBe(true);
 	});
 
-	it('should save data successfully', () => {
-		const result = safeSaveToStorage('test', { key: 'value' });
-		expect(result).toBe(true);
-		
-		const saved = localStorage.getItem('test');
-		expect(saved).toBeDefined();
-	});
-
-	it('should return false when quota exceeded', () => {
-		// Fill storage
-		const largeData = 'x'.repeat(5 * 1024 * 1024);
-		localStorage.setItem('large', largeData);
-		
-		const result = safeSaveToStorage('test2', { key: 'value' });
-		expect(result).toBe(false);
-	});
-});
-
-describe('safeLoadFromStorage', () => {
-	beforeEach(() => {
-		localStorage.clear();
-	});
-
-	it('should load and parse data', () => {
-		localStorage.setItem('test', JSON.stringify({ key: 'value' }));
-		const loaded = safeLoadFromStorage('test', null);
-		
-		expect(loaded).toEqual({ key: 'value' });
-	});
-
-	it('should return default for missing key', () => {
-		const loaded = safeLoadFromStorage('missing', 'default');
-		expect(loaded).toBe('default');
-	});
-
-	it('should handle corrupted data', () => {
-		localStorage.setItem('test', 'invalid-json');
-		const loaded = safeLoadFromStorage('test', null);
-		
-		expect(loaded).toBe(null);
-		expect(localStorage.getItem('test')).toBeNull(); // Should be cleaned up
+	it('should return true when storage info unavailable', async () => {
+		// @ts-ignore
+		navigator.storage = undefined;
+		const hasSpace = await hasStorageSpace(1000);
+		expect(hasSpace).toBe(true);
 	});
 });
 
 describe('cleanupOldEntries', () => {
-	beforeEach(() => {
-		localStorage.clear();
+	it('should return true when cleanup succeeds', async () => {
+		const result = await cleanupOldEntries();
+		expect(result).toBe(true);
 	});
 
-	it('should keep only recent conversations', () => {
-		// Create 20 conversations
-		const conversations = Array.from({ length: 20 }, (_, i) => ({
-			id: `conv-${i}`,
-			title: `Chat ${i}`,
-			messages: [],
-			model: 'test',
-			createdAt: new Date().toISOString(),
-			updatedAt: new Date().toISOString()
-		}));
-
-		const data = {
-			conversations,
-			currentConversationId: null
-		};
-
-		localStorage.setItem('chat-history-encrypted', JSON.stringify(data));
+	it('should return true when no cleanup needed', async () => {
+		mockStorageEstimate.usage = 10 * 1024 * 1024; // 10MB
+		mockStorageEstimate.quota = 1024 * 1024 * 1024; // 1GB
 		
-		cleanupOldEntries();
-		
-		const cleaned = JSON.parse(localStorage.getItem('chat-history-encrypted')!);
-		expect(cleaned.conversations.length).toBeLessThanOrEqual(10);
+		const result = await cleanupOldEntries();
+		expect(result).toBe(true);
+	});
+
+	it('should return true when not in browser', async () => {
+		// @ts-ignore
+		global.window = undefined;
+		const result = await cleanupOldEntries();
+		expect(result).toBe(false);
 	});
 });
 
 describe('getStorageUsageString', () => {
-	beforeEach(() => {
-		localStorage.clear();
+	it('should return formatted string for bytes', async () => {
+		mockStorageEstimate.usage = 512;
+		mockStorageEstimate.quota = 1024;
+		
+		const usage = await getStorageUsageString();
+		expect(usage).toContain('B');
+		expect(usage).toContain('50%');
 	});
 
-	it('should return formatted string', () => {
-		localStorage.setItem('test', 'data');
-		const usage = getStorageUsageString();
+	it('should return formatted string for KB', async () => {
+		mockStorageEstimate.usage = 512 * 1024;
+		mockStorageEstimate.quota = 1024 * 1024;
 		
-		expect(usage).toMatch(/\d+\.?\d*\s+(KB|MB|B)\s\/\s\d+\.?\d*\s+(KB|MB|B)/);
+		const usage = await getStorageUsageString();
+		expect(usage).toContain('KB');
+		expect(usage).toContain('50%');
+	});
+
+	it('should return formatted string for MB', async () => {
+		mockStorageEstimate.usage = 512 * 1024 * 1024;
+		mockStorageEstimate.quota = 1024 * 1024 * 1024;
+		
+		const usage = await getStorageUsageString();
+		expect(usage).toContain('MB');
+		expect(usage).toContain('50%');
+	});
+
+	it('should return formatted string for GB', async () => {
+		mockStorageEstimate.usage = 2 * 1024 * 1024 * 1024;
+		mockStorageEstimate.quota = 10 * 1024 * 1024 * 1024;
+		
+		const usage = await getStorageUsageString();
+		expect(usage).toContain('GB');
+		expect(usage).toContain('20%');
+	});
+
+	it('should return "Unknown" when storage info unavailable', async () => {
+		// @ts-ignore
+		navigator.storage = undefined;
+		
+		const usage = await getStorageUsageString();
+		expect(usage).toBe('Unknown');
 	});
 });

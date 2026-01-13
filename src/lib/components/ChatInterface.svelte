@@ -5,7 +5,7 @@
 	import FloatingInput from '$lib/components/FloatingInput.svelte';
 	import ModelSelector from '$lib/components/ModelSelector.svelte';
 	import ScrollArea from '$lib/components/ui/scroll-area/scroll-area.svelte';
-	import { Trash2, Download, Plus, Square, RotateCcw } from 'lucide-svelte';
+	import { Trash2, Download, Plus, Square, RotateCcw } from '@lucide/svelte';
 	import Button from '$lib/components/ui/button/button.svelte';
 	import { tick } from 'svelte';
 	import { chatState, chatActions, chatHistory } from '$lib/stores/chat.svelte.ts';
@@ -277,10 +277,10 @@
 			<aside class="w-80 border-r border-border glass flex flex-col animate-slide-in">
 				<div class="p-6 border-b border-border">
 					<h2 class="text-display-sm text-foreground mb-1">History</h2>
-					<p class="text-body-sm text-muted-foreground font-accent">{chatHistory.conversations.length} conversations</p>
+					<p class="text-body-sm text-muted-foreground font-accent">{chatHistory?.conversations?.length ?? 0} conversations</p>
 				</div>
 				<div class="flex-1 overflow-y-auto p-4 space-y-2">
-					{#if chatHistory.conversations.length === 0}
+					{#if !chatHistory?.conversations || chatHistory.conversations.length === 0}
 						<div class="text-center py-12">
 							<p class="text-body-sm text-muted-foreground">// No history</p>
 						</div>
@@ -291,7 +291,7 @@
 								tabindex="0"
 								onclick={() => chatActions.loadConversation(conv.id)}
 								onkeydown={(e) => e.key === 'Enter' && chatActions.loadConversation(conv.id)}
-								class="group relative w-full text-left p-4 border transition-all duration-200 hover-lift cursor-pointer {chatHistory.currentConversationId === conv.id ? 'bg-primary/10 border-primary shadow-glow' : 'bg-card border-border hover:border-primary/50'}"
+								class="group relative w-full text-left p-4 border transition-all duration-200 hover-lift cursor-pointer {chatHistory?.currentConversationId === conv.id ? 'bg-primary/10 border-primary shadow-glow' : 'bg-card border-border hover:border-primary/50'}"
 							>
 								<div class="flex items-start justify-between">
 									<div class="flex-1 min-w-0">

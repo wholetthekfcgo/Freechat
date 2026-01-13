@@ -5,6 +5,32 @@ import { logger } from '$lib/utils/logger';
 import { ChatRequestSchema } from '$lib/schemas/validation';
 
 export const POST: RequestHandler = async ({ request }) => {
+	// Validate content length before parsing
+	const contentLength = request.headers.get('content-length');
+	if (contentLength && parseInt(contentLength) > 1_000_000) { // 1MB limit
+		logger.error('Request payload too large', { size: contentLength });
+		return new Response(
+			JSON.stringify({
+				error: 'Payload too large',
+				details: 'Request body exceeds 1MB limit'
+			}),
+			{ status: 413, headers: { 'Content-Type': 'application/json' } }
+		);
+	}
+
+	// Validate content type
+	const contentType = request.headers.get('content-type');
+	if (!contentType?.includes('application/json')) {
+		logger.error('Invalid content type', { contentType });
+		return new Response(
+			JSON.stringify({
+				error: 'Invalid content type',
+				details: 'Content-Type must be application/json'
+			}),
+			{ status: 415, headers: { 'Content-Type': 'application/json' } }
+		);
+	}
+
 	// Get API key using validated env accessor
 	const apiKey = getOpenRouterKey();
 
