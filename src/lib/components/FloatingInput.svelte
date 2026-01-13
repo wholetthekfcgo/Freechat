@@ -105,7 +105,7 @@
 				/>
 				
 				<!-- Token counter and Action Buttons Container - Bottom Right -->
-				<div class="absolute bottom-2 right-2 flex flex-col items-end gap-2">
+				<div class="absolute bottom-2 right-2 flex items-center gap-2">
 					<!-- Token counter - minimalist -->
 					{#if showTokenCounter}
 						<div class="text-body-sm font-mono {tokenCounterColor} opacity-80">
