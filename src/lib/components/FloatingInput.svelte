@@ -115,7 +115,25 @@
 	const maxTokens = 16000; // Extended context limit for newer models
 	const tokenPercent = $derived((tokenCount / maxTokens) * 100);
 	const showTokenCounter = $derived(tokenPercent >= 95);
-	const tokenCounterColor = $derived(tokenCount >= maxTokens ? 'text-red-500' : 'text-yellow-500');
+	// Token counter color - FIXED: Use warning color with proper contrast
+	const tokenCounterColor = $derived(tokenCount >= maxTokens ? 'text-destructive' : 'text-warning');
+
+	// FIXED: Add proper focus management for accessibility
+	let dropdownClosedByEscape = $state(false);
+
+	function handleModelKeydown(event: KeyboardEvent) {
+		if (event.key === 'Escape') {
+			event.preventDefault();
+			event.stopPropagation();
+			isModelOpen = false;
+			dropdownClosedByEscape = true;
+			// Return focus to trigger button
+			requestAnimationFrame(() => {
+				const trigger = document.querySelector('[aria-haspopup="true"]') as HTMLElement;
+				trigger?.focus();
+			});
+		}
+	}
 </script>
 
 <svelte:window onclick={handleClickOutside} />
@@ -143,7 +161,10 @@
 					<div class="inline-model-selector relative">
 						<button
 							onclick={toggleModel}
-							class="flex items-center gap-1.5 px-2 py-1.5 text-body-sm bg-muted/50 hover:bg-muted border border-border/50 rounded-md transition-all duration-200"
+							onkeydown={handleModelKeydown}
+							aria-haspopup="listbox"
+							aria-expanded={isModelOpen}
+							class="flex items-center gap-1.5 px-2 py-1.5 text-body-sm bg-muted/50 hover:bg-muted border border-border/50 rounded-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary"
 							title="Select model"
 						>
 							<span class="text-muted-foreground font-medium">{selectedModelName}</span>
@@ -153,15 +174,23 @@
 						</button>
 
 						{#if isModelOpen}
-							<div class="absolute bottom-full left-0 mb-2 w-72 bg-card border border-border shadow-dramatic z-50 animate-fade-in glass">
-								<div class="p-2">
+							<div
+								role="listbox"
+								tabindex="0"
+								aria-label="Select AI model"
+								class="absolute bottom-full left-0 mb-2 w-72 bg-card border border-border shadow-dramatic z-50 animate-fade-in glass"
+								onkeydown={handleModelKeydown}
+							>
+								<div class="p-2" role="presentation">
 									{#each models as modelOption, index (modelOption.id)}
 										<button
 											onclick={() => selectModel(modelOption.id)}
+											role="option"
+											aria-selected={currentModel === modelOption.id}
 											style="--stagger-delay: {index}"
 											class="w-full text-left px-4 py-3 text-body-md hover:bg-primary/10 hover:border-primary border border-transparent transition-all duration-200 {currentModel === modelOption.id
 												? 'bg-primary/10 border-primary/50 text-foreground'
-												: 'text-foreground'} group"
+												: 'text-foreground'} group focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary"
 										>
 											<div class="font-mono text-body-sm text-muted-foreground mb-1 opacity-70 group-hover:opacity-100 transition-opacity">
 												{modelOption.id}

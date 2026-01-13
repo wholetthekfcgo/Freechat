@@ -15,11 +15,13 @@ export type { ChatState, ChatHistory } from '$lib/types/chat';
 export { chatActions };
 export { persistence };
 
-// Initialize chat history on import
-import { browser } from '$app/environment';
+// Initialize chat history on import - wrapped in function to prevent SSR issues
 import { logger } from '$lib/utils/logger';
 
-if (browser) {
+function initializeChatHistory() {
+	// Only run in browser environment
+	if (typeof window === 'undefined') return;
+	
 	const STORAGE_KEY = 'chat-history-encrypted';
 	try {
 		const loaded = persistence.load(STORAGE_KEY);
@@ -29,4 +31,9 @@ if (browser) {
 	} catch (error) {
 		logger.error('Failed to initialize chat history', error);
 	}
+}
+
+// Defer initialization to browser
+if (typeof window !== 'undefined') {
+	initializeChatHistory();
 }

@@ -1,30 +1,44 @@
-<script lang="ts">
-	import type { Message } from '$lib/types/chat';
-	import MessageBubble from './MessageBubble.svelte';
+/**
+ * Reusable Virtual List Component
+ * Provides efficient rendering of large lists
+ */
+
+<script lang="ts" generics="T">
+	import type { Snippet } from 'svelte';
 	import { onMount } from 'svelte';
 
+	interface Props {
+		items: T[];
+		estimatedItemHeight: number;
+		renderItem: Snippet<[T, number]>;
+		keyExtractor: (item: T, index: number) => string;
+		overscan?: number;
+		class?: string;
+	}
+
 	let {
-		messages = [],
-		estimatedItemHeight = 150
-	}: {
-		messages: Message[];
-		estimatedItemHeight?: number;
-	} = $props();
+		items = [],
+		estimatedItemHeight = 150,
+		renderItem,
+		keyExtractor,
+		overscan = 3,
+		class: className = ''
+	}: Props = $props();
 
 	let container: HTMLElement;
 	let viewportHeight = $state(600);
 	let scrollTop = $state(0);
-	
-	// Store actual measured heights for each message
+
+	// Store actual measured heights for each item
 	let itemHeights = $state<Record<string, number>>({});
 	let itemOffsets = $state<Record<string, number>>({});
 	let totalHeight = $state(0);
 
-	// Measure actual height of a message
-	function measureItemHeight(messageId: string, element: HTMLElement): void {
+	// Measure actual height of an item
+	function measureItemHeight(itemKey: string, element: HTMLElement): void {
 		const height = element.offsetHeight;
-		if (height !== itemHeights[messageId]) {
-			itemHeights[messageId] = height;
+		if (height !== itemHeights[itemKey]) {
+			itemHeights[itemKey] = height;
 			recalculateOffsets();
 		}
 	}
@@ -32,50 +46,54 @@
 	// Recalculate all item offsets
 	function recalculateOffsets(): void {
 		let offset = 0;
-		const newOffsets: Record<string, number> = {};
-		
-		for (const message of messages) {
-			newOffsets[message.id] = offset;
-			offset += itemHeights[message.id] || estimatedItemHeight;
+		const newOffsets: Record<string, number>> = {};
+
+		for (let i = 0; i < items.length; i++) {
+			const key = keyExtractor(items[i], i);
+			newOffsets[key] = offset;
+			offset += itemHeights[key] || estimatedItemHeight;
 		}
-		
+
 		itemOffsets = newOffsets;
 		totalHeight = offset;
 	}
 
-	// Find which messages are visible
+	// Find which items are visible
 	const visibleStart = $derived(() => {
 		let start = 0;
-		for (let i = 0; i < messages.length; i++) {
-			const offset = itemOffsets[messages[i].id] ?? i * estimatedItemHeight;
+		for (let i = 0; i < items.length; i++) {
+			const key = keyExtractor(items[i], i);
+			const offset = itemOffsets[key] ?? i * estimatedItemHeight;
 			if (offset >= scrollTop) break;
 			start = i;
 		}
-		return Math.max(0, start - 1); // Buffer of 1 item
+		return Math.max(0, start - overscan);
 	});
 
 	const visibleEnd = $derived(() => {
-		let end = visibleStart() + 10; // Render at least 10 items
+		let end = visibleStart() + 10;
 		const viewportBottom = scrollTop + viewportHeight;
-		
-		for (let i = visibleStart(); i < messages.length; i++) {
-			const offset = itemOffsets[messages[i].id] ?? i * estimatedItemHeight;
+
+		for (let i = visibleStart(); i < items.length; i++) {
+			const key = keyExtractor(items[i], i);
+			const offset = itemOffsets[key] ?? i * estimatedItemHeight;
 			if (offset > viewportBottom) {
-				end = i + 2; // Buffer of 2 items
+				end = i + overscan;
 				break;
 			}
 		}
-		
-		return Math.min(end, messages.length);
+
+		return Math.min(end, items.length);
 	});
 
-	const visibleMessages = $derived(messages.slice(visibleStart(), visibleEnd()));
+	const visibleItems = $derived(items.slice(visibleStart(), visibleEnd()));
 
 	// Calculate offset for first visible item
 	const offsetY = $derived(() => {
 		if (visibleStart() === 0) return 0;
-		const firstVisible = messages[visibleStart()];
-		return itemOffsets[firstVisible?.id] ?? visibleStart() * estimatedItemHeight;
+		const firstItem = items[visibleStart()];
+		const key = firstItem ? keyExtractor(firstItem, visibleStart()) : '';
+		return itemOffsets[key] ?? visibleStart() * estimatedItemHeight;
 	});
 
 	// Update viewport height on mount
@@ -86,36 +104,33 @@
 					viewportHeight = entry.contentRect.height;
 				}
 			});
-			
+
 			resizeObserver.observe(container);
-			
+
 			return () => {
 				resizeObserver.disconnect();
 			};
 		}
 	});
 
-	// Recalculate when messages change - FIXED: Only track actual changes
+	// Recalculate when items change - FIXED: Only track actual changes
 	$effect(() => {
-		// Only recalculate when message count or IDs change, not array references
-		messages.length;
-		messages.map(m => m.id).join(',');
+		items.length;
+		items.map((_, i) => keyExtractor(items[i], i)).join(',');
 		recalculateOffsets();
 	});
 
 	/**
 	 * Action to measure item height
 	 */
-	function measureItemHeightAction(node: HTMLElement, { messageId }: { messageId: string }) {
-		// Measure on mount
+	function measureItemHeightAction(node: HTMLElement, key: string) {
 		requestAnimationFrame(() => {
-			measureItemHeight(messageId, node);
+			measureItemHeight(key, node);
 		});
 
-		// Re-measure on resize
 		const resizeObserver = new ResizeObserver(() => {
 			requestAnimationFrame(() => {
-				measureItemHeight(messageId, node);
+				measureItemHeight(key, node);
 			});
 		});
 
@@ -131,22 +146,21 @@
 
 <div
 	bind:this={container}
-	class="virtual-scroll-container"
+	class="virtual-list-container {className}"
 	style="height: 100%; overflow-y: auto;"
 	onscroll={(e) => (scrollTop = e.currentTarget.scrollTop)}
-	role="log"
-	aria-label="Chat messages"
 >
 	<div style="height: {totalHeight}px; position: relative;" class="virtual-spacer">
 		<div style="transform: translateY({offsetY}px)" class="virtual-content">
-			{#each visibleMessages as message (message.id)}
-				{@const height = itemHeights[message.id] ?? estimatedItemHeight}
+			{#each visibleItems as item, index (keyExtractor(item, visibleStart() + index))}
+				{@const key = keyExtractor(item, visibleStart() + index)}
+				{@const height = itemHeights[key] ?? estimatedItemHeight}
 				<div
 					class="virtual-item"
 					style="min-height: {height}px"
-					use:measureItemHeightAction={{ messageId: message.id }}
+					use:measureItemHeightAction={key}
 				>
-					<MessageBubble {message} />
+					{@render renderItem(item, visibleStart() + index)}
 				</div>
 			{/each}
 		</div>
@@ -154,7 +168,7 @@
 </div>
 
 <style>
-	.virtual-scroll-container {
+	.virtual-list-container {
 		overflow-y: auto;
 		scroll-behavior: smooth;
 		-webkit-overflow-scrolling: touch;
@@ -179,7 +193,7 @@
 	}
 
 	/* Smooth scrolling performance */
-	:global(.virtual-scroll-container) {
+	:global(.virtual-list-container) {
 		contain: strict;
 	}
 

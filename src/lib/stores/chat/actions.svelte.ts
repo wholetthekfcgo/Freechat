@@ -3,6 +3,8 @@
  * 
  * This file contains all action methods that manipulate chat state.
  * Separated from state management for better testability and organization.
+ * 
+ * UPDATED: Now uses Repository pattern for data access
  */
 
 import type { Message, ChatConversation } from '$lib/types/chat';
@@ -11,6 +13,7 @@ import { logger } from '$lib/utils/logger';
 import { queueRequest, abortAllRequests } from '$lib/utils/request-queue';
 import { withRateLimitAndRetry, recordApiRequest } from '$lib/utils/rate-limiter';
 import { save as saveChatHistory, load as loadChatHistory, clear as clearChatHistory } from '../persistence.svelte.js';
+import { chatRepository } from '$lib/repositories';
 
 /**
  * Generate a title for the conversation based on first message

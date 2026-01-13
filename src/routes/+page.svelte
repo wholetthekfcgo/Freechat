@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { browser } from '$app/environment';
 	import ChatInterface from '$lib/components/ChatInterface.svelte';
-	import { chatState, chatActions } from '$lib/stores/chat.svelte.ts';
+	import { chatState, chatActions } from '$lib/stores/chat.svelte.js';
 	import { errorTracker, withErrorHandling } from '$lib/utils/error-tracker';
 	import type { PageData } from './$types';
 	import ErrorBoundary from '$lib/components/ErrorBoundary.svelte';

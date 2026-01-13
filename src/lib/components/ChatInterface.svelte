@@ -4,13 +4,16 @@
 	import VirtualChatList from '$lib/components/VirtualChatList.svelte';
 	import FloatingInput from '$lib/components/FloatingInput.svelte';
 	import ScrollArea from '$lib/components/ui/scroll-area/scroll-area.svelte';
-	import { Trash2, Download, Plus, Square, RotateCcw, History } from '@lucide/svelte';
+	import { Trash2, Download, Plus, Square, RotateCcw, History, Undo, Redo } from '@lucide/svelte';
 	import Button from '$lib/components/ui/button/button.svelte';
 	import { tick } from 'svelte';
 	import { chatState, chatActions, chatHistory } from '$lib/stores/chat.svelte.ts';
 	import { browser } from '$app/environment';
 	import { announce, announceError, initAnnouncer } from '$lib/utils/announcer';
 	import { onMount } from 'svelte';
+	import { ConfirmDialog } from '$lib/components/ui/dialog';
+	import { commandStack } from '$lib/stores/commands';
+	import { createCommands } from '$lib/stores/commands';
 
 	let {
 		messages = [],
@@ -35,6 +38,9 @@
 	let inputMessage = $state('');
 	let scrollAreaElement: HTMLElement;
 	let showSidebar = $state(false);
+	let showClearDialog = $state(false);
+	let showDeleteDialog = $state(false);
+	let conversationToDelete: string | null = null;
 
 	// Initialize screen reader announcer on mount
 	onMount(() => {
@@ -74,6 +80,42 @@
 	function handleNewChat() {
 		chatActions.startNewChat();
 		announce('Started new chat');
+	}
+
+	function handleClearRequest() {
+		showClearDialog = true;
+	}
+
+	function handleClearConfirm() {
+		if (onClear) {
+			onClear();
+			announce('Cleared all messages');
+		}
+		showClearDialog = false;
+	}
+
+	function handleDeleteRequest(conversationId: string) {
+		conversationToDelete = conversationId;
+		showDeleteDialog = true;
+	}
+
+	function handleDeleteConfirm() {
+		if (conversationToDelete) {
+			chatActions.deleteConversation(conversationToDelete);
+			announce('Deleted conversation');
+		}
+		showDeleteDialog = false;
+		conversationToDelete = null;
+	}
+
+	function handleUndo() {
+		commandStack.undo();
+		announce('Undid last action');
+	}
+
+	function handleRedo() {
+		commandStack.redo();
+		announce('Redid action');
 	}
 
 	function handleKeyDown(event: KeyboardEvent) {
@@ -207,6 +249,32 @@
 					</Button>
 				{/if}
 
+				<!-- NEW: Undo button -->
+				{#if commandStack.canUndo()}
+					<Button
+						variant="ghost"
+						onclick={handleUndo}
+						class="h-8 w-8 p-0 text-muted-foreground hover:text-foreground hover:bg-muted click-shrink"
+						title="Undo (Ctrl+Z)"
+						aria-label="Undo last action"
+					>
+						<Undo class="w-3.5 h-3.5" />
+					</Button>
+				{/if}
+
+				<!-- NEW: Redo button -->
+				{#if commandStack.canRedo()}
+					<Button
+						variant="ghost"
+						onclick={handleRedo}
+						class="h-8 w-8 p-0 text-muted-foreground hover:text-foreground hover:bg-muted click-shrink"
+						title="Redo (Ctrl+Shift+Z)"
+						aria-label="Redo action"
+					>
+						<Redo class="w-3.5 h-3.5" />
+					</Button>
+				{/if}
+
 				<Button
 					variant="ghost"
 					onclick={handleNewChat}
@@ -232,8 +300,8 @@
 				{#if onClear}
 					<Button
 						variant="ghost"
-						onclick={onClear}
-						class="h-8 w-8 p-0 text-muted-foreground hover:text-foreground hover:bg-muted click-shrink"
+						onclick={handleClearRequest}
+						class="h-8 w-8 p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10 click-shrink"
 						title="Clear messages"
 						aria-label="Clear all messages"
 					>
@@ -297,7 +365,7 @@
 									<button
 										onclick={(e) => {
 											e.stopPropagation();
-											chatActions.deleteConversation(conv.id);
+											handleDeleteRequest(conv.id);
 										}}
 										class="ml-2 p-1.5 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive/10 text-muted-foreground hover:text-destructive click-shrink"
 										title="Delete"
@@ -384,5 +452,28 @@
 		{isLoading} 
 		{currentModel}
 		onModelChange={onModelChange}
+	/>
+
+	<!-- NEW: Confirmation Dialogs -->
+	<ConfirmDialog
+		open={showClearDialog}
+		title="Clear all messages?"
+		message="This action cannot be undone. You will lose the entire conversation."
+		confirmLabel="Clear"
+		cancelLabel="Cancel"
+		variant="danger"
+		onConfirm={handleClearConfirm}
+		onCancel={() => (showClearDialog = false)}
+	/>
+
+	<ConfirmDialog
+		open={showDeleteDialog}
+		title="Delete conversation?"
+		message="This action cannot be undone. The conversation will be permanently removed from your history."
+		confirmLabel="Delete"
+		cancelLabel="Cancel"
+		variant="danger"
+		onConfirm={handleDeleteConfirm}
+		onCancel={() => (showDeleteDialog = false)}
 	/>
 </div>

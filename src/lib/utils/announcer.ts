@@ -92,6 +92,7 @@ export function announce(message: string, priority: boolean = false): void {
 /**
  * Process the announcement queue
  * Announcements are spaced to prevent screen reader overwhelm
+ * FIXED: Increased delay to 250ms for NVDA compatibility
  */
 function processQueue(): void {
 	if (isAnnouncing || announcementQueue.length === 0) {
@@ -110,6 +111,7 @@ function processQueue(): void {
 	announcerElement!.textContent = '';
 
 	// Use setTimeout to ensure screen reader picks up the change
+	// FIXED: 250ms delay for better screen reader compatibility
 	setTimeout(() => {
 		if (!announcerElement) {
 			isAnnouncing = false;
@@ -122,11 +124,11 @@ function processQueue(): void {
 		logger.debug('Announced to screen reader', { message });
 
 		// Wait before processing next announcement
-		// This ensures screen readers have time to announce
+		// FIXED: 250ms between announcements for NVDA compatibility
 		setTimeout(() => {
 			isAnnouncing = false;
 			processQueue(); // Process next in queue
-		}, 100); // 100ms between announcements
+		}, 250);
 	}, 100);
 }
 
