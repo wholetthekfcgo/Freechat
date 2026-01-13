@@ -63,7 +63,7 @@
 		<div
 			class="relative p-5 border {message.role === 'user'
 				? 'bg-primary text-primary-foreground border-primary shadow-medium'
-				: 'bg-card text-foreground border-border shadow-subtle hover:border-primary/30'} transition-all duration-200 {message.role === 'user' ? 'inline-block text-left' : ''}"
+				: 'bg-card text-foreground border-border shadow-subtle hover:border-primary/30'} transition-all duration-200 {message.role === 'user' ? 'inline-block text-left max-w-[80%]' : 'inline-block max-w-[80%]'}"
 		>
 			{#if isCodeBlock}
 				<div class="prose prose-invert max-w-none">
@@ -74,26 +74,27 @@
 					{message.content}
 				</p>
 			{/if}
-
-			<!-- Copy Button -->
-			<button
-				onclick={copyToClipboard}
-				class="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200 p-2 bg-background border border-border hover:border-primary hover-lift click-shrink"
-				aria-label="Copy message"
-			>
-				{#if copied}
-					<Check class="w-3.5 h-3.5 text-primary" />
-				{:else}
-					<Copy class="w-3.5 h-3.5 text-muted-foreground" />
-				{/if}
-			</button>
 		</div>
 
-		<!-- Timestamp -->
+		<!-- Timestamp & Copy Button -->
 		{#if showTimestamp}
-			<p class="mt-2 text-body-sm text-muted-foreground font-accent opacity-80 {message.role === 'user' ? 'text-right' : 'text-left'}">
-				{timestamp}
-			</p>
+			<div class="mt-2 flex items-center gap-2 {message.role === 'user' ? 'justify-end' : 'justify-start'}">
+				<button
+					onclick={copyToClipboard}
+					class="p-1 text-muted-foreground hover:text-primary transition-colors duration-200 click-shrink"
+					aria-label="Copy message"
+					title="Copy message"
+				>
+					{#if copied}
+						<Check class="w-3.5 h-3.5" />
+					{:else}
+						<Copy class="w-3.5 h-3.5" />
+					{/if}
+				</button>
+				<p class="text-body-sm text-muted-foreground font-accent opacity-80">
+					{timestamp}
+				</p>
+			</div>
 		{/if}
 	</div>
 </article>
