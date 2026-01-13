@@ -68,7 +68,7 @@
 	</button>
 
 	{#if isOpen}
-		<div class="absolute top-full left-0 mt-2 w-72 bg-card border border-border shadow-dramatic z-50 animate-fade-in glass">
+		<div class="absolute bottom-full left-0 mb-2 w-72 bg-card border border-border shadow-dramatic z-50 animate-fade-in glass">
 			<div class="p-2">
 				{#each models as modelOption, index}
 					<button

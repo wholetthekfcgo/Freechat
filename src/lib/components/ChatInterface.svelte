@@ -3,7 +3,6 @@
 	import MessageBubble from '$lib/components/MessageBubble.svelte';
 	import VirtualChatList from '$lib/components/VirtualChatList.svelte';
 	import FloatingInput from '$lib/components/FloatingInput.svelte';
-	import ModelSelector from '$lib/components/ModelSelector.svelte';
 	import ScrollArea from '$lib/components/ui/scroll-area/scroll-area.svelte';
 	import { Trash2, Download, Plus, Square, RotateCcw, History } from '@lucide/svelte';
 	import Button from '$lib/components/ui/button/button.svelte';
@@ -193,12 +192,7 @@
 		</div>
 
 		<!-- Model Selector + Actions Strip -->
-		<div class="flex items-center justify-between gap-8" style="--stagger-delay: 1">
-			<ModelSelector 
-				{currentModel} 
-				onModelChange={onModelChange} 
-			/>
-			
+		<div class="flex items-center justify-end gap-8" style="--stagger-delay: 1">
 			<!-- Icon-only Action Strip -->
 			<div class="flex items-center gap-1">
 				{#if chatState.canStopGeneration}
@@ -384,5 +378,11 @@
 	</div>
 
 	<!-- Input Area -->
-	<FloatingInput bind:value={inputMessage} onSubmit={handleSubmit} {isLoading} />
+	<FloatingInput 
+		bind:value={inputMessage} 
+		onSubmit={handleSubmit} 
+		{isLoading} 
+		{currentModel}
+		onModelChange={onModelChange}
+	/>
 </div>
