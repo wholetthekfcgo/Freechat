@@ -87,7 +87,7 @@
 	const tokenCounterColor = $derived(tokenCount >= maxTokens ? 'text-red-500' : 'text-yellow-500');
 </script>
 
-<div class="floating-input bg-background sticky bottom-0 z-50 p-6">
+<div class="floating-input bg-background sticky bottom-0 z-50">
 	<div class="max-w-2xl mx-auto">
 		<div class="flex items-center justify-center bg-card shadow-lg rounded-lg p-4">
 			<!-- Textarea with inline buttons -->
