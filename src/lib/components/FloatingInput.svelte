@@ -64,7 +64,7 @@
 </script>
 
 <div class="floating-input border-t border-border bg-background p-6 sticky bottom-0 z-50">
-	<div class="max-w-5xl mx-auto">
+	<div class="max-w-4xl mx-auto">
 		<div class="flex gap-4 items-end">
 			<!-- Textarea - Dominant -->
 			<div class="flex-1 relative">

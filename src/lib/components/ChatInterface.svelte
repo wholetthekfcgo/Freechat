@@ -5,7 +5,7 @@
 	import FloatingInput from '$lib/components/FloatingInput.svelte';
 	import ModelSelector from '$lib/components/ModelSelector.svelte';
 	import ScrollArea from '$lib/components/ui/scroll-area/scroll-area.svelte';
-	import { Trash2, Download, Plus, Square, RotateCcw } from '@lucide/svelte';
+	import { Trash2, Download, Plus, Square, RotateCcw, History } from '@lucide/svelte';
 	import Button from '$lib/components/ui/button/button.svelte';
 	import { tick } from 'svelte';
 	import { chatState, chatActions, chatHistory } from '$lib/stores/chat.svelte.ts';
@@ -259,8 +259,6 @@
 					</Button>
 				{/if}
 
-				<div class="w-px h-4 bg-border mx-1" aria-hidden="true"></div>
-
 				<Button
 					variant="ghost"
 					onclick={() => (showSidebar = !showSidebar)}
@@ -269,7 +267,7 @@
 					aria-label="Toggle chat history sidebar"
 					aria-pressed={showSidebar}
 				>
-					<Plus class="w-3.5 h-3.5" />
+					<History class="w-3.5 h-3.5" />
 				</Button>
 			</div>
 		</div>
