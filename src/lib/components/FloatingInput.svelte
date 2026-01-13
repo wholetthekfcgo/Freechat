@@ -1,7 +1,7 @@
 <script lang="ts">
 	import Textarea from '$lib/components/ui/textarea/textarea.svelte';
 	import Button from '$lib/components/ui/button/button.svelte';
-	import { Send } from '@lucide/svelte';
+	import { ChevronsUp } from '@lucide/svelte';
 	import { draftManager } from '$lib/utils/draft';
 	import { onMount } from 'svelte';
 
@@ -91,13 +91,13 @@
 				onclick={() => !isLoading && value.trim() && onSubmit()}
 				disabled={isLoading || !value.trim()}
 				variant="default"
-				class="px-8 min-w-24 h-auto bg-primary text-primary-foreground hover:bg-primary/90 disabled:bg-muted disabled:text-muted-foreground border-0 shadow-medium hover-lift click-shrink text-body-md"
+				class="px-4 min-w-16 h-auto bg-primary text-primary-foreground hover:bg-primary/90 disabled:bg-muted disabled:text-muted-foreground border-0 shadow-medium hover-lift click-shrink text-body-md"
 				style="min-height: 64px;"
 			>
 				{#if isLoading}
 					<span class="font-mono">...</span>
 				{:else}
-					<span class="font-display font-semibold">SEND</span>
+					<ChevronsUp />
 				{/if}
 			</Button>
 		</div>
