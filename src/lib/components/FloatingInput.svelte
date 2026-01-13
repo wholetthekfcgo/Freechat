@@ -67,7 +67,7 @@
 				const element = textareaRef;
 				if (element && 'style' in element) {
 					element.style.height = 'auto';
-					element.style.height = '80px'; // Reset to min-height
+					element.style.height = '120px'; // Reset to min-height
 				}
 			}
 		});
@@ -101,7 +101,7 @@
 					rows="1"
 					disabled={isLoading}
 					class="resize-none bg-transparent text-foreground placeholder:text-muted-foreground focus-visible:ring-0 text-body-md flex-1 pb-12"
-					style="min-height: 80px; max-height: 240px; overflow-y: auto; font-family: var(--font-body);"
+					style="min-height: 120px; max-height: 240px; overflow-y: auto; font-family: var(--font-body);"
 				/>
 				
 				<!-- Token counter and Action Buttons Container - Bottom Right -->
