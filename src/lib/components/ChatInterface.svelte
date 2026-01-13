@@ -8,6 +8,7 @@
 	import Button from '$lib/components/ui/button/button.svelte';
 	import { tick } from 'svelte';
 	import { chatState, chatActions, chatHistory } from '$lib/stores/chat.svelte.ts';
+	import { browser } from '$app/environment';
 
 	let {
 		messages = [],
@@ -33,25 +34,107 @@
 	let scrollAreaElement: HTMLElement;
 	let showSidebar = $state(false);
 
+	// Announce to screen readers
+	function announce(message: string) {
+		if (browser && (window as any).announceToScreenReader) {
+			(window as any).announceToScreenReader(message);
+		}
+	}
+
 	async function handleSubmit() {
 		if (!inputMessage.trim() || isLoading) return;
 
 		const message = inputMessage.trim();
 		inputMessage = '';
+		announce('Sending message');
 		await onSendMessage(message);
 	}
 
 	async function handleStopGeneration() {
 		chatActions.stopGeneration();
+		announce('Generation stopped');
 	}
 
 	async function handleRegenerate() {
 		await chatActions.regenerateLastResponse();
+		announce('Regenerating response');
 	}
 
 	function handleNewChat() {
 		chatActions.startNewChat();
+		announce('Started new chat');
 	}
+
+	function handleKeyDown(event: KeyboardEvent) {
+		// Ctrl/Cmd + K: Focus input
+		if ((event.ctrlKey || event.metaKey) && event.key === 'k') {
+			event.preventDefault();
+			const input = document.querySelector('textarea[placeholder*="Message"]') as HTMLTextAreaElement;
+			if (input) {
+				input.focus();
+				announce('Input focused');
+			}
+		}
+
+		// Ctrl/Cmd + Enter: Submit
+		if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
+			event.preventDefault();
+			if (inputMessage.trim() && !isLoading) {
+				handleSubmit();
+			}
+		}
+
+		// Escape: Stop generation
+		if (event.key === 'Escape' && isLoading) {
+			handleStopGeneration();
+		}
+
+		// Ctrl/Cmd + /: Show keyboard shortcuts
+		if ((event.ctrlKey || event.metaKey) && event.key === '/') {
+			event.preventDefault();
+			announce('Keyboard shortcuts: Ctrl+K focus input, Ctrl+Enter send, Escape stop generation');
+		}
+	}
+
+	// Announce loading state changes
+	$effect(() => {
+		const wasLoading = $state<string | null>(null);
+		
+		if (isLoading !== wasLoading) {
+			if (isLoading) {
+				announce('Generating response');
+			} else if (error) {
+				announce(`Error: ${error}`);
+			} else {
+				announce('Response complete');
+			}
+		}
+	});
+
+	// Announce new messages
+	$effect(() => {
+		const prevLength = $state<number>(0);
+		
+		if (messages.length > prevLength) {
+			const newMessage = messages[messages.length - 1];
+			const role = newMessage.role === 'user' ? 'You' : 'Assistant';
+			announce(`New ${role} message`);
+		}
+	});
+
+	// Set up keyboard shortcuts
+	let keyboardHandlerAttached = $state(false);
+
+	$effect(() => {
+		if (browser && !keyboardHandlerAttached) {
+			window.addEventListener('keydown', handleKeyDown);
+			keyboardHandlerAttached = true;
+
+			return () => {
+				window.removeEventListener('keydown', handleKeyDown);
+			};
+		}
+	});
 
 	// Optimize scrolling with $effect.pre
 	$effect.pre(() => {

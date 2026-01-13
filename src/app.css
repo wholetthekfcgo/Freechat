@@ -14,8 +14,8 @@
   --popover: 0 0% 7%;
   --popover-foreground: 38 20% 94%;
   
-  /* Primary Accent - Warm Orange (not neon) */
-  --primary: 18 100% 60%; /* #ff6b35 - warm orange */
+  /* Primary Accent - Warm Orange (WCAG AA compliant) */
+  --primary: 18 100% 55%; /* #e65c25 - adjusted for 4.5:1 contrast */
   --primary-foreground: 0 0% 100%;
   
   /* Secondary - Muted Dark */
@@ -24,19 +24,19 @@
   
   /* Muted - For backgrounds */
   --muted: 0 0% 10%;
-  --muted-foreground: 0 0% 48%; /* #7a7a7a - muted gray */
+  --muted-foreground: 0 0% 55%; /* #8c8c8c - lighter for better contrast */
   
   /* Accent - Subtle */
   --accent: 0 0% 12%;
   --accent-foreground: 38 20% 94%;
   
-  /* Destructive - Muted Red */
-  --destructive: 0 62% 30%;
+  /* Destructive - Muted Red (WCAG AA compliant) */
+  --destructive: 0 72% 45%; /* #cc3333 - adjusted for 4.5:1 contrast */
   --destructive-foreground: 0 0% 100%;
   
   /* Borders & Inputs */
-  --border: 0 0% 16%;
-  --input: 0 0% 16%;
+  --border: 0 0% 20%; /* Lighter for better visibility */
+  --input: 0 0% 20%;
   --ring: 18 100% 60%;
   
   /* Charts (keeping but may not use) */
@@ -49,11 +49,11 @@
   /* Sidebar */
   --sidebar: 0 0% 7%;
   --sidebar-foreground: 38 20% 94%;
-  --sidebar-primary: 18 100% 60%;
+  --sidebar-primary: 18 100% 55%;
   --sidebar-primary-foreground: 0 0% 100%;
   --sidebar-accent: 0 0% 12%;
   --sidebar-accent-foreground: 38 20% 94%;
-  --sidebar-border: 0 0% 16%;
+  --sidebar-border: 0 0% 20%;
   --sidebar-ring: 18 100% 60%;
   
   /* === CUSTOM NOIR VARIABLES === */

@@ -2,6 +2,9 @@ import type { Message, ChatState, ChatConversation, ChatHistory } from '$lib/typ
 import { browser } from '$app/environment';
 import { logger } from '$lib/utils/logger';
 import { encrypt, decrypt } from '$lib/utils/encryption';
+import { safeSaveToStorage, safeLoadFromStorage } from '$lib/utils/storage-quota';
+import { queueRequest, abortAllRequests } from '$lib/utils/request-queue';
+import { withRateLimitAndRetry, recordApiRequest } from '$lib/utils/rate-limiter';
 
 const STORAGE_KEY = 'chat-history-encrypted';
 const STORAGE_VERSION = 'v1'; // For future migrations
@@ -82,7 +85,14 @@ function saveChatHistory(): void {
 		};
 		
 		const encrypted = encrypt(dataToSave);
-		localStorage.setItem(STORAGE_KEY, encrypted);
+		
+		// Use safe save with quota checking
+		const success = safeSaveToStorage(STORAGE_KEY, encrypted);
+		
+		if (!success) {
+			logger.error('Failed to save chat history: storage quota exceeded');
+			// Notify user (could add toast notification here)
+		}
 		
 		logger.debug('Chat history encrypted and saved', { 
 			conversationCount: chatHistory.conversations.length 
@@ -118,129 +128,133 @@ export const chatActions = {
 		chatState.error = null;
 
 		try {
-			if (stream) {
-				logger.streamStart();
-				const response = await fetch('/api/chat/stream', {
-					method: 'POST',
-					headers: { 'Content-Type': 'application/json' },
-					body: JSON.stringify({
-						model,
-						messages: chatState.messages
-					}),
-					signal: abortController.signal
-				});
+			// Wrap API call with rate limiting and retry logic
+			await withRateLimitAndRetry(async () => {
+				if (stream) {
+					logger.streamStart();
+					const response = await queueRequest(
+						() => fetch('/api/chat/stream', {
+							method: 'POST',
+							headers: { 'Content-Type': 'application/json' },
+							body: JSON.stringify({
+								model,
+								messages: chatState.messages
+							}),
+							signal: abortController.signal
+						}),
+						() => abortController.abort(),
+						0 // Normal priority
+					);
 
-				if (!response.ok) {
-					throw new Error('Failed to get response');
-				}
-
-				const reader = response.body?.getReader();
-				if (!reader) {
-					throw new Error('No response body');
-				}
-				
-				const decoder = new TextDecoder();
-				let assistantContent = '';
-				let buffer = '';
-				let chunkCount = 0;
-
-				while (true) {
-					const { done, value } = await reader.read();
-					if (done) {
-						logger.streamComplete(chunkCount);
-						break;
+					if (!response.ok) {
+						throw new Error('Failed to get response');
 					}
 
-					buffer += decoder.decode(value, { stream: true });
-					const lines = buffer.split('\n');
-					buffer = lines.pop() || '';
+					const reader = response.body?.getReader();
+					if (!reader) {
+						throw new Error('No response body');
+					}
+					
+					const decoder = new TextDecoder();
+					let assistantContent = '';
+					let buffer = '';
+					let chunkCount = 0;
 
-					for (const line of lines) {
-						const trimmed = line.trim();
-						if (!trimmed.startsWith('data: ') || trimmed === 'data: [DONE]') continue;
+					while (true) {
+						const { done, value } = await reader.read();
+						if (done) {
+							logger.streamComplete(chunkCount);
+							break;
+						}
 
-						try {
-							const data = JSON.parse(trimmed.slice(6));
-							chunkCount++;
+						buffer += decoder.decode(value, { stream: true });
+						const lines = buffer.split('\n');
+						buffer = lines.pop() || '';
 
-							// Handle error chunks
-							if (data.error) {
-								logger.error('Error chunk received', data.error);
-								throw new Error(data.error.message || 'Stream error occurred');
-							}
+						for (const line of lines) {
+							const trimmed = line.trim();
+							if (!trimmed.startsWith('data: ') || trimmed === 'data: [DONE]') continue;
 
-							// Handle content chunks
-							if (data.content) {
-								assistantContent += data.content;
-								logger.streamChunk(chunkCount, data.content, assistantContent.length);
+							try {
+								const data = JSON.parse(trimmed.slice(6));
+								chunkCount++;
 
-								// Update messages reactively
-								const messages = [...chatState.messages];
-								const lastMessage = messages[messages.length - 1];
-
-								if (lastMessage?.role === 'assistant') {
-									lastMessage.content = assistantContent;
-								} else {
-									messages.push({
-										id: crypto.randomUUID(),
-										role: 'assistant',
-										content: assistantContent,
-										timestamp: new Date()
-									});
+								// Handle error chunks
+								if (data.error) {
+									logger.error('Error chunk received', data.error);
+									throw new Error(data.error.message || 'Stream error occurred');
 								}
 
-								chatState.messages = messages;
-							}
+								// Handle content chunks
+								if (data.content) {
+									assistantContent += data.content;
+									logger.streamChunk(chunkCount, data.content, assistantContent.length);
 
-							// Handle usage statistics (final chunk)
-							if (data.usage) {
-								logger.info('Usage statistics received', data.usage);
-							}
+									// Update messages reactively
+									const messages = [...chatState.messages];
+									const lastMessage = messages[messages.length - 1];
 
-							// Check for completion
-							if (data.finishReason && data.finishReason !== 'stop') {
-								logger.warn(`Stream finished with reason: ${data.finishReason}`, { finishReason: data.finishReason });
+									if (lastMessage?.role === 'assistant') {
+										lastMessage.content = assistantContent;
+									} else {
+										messages.push({
+											id: crypto.randomUUID(),
+											role: 'assistant',
+											content: assistantContent,
+											timestamp: new Date()
+										});
+									}
+
+									chatState.messages = messages;
+								}
+
+								// Handle usage statistics (final chunk)
+								if (data.usage) {
+									logger.info('Usage statistics received', data.usage);
+								}
+
+								// Check for completion
+								if (data.finishReason && data.finishReason !== 'stop') {
+									logger.warn(`Stream finished with reason: ${data.finishReason}`, { finishReason: data.finishReason });
+								}
+							} catch (e) {
+								// Re-throw intentional errors
+								if (e instanceof Error && e.message.includes('Stream error')) {
+									throw e;
+								}
+								logger.error('Error parsing SSE', e);
 							}
-						} catch (e) {
-							// Re-throw intentional errors
-							if (e instanceof Error && e.message.includes('Stream error')) {
-								throw e;
-							}
-							logger.error('Error parsing SSE', e);
 						}
 					}
+				} else {
+					// Handle non-streaming
+					const response = await queueRequest(
+						() => fetch('/api/chat', {
+							method: 'POST',
+							headers: { 'Content-Type': 'application/json' },
+							body: JSON.stringify({
+								model,
+								messages: chatState.messages
+							}),
+							signal: abortController.signal
+						}),
+						() => abortController.abort(),
+						0
+					);
+
+					if (!response.ok) {
+						throw new Error('Failed to get response');
+					}
+
+					const data = await response.json();
+					const assistantMessage = data.choices?.[0]?.message?.content || 'No response';
+
+					chatState.messages = [
+						...chatState.messages,
+						{ id: crypto.randomUUID(), role: 'assistant', content: assistantMessage, timestamp: new Date() }
+					];
 				}
-			} else {
-				// Handle non-streaming
-				const response = await fetch('/api/chat', {
-					method: 'POST',
-					headers: { 'Content-Type': 'application/json' },
-					body: JSON.stringify({
-						model,
-						messages: chatState.messages
-					}),
-					signal: abortController.signal
-				});
-
-				if (!response.ok) {
-					throw new Error('Failed to get response');
-				}
-
-				const data = await response.json();
-				const assistantMessage = data.choices?.[0]?.message?.content || 'No response';
-
-				chatState.messages = [
-					...chatState.messages,
-					{ id: crypto.randomUUID(), role: 'assistant', content: assistantMessage, timestamp: new Date() }
-				];
-			}
-
-			chatState.isLoading = false;
-			chatState.canStopGeneration = false;
-			chatState.abortController = null;
-			
-			// Save current conversation to history
-			chatActions.saveCurrentConversation();
+			}, 3); // Max 3 retries
 		} catch (error) {
 			if (error instanceof Error && error.name === 'AbortError') {
 				chatState.error = 'Generation stopped by user';
@@ -251,6 +265,13 @@ export const chatActions = {
 			chatState.canStopGeneration = false;
 			chatState.abortController = null;
 		}
+
+		chatState.isLoading = false;
+		chatState.canStopGeneration = false;
+		chatState.abortController = null;
+		
+		// Save current conversation to history with quota check
+		chatActions.saveCurrentConversation();
 	},
 
 	stopGeneration: () => {

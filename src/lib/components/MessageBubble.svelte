@@ -2,6 +2,7 @@
 	import type { Message } from '$lib/types/chat';
 	import { Copy, Check } from 'lucide-svelte';
 	import { renderMarkdown } from '$lib/utils';
+	import { sanitizeHTML, isSafePlainText } from '$lib/utils/sanitize';
 
 	let { message }: { message: Message } = $props();
 
@@ -23,12 +24,18 @@
 		})
 	);
 
+	// Check if content is safe plain text (no HTML/Markdown)
+	const isPlainText = $derived(isSafePlainText(message.content));
+	
 	// Check if content contains code blocks
-	const renderedContent = $derived(renderMarkdown(message.content));
+	const hasCodeBlock = $derived(message.content.includes('```'));
+	
+	// Render markdown and sanitize HTML
+	const renderedContent = $derived(sanitizeHTML(renderMarkdown(message.content)));
 	
 	// Detect if message contains code blocks
 	$effect(() => {
-		isCodeBlock = message.content.includes('```');
+		isCodeBlock = hasCodeBlock;
 	});
 </script>
 
