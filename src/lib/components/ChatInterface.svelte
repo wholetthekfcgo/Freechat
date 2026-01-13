@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { Message } from '$lib/types/chat';
 	import MessageBubble from '$lib/components/MessageBubble.svelte';
+	import VirtualChatList from '$lib/components/VirtualChatList.svelte';
 	import FloatingInput from '$lib/components/FloatingInput.svelte';
 	import ModelSelector from '$lib/components/ModelSelector.svelte';
 	import ScrollArea from '$lib/components/ui/scroll-area/scroll-area.svelte';
@@ -9,6 +10,8 @@
 	import { tick } from 'svelte';
 	import { chatState, chatActions, chatHistory } from '$lib/stores/chat.svelte.ts';
 	import { browser } from '$app/environment';
+	import { announce, announceError, initAnnouncer } from '$lib/utils/announcer';
+	import { onMount } from 'svelte';
 
 	let {
 		messages = [],
@@ -34,10 +37,19 @@
 	let scrollAreaElement: HTMLElement;
 	let showSidebar = $state(false);
 
+	// Initialize screen reader announcer on mount
+	onMount(() => {
+		if (browser) {
+			initAnnouncer();
+		}
+	});
+
 	// Announce to screen readers
-	function announce(message: string) {
-		if (browser && (window as any).announceToScreenReader) {
-			(window as any).announceToScreenReader(message);
+	function announceToScreenReader(message: string, isError: boolean = false) {
+		if (isError) {
+			announceError(message);
+		} else {
+			announce(message);
 		}
 	}
 
@@ -96,11 +108,14 @@
 		}
 	}
 
+	// Track previous loading state for announcements
+	let wasLoading = $state(false);
+
 	// Announce loading state changes
 	$effect(() => {
-		const wasLoading = $state<string | null>(null);
-		
 		if (isLoading !== wasLoading) {
+			wasLoading = isLoading;
+			
 			if (isLoading) {
 				announce('Generating response');
 			} else if (error) {
@@ -111,11 +126,14 @@
 		}
 	});
 
+	// Track previous messages length for announcements
+	let prevLength = $state(0);
+
 	// Announce new messages
 	$effect(() => {
-		const prevLength = $state<number>(0);
-		
 		if (messages.length > prevLength) {
+			prevLength = messages.length;
+			
 			const newMessage = messages[messages.length - 1];
 			const role = newMessage.role === 'user' ? 'You' : 'Assistant';
 			announce(`New ${role} message`);
@@ -320,7 +338,11 @@
 								<p class="text-body-md text-muted-foreground font-accent">// Initiate conversation</p>
 							</div>
 						</div>
+					{:else if messages.length > 100}
+						<!-- Use virtual scrolling for large conversations -->
+						<VirtualChatList {messages} />
 					{:else}
+						<!-- Regular rendering for small conversations -->
 						{#each messages as message (message.id)}
 							<MessageBubble {message} />
 						{/each}

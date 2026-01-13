@@ -35,14 +35,14 @@ export function decrypt<T>(encryptedData: string): T | null {
 		const decryptedBytes = CryptoES.AES.decrypt(encryptedData, ENCRYPTION_KEY);
 		const decryptedString = decryptedBytes.toString(CryptoES.enc.Utf8);
 		
-		if (!decryptedString) {
+		if (!decryptedString || decryptedString.length === 0) {
 			return null;
 		}
 		
 		return JSON.parse(decryptedString) as T;
 	} catch (error) {
-		console.error('Decryption failed:', error);
-		return null;
+		// Throw error to allow caller to handle
+		throw new Error('Decryption failed: ' + (error instanceof Error ? error.message : 'Unknown error'));
 	}
 }
 

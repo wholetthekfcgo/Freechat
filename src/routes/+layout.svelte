@@ -5,6 +5,9 @@
 	import { browser } from '$app/environment';
 	import { onMount } from 'svelte';
 
+	// In Svelte 5, layout components receive children as a prop
+	let { children } = $props();
+
 	// Skip to main content handler
 	function skipToContent() {
 		const mainContent = document.getElementById('main-content');
@@ -60,10 +63,9 @@
 		<main 
 			id="main-content" 
 			tabindex="-1"
-			role="main"
 			aria-label="Chat interface"
 		>
-			<slot />
+			{@render children()}
 		</main>
 	</div>
 </ErrorBoundary>

@@ -3,6 +3,7 @@
 	import { errorTracker } from '$lib/utils/error-tracker';
 	import { AlertCircle, RefreshCw } from 'lucide-svelte';
 	import Button from './ui/button/button.svelte';
+	import type { Snippet } from 'svelte';
 
 	let {
 		children,
@@ -11,8 +12,8 @@
 		componentName = 'UnknownComponent',
 		showDetails = true
 	}: {
-		children: snippit;
-		fallback?: snippit;
+		children: Snippet;
+		fallback?: Snippet;
 		onRetry?: () => void | Promise<void>;
 		componentName?: string;
 		showDetails?: boolean;
@@ -68,10 +69,10 @@
 	}
 
 	// Expose error handling to child components
-	let errorContext = {
+	const errorContext = $derived({
 		handleError,
 		componentName
-	};
+	});
 
 	// In Svelte 5, we need to use error handling in parent
 	// For now, this component will be used as a wrapper

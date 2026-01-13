@@ -100,6 +100,31 @@
 		messages;
 		recalculateOffsets();
 	});
+
+	/**
+	 * Action to measure item height
+	 */
+	function measureItemHeightAction(node: HTMLElement, { messageId }: { messageId: string }) {
+		// Measure on mount
+		requestAnimationFrame(() => {
+			measureItemHeight(messageId, node);
+		});
+
+		// Re-measure on resize
+		const resizeObserver = new ResizeObserver(() => {
+			requestAnimationFrame(() => {
+				measureItemHeight(messageId, node);
+			});
+		});
+
+		resizeObserver.observe(node);
+
+		return {
+			destroy() {
+				resizeObserver.disconnect();
+			}
+		};
+	}
 </script>
 
 <div
@@ -118,7 +143,7 @@
 				<div
 					class="virtual-item"
 					style="min-height: {height}px"
-					use:measureItemHeight={{ messageId: message.id }}
+					use:measureItemHeightAction={{ messageId: message.id }}
 				>
 					<MessageBubble {message} />
 				</div>
@@ -163,41 +188,3 @@
 		contain-intrinsic-size: auto 150px;
 	}
 </style>
-
-<script lang="ts">
-	/**
-	 * Action to measure item height
-	 */
-	function measureItemHeight(node: HTMLElement, { messageId }: { messageId: string }) {
-		// Measure on mount
-		requestAnimationFrame(() => {
-			const height = node.offsetHeight;
-			// Store in parent scope (will be handled by component)
-			node.dispatchEvent(new CustomEvent('measure', {
-				detail: { messageId, height },
-				bubbles: true
-			}));
-		});
-
-		// Re-measure on resize
-		const resizeObserver = new ResizeObserver((entries) => {
-			for (const entry of entries) {
-				const height = entry.contentRect.height;
-				node.dispatchEvent(new CustomEvent('measure', {
-					detail: { messageId, height },
-					bubbles: true
-				}));
-			}
-		});
-
-		resizeObserver.observe(node);
-
-		return {
-			destroy() {
-				resizeObserver.disconnect();
-			}
-		};
-	}
-
-	export { measureItemHeight };
-</script>
