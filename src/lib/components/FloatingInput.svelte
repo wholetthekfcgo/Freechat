@@ -77,7 +77,7 @@
 					rows="1"
 					disabled={isLoading}
 					class="resize-none bg-card border-border text-foreground placeholder:text-muted-foreground focus-visible:ring-0 focus:border-primary shadow-inset text-body-md"
-					style="min-height: 56px; max-height: 240px; overflow-y: auto; font-family: var(--font-body);"
+					style="min-height: 64px; max-height: 240px; overflow-y: auto; font-family: var(--font-body);"
 				/>
 				
 				<!-- Character counter - minimalist -->
@@ -92,7 +92,7 @@
 				disabled={isLoading || !value.trim()}
 				variant="default"
 				class="px-8 min-w-24 h-auto bg-primary text-primary-foreground hover:bg-primary/90 disabled:bg-muted disabled:text-muted-foreground border-0 shadow-medium hover-lift click-shrink text-body-md"
-				style="min-height: 56px;"
+				style="min-height: 64px;"
 			>
 				{#if isLoading}
 					<span class="font-mono">...</span>
@@ -100,19 +100,6 @@
 					<span class="font-display font-semibold">SEND</span>
 				{/if}
 			</Button>
-		</div>
-		
-		<!-- Helper text -->
-		<div class="mt-3 flex items-center justify-center gap-4">
-			<span class="text-body-sm text-muted-foreground font-accent opacity-60">
-				Press Enter to send · Shift+Enter for new line
-			</span>
-			
-			{#if showDraftRestored}
-				<span class="text-body-sm text-primary font-accent animate-fade-in" aria-live="polite">
-					✓ Draft restored
-				</span>
-			{/if}
 		</div>
 	</div>
 </div>
