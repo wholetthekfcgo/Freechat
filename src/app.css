@@ -31,7 +31,7 @@
   --accent-foreground: 38 20% 94%;
   
   /* Destructive - Muted Red (WCAG AA compliant) */
-  --destructive: 0 72% 55%; /* #e64d4d - adjusted for 7:1 AAA contrast */
+  --destructive: 0 84% 60%; /* #e65c25 - brighter red for visibility */
   --destructive-foreground: 0 0% 100%;
   
   /* Borders & Inputs */

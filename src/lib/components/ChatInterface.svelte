@@ -295,7 +295,7 @@
 												e.stopPropagation();
 												handleDeleteRequest(conv.id);
 											}}
-											class="p-1.5 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive/10 text-muted-foreground hover:text-destructive click-shrink"
+											class="p-1.5 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600 hover:text-white text-muted-foreground click-shrink"
 											title="Delete"
 											aria-label="Delete conversation"
 										>

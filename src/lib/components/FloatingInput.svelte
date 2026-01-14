@@ -228,24 +228,22 @@
 
 							<!-- Send/Abort Button -->
 							{#if isLoading}
-								<Button
+								<button
 									onclick={onStopGeneration}
-									variant="destructive"
-									class="p-2 min-w-10 h-10 bg-destructive text-destructive-foreground hover:bg-destructive/90 border-0 shadow-medium hover-lift click-shrink flex items-center justify-center"
+									class="p-2 min-w-10 h-10 bg-red-600 hover:bg-red-700 text-white border-0 shadow-medium hover-lift click-shrink flex items-center justify-center"
 									title="Stop generation"
 								>
 									<Square class="w-5 h-5" />
-								</Button>
+								</button>
 							{:else}
-								<Button
+								<button
 									onclick={() => value.trim() && tokenCount < maxTokens && onSubmit()}
 									disabled={!value.trim() || tokenCount >= maxTokens}
-									variant="default"
-									class="p-2 min-w-10 h-10 bg-primary text-primary-foreground hover:bg-primary/90 disabled:bg-muted disabled:text-muted-foreground border-0 shadow-medium hover-lift click-shrink flex items-center justify-center"
+									class="p-2 min-w-10 h-10 bg-primary hover:bg-primary/90 disabled:bg-muted disabled:text-muted-foreground border-0 shadow-medium hover-lift click-shrink flex items-center justify-center text-white"
 									title="Send message"
 								>
 									<ChevronsUp class="w-5 h-5" />
-								</Button>
+								</button>
 							{/if}
 						</div>
 					</div>
