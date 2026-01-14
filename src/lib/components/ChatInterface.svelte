@@ -259,6 +259,16 @@
 					<h2 class="text-display-sm text-foreground mb-1">History</h2>
 					<p class="text-body-sm text-muted-foreground font-accent">{chatHistory?.conversations?.length ?? 0} conversations</p>
 				</div>
+				<!-- New Chat Button -->
+				<div class="px-4 pt-4 pb-4 border-b border-border">
+					<Button
+						onclick={handleNewChat}
+						class="w-full h-10 bg-primary text-primary-foreground hover:bg-primary/90 click-shrink shadow-medium"
+					>
+						<Plus class="w-4 h-4 mr-2" />
+						<span class="text-body-md">New Conversation</span>
+					</Button>
+				</div>
 				<div class="flex-1 overflow-y-auto p-4 space-y-2">
 					{#if !chatHistory?.conversations || chatHistory.conversations.length === 0}
 						<div class="text-center py-12">
@@ -306,16 +316,6 @@
 							</div>
 						{/each}
 					{/if}
-				</div>
-				<!-- New Chat Button -->
-				<div class="p-4 border-t border-border">
-					<Button
-						onclick={handleNewChat}
-						class="w-full h-10 bg-primary text-primary-foreground hover:bg-primary/90 click-shrink shadow-medium"
-					>
-						<Plus class="w-4 h-4 mr-2" />
-						<span class="text-body-md">New Conversation</span>
-					</Button>
 				</div>
 			</aside>
 		{/if}
