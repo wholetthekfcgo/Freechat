@@ -237,18 +237,6 @@
 		<div class="flex items-center justify-end gap-8" style="--stagger-delay: 1">
 			<!-- Icon-only Action Strip -->
 			<div class="flex items-center gap-1">
-				{#if chatState.canStopGeneration}
-					<Button
-						variant="ghost"
-						onclick={handleStopGeneration}
-						class="h-8 w-8 p-0 text-destructive hover:bg-destructive hover:text-destructive-foreground click-shrink"
-						title="Stop generation"
-						aria-label="Stop generating response"
-					>
-						<Square class="w-3.5 h-3.5" />
-					</Button>
-				{/if}
-
 				<Button
 					variant="ghost"
 					onclick={() => (showSidebar = !showSidebar)}
@@ -393,6 +381,7 @@
 	<FloatingInput 
 		bind:value={inputMessage} 
 		onSubmit={handleSubmit} 
+		onStopGeneration={handleStopGeneration}
 		{isLoading} 
 		{currentModel}
 		onModelChange={onModelChange}

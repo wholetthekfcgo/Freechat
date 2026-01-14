@@ -1,7 +1,7 @@
 <script lang="ts">
 	import Textarea from '$lib/components/ui/textarea/textarea.svelte';
 	import Button from '$lib/components/ui/button/button.svelte';
-	import { ChevronsUp, X, ChevronUp } from '@lucide/svelte';
+	import { ChevronsUp, X, ChevronUp, Square } from '@lucide/svelte';
 	import { draftManager } from '$lib/utils/draft';
 	import { onMount } from 'svelte';
 	import { encode } from 'gpt-tokenizer';
@@ -10,6 +10,7 @@
 	let {
 		value = $bindable(),
 		onSubmit,
+		onStopGeneration,
 		isLoading = false,
 		placeholder = 'Type your message... (Press Enter to send, Shift+Enter for new line)',
 		currentModel = 'openai/gpt-oss-20b:free',
@@ -21,6 +22,7 @@
 	}: {
 		value: string;
 		onSubmit: () => void;
+		onStopGeneration?: () => void;
 		isLoading?: boolean;
 		placeholder?: string;
 		currentModel?: string;
@@ -224,19 +226,27 @@
 								<X class="w-4 h-4" />
 							</button>
 
-							<!-- Send Button -->
-							<Button
-								onclick={() => !isLoading && value.trim() && tokenCount < maxTokens && onSubmit()}
-								disabled={isLoading || !value.trim() || tokenCount >= maxTokens}
-								variant="default"
-								class="p-2 min-w-10 h-10 bg-primary text-primary-foreground hover:bg-primary/90 disabled:bg-muted disabled:text-muted-foreground border-0 shadow-medium hover-lift click-shrink flex items-center justify-center"
-							>
-								{#if isLoading}
-									<span class="font-mono text-sm">...</span>
-								{:else}
+							<!-- Send/Abort Button -->
+							{#if isLoading}
+								<Button
+									onclick={onStopGeneration}
+									variant="destructive"
+									class="p-2 min-w-10 h-10 bg-destructive text-destructive-foreground hover:bg-destructive/90 border-0 shadow-medium hover-lift click-shrink flex items-center justify-center"
+									title="Stop generation"
+								>
+									<Square class="w-5 h-5" />
+								</Button>
+							{:else}
+								<Button
+									onclick={() => value.trim() && tokenCount < maxTokens && onSubmit()}
+									disabled={!value.trim() || tokenCount >= maxTokens}
+									variant="default"
+									class="p-2 min-w-10 h-10 bg-primary text-primary-foreground hover:bg-primary/90 disabled:bg-muted disabled:text-muted-foreground border-0 shadow-medium hover-lift click-shrink flex items-center justify-center"
+									title="Send message"
+								>
 									<ChevronsUp class="w-5 h-5" />
-								{/if}
-							</Button>
+								</Button>
+							{/if}
 						</div>
 					</div>
 				</div>
