@@ -147,7 +147,6 @@ export async function streamOpenRouter(
         
         // Skip SSE comments (keep-alive messages)
         if (trimmed.startsWith(':')) {
-          logger.debug('SSE keep-alive received');
           continue;
         }
         

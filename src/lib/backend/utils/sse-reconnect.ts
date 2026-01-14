@@ -183,8 +183,6 @@ export class SSEReconnectManager {
 					this.resetKeepAliveTimer();
 					this.transitionTo(SSEConnectionState.CONNECTED);
 					this.lastConnectedAt = new Date();
-					
-					logger.debug('SSE connection established', { url });
 				};
 
 				// Handle incoming messages
@@ -237,11 +235,6 @@ export class SSEReconnectManager {
 		const delay = baseDelay + jitter;
 		this.currentBackoffMs = delay;
 
-		logger.debug('Scheduling SSE reconnection', {
-			delayMs: Math.round(delay),
-			attempt: this.attemptCount
-		});
-
 		this.reconnectTimer = setTimeout(() => {
 			this.reconnectTimer = null;
 			this.connectWithRetry(url);
@@ -289,9 +282,7 @@ export class SSEReconnectManager {
 	 */
 	private transitionTo(newState: SSEConnectionState): void {
 		if (this.state !== newState) {
-			const oldState = this.state;
 			this.state = newState;
-			logger.debug('SSE state transition', { from: oldState, to: newState });
 		}
 	}
 

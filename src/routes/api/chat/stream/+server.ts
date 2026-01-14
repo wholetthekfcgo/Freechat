@@ -75,7 +75,10 @@ const baseHandler: RequestHandler = async ({ request }) => {
 		}
 
 		const encoder = new TextEncoder();
+		const startTime = Date.now();
+		let firstTokenTime: number | null = null;
 		let chunkCount = 0;
+		let totalContentLength = 0;
 		
 		const stream = new ReadableStream({
 			async start(controller) {
@@ -100,14 +103,18 @@ const baseHandler: RequestHandler = async ({ request }) => {
 						// Handle content chunks - immediately flush to client
 						if (content) {
 							chunkCount++;
-							controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content, correlationId })}\n\n`));
+							totalContentLength += content.length;
 							
-							logger.streamChunk(chunkCount, content, content.length);
+							// Track time to first token
+							if (!firstTokenTime) {
+								firstTokenTime = Date.now() - startTime;
+							}
+							
+							controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content, correlationId })}\n\n`));
 						}
 
 						// Handle final chunks with usage or completion info
 						if (metadata?.usage || metadata?.finishReason) {
-							logger.info('Sending final chunk', { ...metadata, correlationId });
 							controller.enqueue(
 								encoder.encode(
 									`data: ${JSON.stringify({
@@ -120,7 +127,20 @@ const baseHandler: RequestHandler = async ({ request }) => {
 						}
 					});
 					
-					logger.info('Stream complete', { totalChunks: chunkCount, correlationId });
+					const totalDuration = Date.now() - startTime;
+					
+					// Single comprehensive log entry
+					logger.info('Stream complete', {
+						correlationId,
+						model: body.model,
+						messageCount: body.messages.length,
+						totalChunks: chunkCount,
+						totalContentLength,
+						totalDuration,
+						timeToFirstToken: firstTokenTime,
+						usage: null // will be populated if available from metadata
+					});
+					
 					controller.enqueue(encoder.encode('data: [DONE]\n\n'));
 					controller.close();
 				} catch (error) {
