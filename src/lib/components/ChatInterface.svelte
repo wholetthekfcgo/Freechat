@@ -275,16 +275,6 @@
 					</Button>
 				{/if}
 
-				<Button
-					variant="ghost"
-					onclick={handleNewChat}
-					class="h-8 w-8 p-0 text-muted-foreground hover:text-foreground hover:bg-muted click-shrink"
-					title="New Chat (Ctrl+K)"
-					aria-label="Start new chat"
-				>
-					<Plus class="w-3.5 h-3.5" />
-				</Button>
-
 				{#if messages.length > 0 && !isLoading}
 					<Button
 						variant="ghost"
@@ -294,18 +284,6 @@
 						aria-label="Regenerate last response"
 					>
 						<RotateCcw class="w-3.5 h-3.5" />
-					</Button>
-				{/if}
-
-				{#if onClear}
-					<Button
-						variant="ghost"
-						onclick={handleClearRequest}
-						class="h-8 w-8 p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10 click-shrink"
-						title="Clear messages"
-						aria-label="Clear all messages"
-					>
-						<Trash2 class="w-3.5 h-3.5" />
 					</Button>
 				{/if}
 
