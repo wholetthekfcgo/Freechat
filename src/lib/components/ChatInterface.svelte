@@ -249,32 +249,6 @@
 					</Button>
 				{/if}
 
-				<!-- NEW: Undo button -->
-				{#if commandStack.canUndo()}
-					<Button
-						variant="ghost"
-						onclick={handleUndo}
-						class="h-8 w-8 p-0 text-muted-foreground hover:text-foreground hover:bg-muted click-shrink"
-						title="Undo (Ctrl+Z)"
-						aria-label="Undo last action"
-					>
-						<Undo class="w-3.5 h-3.5" />
-					</Button>
-				{/if}
-
-				<!-- NEW: Redo button -->
-				{#if commandStack.canRedo()}
-					<Button
-						variant="ghost"
-						onclick={handleRedo}
-						class="h-8 w-8 p-0 text-muted-foreground hover:text-foreground hover:bg-muted click-shrink"
-						title="Redo (Ctrl+Shift+Z)"
-						aria-label="Redo action"
-					>
-						<Redo class="w-3.5 h-3.5" />
-					</Button>
-				{/if}
-
 				<Button
 					variant="ghost"
 					onclick={() => (showSidebar = !showSidebar)}
@@ -320,17 +294,6 @@
 										<button
 											onclick={(e) => {
 												e.stopPropagation();
-												handleDeleteRequest(conv.id);
-											}}
-											class="p-1.5 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive/10 text-muted-foreground hover:text-destructive click-shrink"
-											title="Delete"
-											aria-label="Delete conversation"
-										>
-											<Trash2 class="w-3.5 h-3.5" />
-										</button>
-										<button
-											onclick={(e) => {
-												e.stopPropagation();
 												onExport('markdown');
 											}}
 											class="p-1.5 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-primary/10 text-muted-foreground hover:text-primary click-shrink"
@@ -338,6 +301,17 @@
 											aria-label="Export conversation"
 										>
 											<Download class="w-3.5 h-3.5" />
+										</button>
+										<button
+											onclick={(e) => {
+												e.stopPropagation();
+												handleDeleteRequest(conv.id);
+											}}
+											class="p-1.5 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive/10 text-muted-foreground hover:text-destructive click-shrink"
+											title="Delete"
+											aria-label="Delete conversation"
+										>
+											<Trash2 class="w-3.5 h-3.5" />
 										</button>
 									</div>
 								</div>
