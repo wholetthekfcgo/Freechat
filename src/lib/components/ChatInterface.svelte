@@ -287,18 +287,6 @@
 					</Button>
 				{/if}
 
-				{#if onExport}
-					<Button
-						variant="ghost"
-						onclick={() => onExport('markdown')}
-						class="h-8 w-8 p-0 text-muted-foreground hover:text-foreground hover:bg-muted click-shrink"
-						title="Export conversation"
-						aria-label="Export conversation as markdown"
-					>
-						<Download class="w-3.5 h-3.5" />
-					</Button>
-				{/if}
-
 				<Button
 					variant="ghost"
 					onclick={() => (showSidebar = !showSidebar)}
@@ -340,17 +328,30 @@
 										<h3 class="text-body-md font-medium text-foreground truncate mb-1">{conv.title}</h3>
 										<p class="text-body-sm text-muted-foreground">{conv.messages.length} messages</p>
 									</div>
-									<button
-										onclick={(e) => {
-											e.stopPropagation();
-											handleDeleteRequest(conv.id);
-										}}
-										class="ml-2 p-1.5 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive/10 text-muted-foreground hover:text-destructive click-shrink"
-										title="Delete"
-										aria-label="Delete conversation"
-									>
-										<Trash2 class="w-3.5 h-3.5" />
-									</button>
+									<div class="flex items-center gap-1">
+										<button
+											onclick={(e) => {
+												e.stopPropagation();
+												handleDeleteRequest(conv.id);
+											}}
+											class="p-1.5 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive/10 text-muted-foreground hover:text-destructive click-shrink"
+											title="Delete"
+											aria-label="Delete conversation"
+										>
+											<Trash2 class="w-3.5 h-3.5" />
+										</button>
+										<button
+											onclick={(e) => {
+												e.stopPropagation();
+												onExport('markdown');
+											}}
+											class="p-1.5 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-primary/10 text-muted-foreground hover:text-primary click-shrink"
+											title="Export"
+											aria-label="Export conversation"
+										>
+											<Download class="w-3.5 h-3.5" />
+										</button>
+									</div>
 								</div>
 							</div>
 						{/each}
