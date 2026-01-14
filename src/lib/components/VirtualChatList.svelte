@@ -5,10 +5,12 @@
 
 	let {
 		messages = [],
-		estimatedItemHeight = 150
+		estimatedItemHeight = 150,
+		onRegenerate
 	}: {
 		messages: Message[];
 		estimatedItemHeight?: number;
+		onRegenerate?: () => void;
 	} = $props();
 
 	let container: HTMLElement;
@@ -146,7 +148,10 @@
 					style="min-height: {height}px"
 					use:measureItemHeightAction={{ messageId: message.id }}
 				>
-					<MessageBubble {message} />
+					<MessageBubble 
+						{message} 
+						onRegenerate={message.role === 'assistant' ? onRegenerate : undefined}
+					/>
 				</div>
 			{/each}
 		</div>

@@ -275,18 +275,6 @@
 					</Button>
 				{/if}
 
-				{#if messages.length > 0 && !isLoading}
-					<Button
-						variant="ghost"
-						onclick={handleRegenerate}
-						class="h-8 w-8 p-0 text-muted-foreground hover:text-foreground hover:bg-muted click-shrink"
-						title="Regenerate response"
-						aria-label="Regenerate last response"
-					>
-						<RotateCcw class="w-3.5 h-3.5" />
-					</Button>
-				{/if}
-
 				<Button
 					variant="ghost"
 					onclick={() => (showSidebar = !showSidebar)}
@@ -383,11 +371,14 @@
 						</div>
 					{:else if messages.length > 100}
 						<!-- Use virtual scrolling for large conversations -->
-						<VirtualChatList {messages} />
+						<VirtualChatList {messages} {onRegenerate} />
 					{:else}
 						<!-- Regular rendering for small conversations -->
 						{#each messages as message (message.id)}
-							<MessageBubble {message} />
+							<MessageBubble 
+								{message} 
+								onRegenerate={message.role === 'assistant' ? handleRegenerate : undefined}
+							/>
 						{/each}
 					{/if}
 

@@ -1,10 +1,10 @@
 <script lang="ts">
 	import type { Message } from '$lib/types/chat';
-	import { Copy, Check } from '@lucide/svelte';
+	import { Copy, Check, RotateCcw } from '@lucide/svelte';
 	import { renderMarkdown } from '$lib/utils';
 	import { sanitizeHTML, isSafePlainText } from '$lib/utils/sanitize';
 
-	let { message }: { message: Message } = $props();
+	let { message, onRegenerate }: { message: Message; onRegenerate?: () => void } = $props();
 
 	let showTimestamp = $state(false);
 	let copied = $state(false);
@@ -91,6 +91,16 @@
 						<Copy class="w-3.5 h-3.5" />
 					{/if}
 				</button>
+				{#if message.role === 'assistant' && onRegenerate}
+					<button
+						onclick={onRegenerate}
+						class="p-1 text-muted-foreground hover:text-primary transition-colors duration-200 click-shrink"
+						aria-label="Regenerate response"
+						title="Regenerate response"
+					>
+						<RotateCcw class="w-3.5 h-3.5" />
+					</button>
+				{/if}
 				<p class="text-body-sm text-muted-foreground font-accent opacity-80">
 					{timestamp}
 				</p>
