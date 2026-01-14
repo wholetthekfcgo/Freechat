@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "vite dev",
-    "build": "vite build",
+    "build": "PATH=\"/home/fahad/.bun/bin:/usr/local/bin:/usr/bin:/bin\" node ./node_modules/vite/bin/vite.js build",
     "preview": "vite preview",
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
     "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
@@ -38,7 +38,6 @@
   },
   "type": "module",
   "dependencies": {
-    "@sveltejs/adapter-static": "^3.0.10",
     "@types/dompurify": "^3.2.0",
     "dompurify": "^3.3.1",
     "gpt-tokenizer": "^3.4.0",
