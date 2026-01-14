@@ -179,7 +179,7 @@ export const correlationLogger = new CorrelationLogger();
  * );
  * ```
  */
-export async function withCorrelationId({ event, resolve }: import('@sveltejs/kit').Handle) {
+export const withCorrelationId: import('@sveltejs/kit').Handle = async ({ event, resolve }) => {
 	const correlationId = getOrCreateCorrelationId(event.request.headers);
 	
 	// Store in async context

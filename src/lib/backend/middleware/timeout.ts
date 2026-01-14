@@ -17,6 +17,9 @@
 import { logger } from '$lib/utils/logger';
 import { json, type RequestEvent } from '@sveltejs/kit';
 
+// Define MaybePromise locally since it's not exported from @sveltejs/kit
+type MaybePromise<T> = T | Promise<T>;
+
 interface TimeoutConfig {
 	// Default timeout in milliseconds
 	defaultTimeoutMs: number;
@@ -61,7 +64,7 @@ function getTimeoutForRoute(route: string): number {
  * ```
  */
 export function withTimeout<T extends RequestEvent = RequestEvent>(
-	handler: (event: T) => Promise<Response>,
+	handler: (event: T) => MaybePromise<Response>,
 	customTimeoutMs?: number
 ): (event: T) => Promise<Response> {
 	return async (event: T) => {
@@ -151,15 +154,19 @@ export function withTimeoutDecorator<T extends (...args: unknown[]) => Promise<a
 export function createTimeoutPromise<T = never>(
 	timeoutMs: number,
 	message?: string
-): Promise<T> {
-	return new Promise((_, reject) => {
-		const timeoutId = setTimeout(() => {
+): Promise<T> & { _timeoutId?: NodeJS.Timeout } {
+	let timeoutId: NodeJS.Timeout | undefined;
+	const promise = new Promise<T>((_, reject) => {
+		timeoutId = setTimeout(() => {
 			reject(new Error(message || `Operation timed out after ${timeoutMs}ms`));
 		}, timeoutMs);
+	}) as Promise<T> & { _timeoutId?: NodeJS.Timeout };
 
-		// Store timeout ID for potential cleanup
-		(timeoutPromise as any)._timeoutId = timeoutId;
-	});
+	// Store timeout ID for potential cleanup
+	if (timeoutId) {
+		promise._timeoutId = timeoutId;
+	}
+	return promise;
 }
 
 /**

@@ -40,7 +40,7 @@
 <svelte:head>
 	<title>Freechat - Free as in Freedom</title>
 	<meta name="description" content="Freechat.cc - Free AI Chatbot powered by OpenRouter. Free as in Freedom." />
-	<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: https:; connect-src 'self' https://openrouter.ai https://*.openrouter.ai; font-src 'self' data: https://fonts.gstatic.com;">
+	<meta http-equiv="content-security-policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: https:; connect-src 'self' https://openrouter.ai https://*.openrouter.ai; font-src 'self' data: https://fonts.gstatic.com;">
 </svelte:head>
 
 <!-- Skip to content link (visible on keyboard focus) -->

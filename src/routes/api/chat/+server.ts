@@ -53,7 +53,20 @@ const baseHandler: RequestHandler = async ({ request }) => {
 			messageCount: body.messages.length 
 		});
 		
-		const response = await callOpenRouter(apiKey, body);
+		// Transform messages to include required id field
+		const messagesWithIds = body.messages.map(msg => ({
+			id: crypto.randomUUID(),
+			role: msg.role,
+			content: msg.content,
+			timestamp: new Date()
+		}));
+		
+		const requestWithIds = {
+			...body,
+			messages: messagesWithIds
+		};
+		
+		const response = await callOpenRouter(apiKey, requestWithIds);
 		
 		logger.info('OpenRouter request successful', { correlationId });
 		
@@ -62,7 +75,8 @@ const baseHandler: RequestHandler = async ({ request }) => {
 		// Classify error for intelligent handling
 		const classification = classifyError(error);
 		
-		logger[classification.logLevel]('Chat API error', error, {
+		logger[classification.logLevel]('Chat API error', {
+			error: error instanceof Error ? error.message : String(error),
 			correlationId,
 			category: classification.category,
 			severity: classification.severity,
@@ -115,4 +129,4 @@ const baseHandler: RequestHandler = async ({ request }) => {
 	}
 };
 
-export const POST = withTimeout(baseHandler);
+export const POST: RequestHandler = withTimeout(baseHandler);

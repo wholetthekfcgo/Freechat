@@ -21,7 +21,7 @@ export enum CircuitState {
 	HALF_OPEN = 'HALF_OPEN'
 }
 
-interface CircuitBreakerConfig {
+export interface CircuitBreakerConfig {
 	// Number of consecutive failures before tripping
 	threshold: number;
 	// Time in milliseconds to stay open before attempting recovery
@@ -32,7 +32,7 @@ interface CircuitBreakerConfig {
 	halfOpenMaxCalls: number;
 }
 
-interface CircuitBreakerStats {
+export interface CircuitBreakerStats {
 	state: CircuitState;
 	failureCount: number;
 	successCount: number;

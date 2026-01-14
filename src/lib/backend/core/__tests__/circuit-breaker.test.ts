@@ -67,7 +67,7 @@ describe('CircuitBreaker', () => {
 
 		it('should track rejected requests', async () => {
 			// Trip the circuit
-			for (let = 0; i < 5; i++) {
+			for (let i = 0; i < 5; i++) {
 				try {
 					await breaker.execute(async () => {
 						throw new Error('Test error');

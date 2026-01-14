@@ -108,7 +108,8 @@ export function withErrorHandler<T extends RequestEvent = RequestEvent>(
 			const correlationId = getCorrelationContext();
 			
 			// Log with appropriate level
-			logger[classification.logLevel]('Request error', error, {
+			logger[classification.logLevel]('Request error', {
+				error: error instanceof Error ? error : new Error(String(error)),
 				correlationId,
 				path: event.url.pathname,
 				method: event.request.method,
@@ -163,7 +164,8 @@ export async function withErrorHandling<T>(
 		const classification = classifyError(error);
 		const correlationId = getCorrelationContext();
 
-		logger[classification.logLevel](`Function error${context ? ` in ${context}` : ''}`, error, {
+		logger[classification.logLevel](`Function error${context ? ` in ${context}` : ''}`, {
+			error: error instanceof Error ? error : new Error(String(error)),
 			correlationId,
 			category: classification.category
 		});

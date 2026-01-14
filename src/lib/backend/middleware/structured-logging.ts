@@ -198,10 +198,10 @@ function outputLog(entry: LogEntry): void {
  * );
  * ```
  */
-export function withStructuredLogging(config: Partial<StructuredLoggerConfig> = {}) {
+export function withStructuredLogging(config: Partial<StructuredLoggerConfig> = {}): import('@sveltejs/kit').Handle {
 	const finalConfig = { ...DEFAULT_CONFIG, ...config };
 
-	return async ({ event, resolve }: import('@sveltejs/kit').Handle) => {
+	return async ({ event, resolve }) => {
 		const correlationId = event.request.headers.get('x-correlation-id') || crypto.randomUUID();
 		const startTime = Date.now();
 

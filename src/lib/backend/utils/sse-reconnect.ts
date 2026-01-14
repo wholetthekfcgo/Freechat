@@ -25,7 +25,7 @@ export enum SSEConnectionState {
 	CLOSED = 'CLOSED'
 }
 
-interface SSEReconnectConfig {
+export interface SSEReconnectConfig {
 	// Initial backoff delay in milliseconds
 	initialDelayMs: number;
 	// Maximum backoff delay in milliseconds
@@ -42,7 +42,7 @@ interface SSEReconnectConfig {
 	keepAliveTimeoutMs: number;
 }
 
-interface SSEConnectionStats {
+export interface SSEConnectionStats {
 	state: SSEConnectionState;
 	attemptCount: number;
 	lastConnectedAt?: Date;
@@ -106,7 +106,10 @@ export class SSEReconnectManager {
 	 * Internal connection logic with retry
 	 */
 	private async connectWithRetry(url: string): Promise<void> {
-		while (this.state !== SSEConnectionState.CLOSED) {
+		while (
+			this.state === SSEConnectionState.DISCONNECTED ||
+			this.state === SSEConnectionState.RECONNECTING
+		) {
 			// Check max retries
 			if (this.config.maxRetries !== -1 && 
 			    this.attemptCount >= this.config.maxRetries) {
@@ -142,7 +145,7 @@ export class SSEReconnectManager {
 
 				// If we get here, connection was closed externally
 				// Schedule reconnection
-				if (this.state !== SSEConnectionState.CLOSED) {
+				if (this.state as string !== 'CLOSED') {
 					this.scheduleReconnect(url);
 				}
 			} catch (error) {
@@ -152,7 +155,7 @@ export class SSEReconnectManager {
 				});
 
 				// Schedule reconnection with backoff
-				if (this.state !== SSEConnectionState.CLOSED) {
+				if (this.state as string !== 'CLOSED') {
 					this.scheduleReconnect(url);
 				}
 			}

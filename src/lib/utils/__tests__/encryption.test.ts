@@ -12,56 +12,56 @@ import { encrypt, decrypt } from '$lib/utils/encryption';
 
 describe('Encryption Utility', () => {
 	describe('Basic Encryption/Decryption', () => {
-		it('should encrypt and decrypt a string correctly', () => {
+		it('should encrypt and decrypt a string correctly', async () => {
 			const original = 'Hello, World!';
-			const encrypted = encrypt(original);
-			const decrypted = decrypt<string>(encrypted);
+			const encrypted = await encrypt(original);
+			const decrypted = await decrypt<string>(encrypted);
 
 			expect(decrypted).toBe(original);
 		});
 
-		it('should produce different encrypted values for same input', () => {
+		it('should produce different encrypted values for same input', async () => {
 			const original = 'Test data';
-			const encrypted1 = encrypt(original);
-			const encrypted2 = encrypt(original);
+			const encrypted1 = await encrypt(original);
+			const encrypted2 = await encrypt(original);
 
 			// Encryption should include random IV/seed
 			expect(encrypted1).not.toBe(encrypted2);
 		});
 
-		it('should decrypt both to the same value', () => {
+		it('should decrypt both to the same value', async () => {
 			const original = 'Test data';
-			const encrypted1 = encrypt(original);
-			const encrypted2 = encrypt(original);
+			const encrypted1 = await encrypt(original);
+			const encrypted2 = await encrypt(original);
 
-			expect(decrypt<string>(encrypted1)).toBe(original);
-			expect(decrypt<string>(encrypted2)).toBe(original);
+			expect(await decrypt<string>(encrypted1)).toBe(original);
+			expect(await decrypt<string>(encrypted2)).toBe(original);
 		});
 	});
 
 	describe('Complex Data Types', () => {
-		it('should encrypt and decrypt objects', () => {
+		it('should encrypt and decrypt objects', async () => {
 			const original = {
 				name: 'John Doe',
 				age: 30,
 				email: 'john@example.com'
 			};
 
-			const encrypted = encrypt(original);
-			const decrypted = decrypt<typeof original>(encrypted);
+			const encrypted = await encrypt(original);
+			const decrypted = await decrypt<typeof original>(encrypted);
 
 			expect(decrypted).toEqual(original);
 		});
 
-		it('should encrypt and decrypt arrays', () => {
+		it('should encrypt and decrypt arrays', async () => {
 			const original = [1, 2, 3, 4, 5];
-			const encrypted = encrypt(original);
-			const decrypted = decrypt<number[]>(encrypted);
+			const encrypted = await encrypt(original);
+			const decrypted = await decrypt<number[]>(encrypted);
 
 			expect(decrypted).toEqual(original);
 		});
 
-		it('should encrypt and decrypt nested structures', () => {
+		it('should encrypt and decrypt nested structures', async () => {
 			const original = {
 				users: [
 					{ id: 1, name: 'Alice', roles: ['admin', 'user'] },
@@ -73,96 +73,96 @@ describe('Encryption Utility', () => {
 				}
 			};
 
-			const encrypted = encrypt(original);
-			const decrypted = decrypt<typeof original>(encrypted);
+			const encrypted = await encrypt(original);
+			const decrypted = await decrypt<typeof original>(encrypted);
 
 			expect(decrypted).toEqual(original);
 		});
 
-		it('should handle special characters', () => {
+		it('should handle special characters', async () => {
 			const original = '🔐 Special: äöü ñ 中文';
-			const encrypted = encrypt(original);
-			const decrypted = decrypt<string>(encrypted);
+			const encrypted = await encrypt(original);
+			const decrypted = await decrypt<string>(encrypted);
 
 			expect(decrypted).toBe(original);
 		});
 	});
 
 	describe('Edge Cases', () => {
-		it('should handle empty string', () => {
+		it('should handle empty string', async () => {
 			const original = '';
-			const encrypted = encrypt(original);
-			const decrypted = decrypt<string>(encrypted);
+			const encrypted = await encrypt(original);
+			const decrypted = await decrypt<string>(encrypted);
 
 			expect(decrypted).toBe(original);
 		});
 
-		it('should handle empty object', () => {
+		it('should handle empty object', async () => {
 			const original = {};
-			const encrypted = encrypt(original);
-			const decrypted = decrypt<typeof original>(encrypted);
+			const encrypted = await encrypt(original);
+			const decrypted = await decrypt<typeof original>(encrypted);
 
 			expect(decrypted).toEqual(original);
 		});
 
-		it('should handle empty array', () => {
+		it('should handle empty array', async () => {
 			const original: any[] = [];
-			const encrypted = encrypt(original);
-			const decrypted = decrypt<any[]>(encrypted);
+			const encrypted = await encrypt(original);
+			const decrypted = await decrypt<any[]>(encrypted);
 
 			expect(decrypted).toEqual(original);
 		});
 
-		it('should handle very large strings', () => {
+		it('should handle very large strings', async () => {
 			const original = 'A'.repeat(10000);
-			const encrypted = encrypt(original);
-			const decrypted = decrypt<string>(encrypted);
+			const encrypted = await encrypt(original);
+			const decrypted = await decrypt<string>(encrypted);
 
 			expect(decrypted).toBe(original);
 		});
 
-		it('should handle null and undefined', () => {
+		it('should handle null and undefined', async () => {
 			const original = { a: null, b: undefined, c: 'value' };
-			const encrypted = encrypt(original);
-			const decrypted = decrypt<typeof original>(encrypted);
+			const encrypted = await encrypt(original);
+			const decrypted = await decrypt<typeof original>(encrypted);
 
-			expect(decrypted.a).toBeNull();
-			expect(decrypted.c).toBe('value');
+			expect(decrypted?.a).toBeNull();
+			expect(decrypted?.c).toBe('value');
 		});
 	});
 
 	describe('Error Handling', () => {
-		it('should return null for invalid encrypted data', () => {
+		it('should return null for invalid encrypted data', async () => {
 			const invalidData = 'not-encrypted-data';
-			const result = decrypt<string>(invalidData);
+			const result = await decrypt<string>(invalidData);
 
 			expect(result).toBeNull();
 		});
 
-		it('should return null for corrupted encrypted data', () => {
+		it('should return null for corrupted encrypted data', async () => {
 			const original = 'Test data';
-			const encrypted = encrypt(original);
+			const encrypted = await encrypt(original);
 			
 			// Corrupt the data
 			const corrupted = encrypted.slice(0, -10) + 'corrupted';
 			
-			const result = decrypt<string>(corrupted);
+			const result = await decrypt<string>(corrupted);
 
 			expect(result).toBeNull();
 		});
 
-		it('should handle empty encrypted string', () => {
-			const result = decrypt<string>('');
+		it('should handle empty encrypted string', async () => {
+			const result = await decrypt<string>('');
 			expect(result).toBeNull();
 		});
 	});
 
 	describe('Performance', () => {
-		it('should encrypt small data quickly', () => {
+		it('should encrypt small data quickly', async () => {
 			const original = 'Quick brown fox';
 			const startTime = performance.now();
 
-			encrypt(original);
+			await encrypt(original);
 
 			const endTime = performance.now();
 			const duration = endTime - startTime;
@@ -170,14 +170,14 @@ describe('Encryption Utility', () => {
 			expect(duration).toBeLessThan(100); // Should be very fast
 		});
 
-		it('should handle large objects without blocking too long', () => {
+		it('should handle large objects without blocking too long', async () => {
 			const largeObject = {
 				data: Array(1000).fill({ message: 'Test data that is reasonably sized' })
 			};
 
 			const startTime = performance.now();
 
-			encrypt(largeObject);
+			await encrypt(largeObject);
 
 			const endTime = performance.now();
 			const duration = endTime - startTime;

@@ -3,6 +3,7 @@ export interface Message {
 	role: 'user' | 'assistant' | 'system';
 	content: string;
 	timestamp: Date;
+	isPartial?: boolean;
 }
 
 export interface ChatRequest {

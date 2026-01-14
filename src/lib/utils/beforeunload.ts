@@ -8,7 +8,7 @@ import { browser } from '$app/environment';
 import { logger } from './logger';
 import { hasRecoverableStream } from './stream-recovery';
 
-export type BeforeUnloadHandler = () => boolean | string;
+export type BeforeUnloadHandler = () => boolean | string | Promise<boolean | string>;
 
 let handlers: BeforeUnloadHandler[] = [];
 

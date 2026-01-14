@@ -22,9 +22,13 @@
 	const currentModel = $derived(chatState.currentModel);
 
 	// Wrap async handlers with error tracking
-	const handleSendMessage = withErrorHandling(async (message: string) => {
-		await chatActions.sendMessage(message, true);
-	}, 'ChatInterface.sendMessage');
+	const handleSendMessage = withErrorHandling(
+		async (message: string) => {
+			await chatActions.sendMessage(message, true);
+			return undefined;
+		},
+		'ChatInterface.sendMessage'
+	) as (message: string) => Promise<void>;
 
 	function handleClear() {
 		chatActions.clearMessages();
@@ -96,7 +100,7 @@
 	});
 </script>
 
-<ErrorBoundary componentName="PageComponent" onRetry={() => handleSendMessage('')}>
+<ErrorBoundary componentName="PageComponent" onRetry={async () => { await handleSendMessage(''); }}>
 	<ChatInterface
 		{messages}
 		{isLoading}

@@ -11,6 +11,45 @@ vi.mock('$lib/env', () => ({
 // Mock fetch
 global.fetch = vi.fn();
 
+// Helper function to create a mock Response with a proper ReadableStream
+const createMockResponse = (body: ReadableStream | null, ok = true, status = 200): Response => {
+	return {
+		ok,
+		status,
+		statusText: 'OK',
+		redirected: false,
+		url: 'https://api.openrouter.com/v1/chat/completions',
+		headers: new Headers(),
+		body,
+		json: async () => ({}),
+		blob: async () => new Blob(),
+		arrayBuffer: async () => new ArrayBuffer(0),
+		formData: async () => new FormData(),
+		clone: () => createMockResponse(body, ok, status)
+	} as Response;
+};
+
+// Helper to create a proper ReadableStream mock
+const createMockReadableStream = (chunks: string[]): ReadableStream<Uint8Array> => {
+	let chunkIndex = 0;
+	const encoder = new TextEncoder();
+	
+	return new ReadableStream({
+		start(controller) {
+			const enqueueNextChunk = () => {
+				if (chunkIndex < chunks.length) {
+					controller.enqueue(encoder.encode(chunks[chunkIndex]));
+					chunkIndex++;
+					setTimeout(enqueueNextChunk, 0);
+				} else {
+					controller.close();
+				}
+			};
+			enqueueNextChunk();
+		}
+	});
+};
+
 describe('OpenRouter Utils', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
@@ -43,7 +82,7 @@ describe('OpenRouter Utils', () => {
 			const request: ChatRequest = {
 				model: 'openai/gpt-3.5-turbo',
 				messages: [
-					{ role: 'user', content: 'Hello', timestamp: new Date() }
+					{ role: 'user', content: 'Hello', timestamp: new Date(), id: 'msg-1' }
 				]
 			};
 
@@ -131,12 +170,12 @@ describe('OpenRouter Utils', () => {
 					})
 			};
 
-			(fetch as unknown as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
-				ok: true,
-				body: {
-					getReader: () => mockReader
-				}
-			} as Response);
+			const mockResponse = createMockResponse(null, true, 200);
+			(mockResponse as Partial<Response>).body = {
+				getReader: () => mockReader
+			} as ReadableStream<Uint8Array>;
+			
+			(fetch as unknown as ReturnType<typeof vi.fn>).mockResolvedValueOnce(mockResponse);
 
 			const receivedChunks: string[] = [];
 			const onChunk = vi.fn((content: string) => {
@@ -179,12 +218,12 @@ describe('OpenRouter Utils', () => {
 					})
 			};
 
-			(fetch as unknown as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
-				ok: true,
-				body: {
-					getReader: () => mockReader
-				}
-			} as Response);
+			const mockResponse = createMockResponse(null, true, 200);
+			(mockResponse as Partial<Response>).body = {
+				getReader: () => mockReader
+			} as ReadableStream<Uint8Array>;
+			
+			(fetch as unknown as ReturnType<typeof vi.fn>).mockResolvedValueOnce(mockResponse);
 
 			const onChunk = vi.fn();
 			const request: ChatRequest = {
@@ -221,12 +260,12 @@ describe('OpenRouter Utils', () => {
 					})
 			};
 
-			(fetch as unknown as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
-				ok: true,
-				body: {
-					getReader: () => mockReader
-				}
-			} as Response);
+			const mockResponse = createMockResponse(null, true, 200);
+			(mockResponse as Partial<Response>).body = {
+				getReader: () => mockReader
+			} as ReadableStream<Uint8Array>;
+			
+			(fetch as unknown as ReturnType<typeof vi.fn>).mockResolvedValueOnce(mockResponse);
 
 			const receivedChunks: string[] = [];
 			const onChunk = vi.fn((content: string) => {

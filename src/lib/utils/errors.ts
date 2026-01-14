@@ -14,7 +14,10 @@ export class AppError extends Error {
 	) {
 		super(message);
 		this.name = 'AppError';
-		Error.captureStackTrace(this, this.constructor);
+		// Error.captureStackTrace is Node.js specific, not available in browser
+		if (typeof Error.captureStackTrace === 'function') {
+			Error.captureStackTrace(this, this.constructor);
+		}
 	}
 }
 

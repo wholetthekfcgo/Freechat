@@ -24,10 +24,11 @@ function initializeChatHistory() {
 	
 	const STORAGE_KEY = 'chat-history-encrypted';
 	try {
-		const loaded = persistence.load(STORAGE_KEY);
-		chatHistory.conversations = loaded.conversations;
-		chatHistory.currentConversationId = loaded.currentConversationId;
-		logger.info('Chat history initialized on import');
+		persistence.load().then(loaded => {
+			chatHistory.conversations = loaded.conversations;
+			chatHistory.currentConversationId = loaded.currentConversationId;
+			logger.info('Chat history initialized on import');
+		});
 	} catch (error) {
 		logger.error('Failed to initialize chat history', error);
 	}

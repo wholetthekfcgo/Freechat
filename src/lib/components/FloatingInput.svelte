@@ -49,7 +49,7 @@
 		}
 	}
 
-	let textareaRef = $state(null);
+	let textareaRef: any = $state(null);
 	let showDraftRestored = $state(false);
 
 	// Load draft on mount
@@ -95,10 +95,10 @@
 		requestAnimationFrame(() => {
 			if (textareaRef && typeof textareaRef !== 'string') {
 				// Access the actual DOM element through the ref
-				const element = textareaRef;
+				const element = textareaRef as unknown as HTMLElement;
 				if (element && 'style' in element) {
-					element.style.height = 'auto';
-					element.style.height = '120px'; // Reset to min-height
+					(element as HTMLElement).style.height = 'auto';
+					(element as HTMLElement).style.height = '120px'; // Reset to min-height
 				}
 			}
 		});
@@ -149,7 +149,7 @@
 					onkeydown={handleKeydown}
 					oninput={autoResize}
 					placeholder="// Enter your message..."
-					rows="1"
+					rows={1}
 					disabled={isLoading}
 					class="resize-none bg-transparent text-foreground placeholder:text-muted-foreground focus-visible:ring-0 text-body-md flex-1 pb-12"
 					style="min-height: 120px; max-height: 240px; overflow-y: auto; font-family: var(--font-body);"

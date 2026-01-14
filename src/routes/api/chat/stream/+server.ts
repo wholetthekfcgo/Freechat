@@ -60,9 +60,25 @@ const baseHandler: RequestHandler = async ({ request }) => {
 				model: body.model, 
 				messageCount: body.messages.length 
 			});
+			
+			// Transform messages to include required id field
+			const messagesWithIds = body.messages.map(msg => ({
+				id: crypto.randomUUID(),
+				role: msg.role,
+				content: msg.content,
+				timestamp: new Date()
+			}));
+			
+			body = {
+				...body,
+				messages: messagesWithIds
+			};
 		} catch (error) {
 			const classification = classifyError(error);
-			logger[classification.logLevel]('Invalid request body', error, { correlationId });
+			logger[classification.logLevel]('Invalid request body', {
+				error: error instanceof Error ? error.message : String(error),
+				correlationId
+			});
 			
 			return new Response(
 				JSON.stringify({
@@ -92,7 +108,10 @@ const baseHandler: RequestHandler = async ({ request }) => {
 								correlationId
 							};
 							
-							logger.error('Stream error', metadata.error, { correlationId });
+							logger.error('Stream error', {
+								error: String(metadata.error),
+								correlationId
+							});
 							
 							controller.enqueue(
 								encoder.encode(`data: ${JSON.stringify(errorData)}\n\n`)
@@ -146,7 +165,8 @@ const baseHandler: RequestHandler = async ({ request }) => {
 				} catch (error) {
 					const classification = classifyError(error);
 					
-					logger[classification.logLevel]('Stream error', error, {
+					logger[classification.logLevel]('Stream error', {
+						error: error instanceof Error ? error.message : String(error),
 						correlationId,
 						category: classification.category
 					});
@@ -178,7 +198,8 @@ const baseHandler: RequestHandler = async ({ request }) => {
 	} catch (error) {
 		const classification = classifyError(error);
 		
-		logger[classification.logLevel]('Stream API error', error, {
+		logger[classification.logLevel]('Stream API error', {
+			error: error instanceof Error ? error.message : String(error),
 			correlationId,
 			category: classification.category
 		});
@@ -199,4 +220,4 @@ const baseHandler: RequestHandler = async ({ request }) => {
 	}
 };
 
-export const POST = withTimeout(baseHandler);
+export const POST: RequestHandler = withTimeout(baseHandler);

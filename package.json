@@ -6,8 +6,8 @@
     "dev": "vite dev",
     "build": "PATH=\"/home/fahad/.bun/bin:/usr/local/bin:/usr/bin:/bin\" node ./node_modules/vite/bin/vite.js build",
     "preview": "vite preview",
-    "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
-    "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
+    "check": "svelte-kit sync && svelte-check --workspace .",
+    "check:watch": "svelte-kit sync && svelte-check --workspace . --watch",
     "test": "vitest",
     "test:ui": "vitest --ui",
     "test:coverage": "vitest --coverage"
@@ -23,6 +23,7 @@
     "@tailwindcss/vite": "^4.1.18",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/svelte": "^5.3.1",
+    "@types/node": "^25.0.8",
     "@vitest/ui": "^4.0.17",
     "bits-ui": "^2.15.4",
     "clsx": "^2.1.1",

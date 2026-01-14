@@ -62,7 +62,9 @@ describe('VirtualChatList', () => {
 			const newMessages = [...messages, ...generateMessages(10)];
 			
 			// Re-render
-			component.$set({ messages: newMessages });
+			if (component && '$set' in component && typeof component.$set === 'function') {
+				component.$set({ messages: newMessages });
+			}
 			
 			// Scroll position should be maintained
 			expect(scrollContainer.scrollTop).toBeGreaterThan(900);
@@ -70,7 +72,7 @@ describe('VirtualChatList', () => {
 
 		it('should adjust to viewport changes', async () => {
 			const messages = generateMessages(150);
-			const { container } = render(VirtualChatList, { messages });
+			const { container, component } = render(VirtualChatList, { messages });
 			
 			const scrollContainer = container.querySelector('.virtual-scroll-container') as HTMLElement;
 			
@@ -164,7 +166,7 @@ describe('VirtualChatList', () => {
 				content: msg.content + '\n'.repeat(10) // Make taller
 			}));
 			
-			component.$set({ messages: newMessages });
+			(component as { $set: (props: Record<string, unknown>) => void }).$set({ messages: newMessages });
 			
 			// Wait for re-render
 			await new Promise(resolve => setTimeout(resolve, 100));

@@ -28,7 +28,7 @@ async function getEncryptionKey(): Promise<CryptoKey> {
 	return window.crypto.subtle.deriveKey(
 		{
 			name: KEY_DERIVATION_ALGORITHM,
-			salt: salt,
+			salt: new Uint8Array(salt),
 			iterations: KEY_ITERATIONS,
 			hash: 'SHA-256'
 		},

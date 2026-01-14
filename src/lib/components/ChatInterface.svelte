@@ -7,7 +7,7 @@
 	import { Trash2, Download, Plus, Square, RotateCcw, History, Undo, Redo } from '@lucide/svelte';
 	import Button from '$lib/components/ui/button/button.svelte';
 	import { tick } from 'svelte';
-	import { chatState, chatActions, chatHistory } from '$lib/stores/chat.svelte.ts';
+	import { chatState, chatActions, chatHistory } from '$lib/stores/chat.svelte';
 	import { browser } from '$app/environment';
 	import { announce, announceError, initAnnouncer } from '$lib/utils/announcer';
 	import { onMount } from 'svelte';

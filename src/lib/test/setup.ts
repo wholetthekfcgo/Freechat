@@ -1,40 +1,43 @@
 import '@testing-library/jest-dom';
-import { vi } from 'vitest';
+import { vi, beforeEach } from 'vitest';
 
 // Mock IndexedDB for test environment
 class IndexedDBMock {
 	private static stores: Record<string, Record<string, any>> = {};
 
 	static open(name: string, version: number) {
+		let onupgradeneededCallback: ((event: any) => void) | null = null;
+		let onsuccessCallback: (() => void) | null = null;
+		
 		const request = {
 			result: {
 				objectStoreNames: {
-					contains: (name: string) => name in IndexedDBMock.stores
+					contains: (storeName: string) => storeName in IndexedDBMock.stores
 				},
-				createObjectStore: (name: string) => {
-					IndexedDBMock.stores[name] = {};
+				createObjectStore: (storeName: string) => {
+					IndexedDBMock.stores[storeName] = {};
 				},
 				transaction: (storeName: string, mode: string) => {
 					return {
-						objectStore: (name: string) => ({
+						objectStore: (storeName: string) => ({
 							get: (key: string) => {
 								return {
 									onsuccess: null,
 									onerror: null,
-									result: IndexedDBMock.stores[name]?.[key] || null
+									result: IndexedDBMock.stores[storeName]?.[key] || null
 								};
 							},
 							put: (value: any) => {
-								if (IndexedDBMock.stores[value.id || name]) {
-									IndexedDBMock.stores[name][value.id || name] = value;
+								if (IndexedDBMock.stores[value.id || storeName]) {
+									IndexedDBMock.stores[storeName][value.id || storeName] = value;
 								}
 								return {
-									on success: null,
+									onsuccess: null,
 									onerror: null
 								};
 							},
 							delete: (key: string) => {
-								delete IndexedDBMock.stores[name]?.[key];
+								delete IndexedDBMock.stores[storeName]?.[key];
 								return {
 									onsuccess: null,
 									onerror: null
@@ -44,11 +47,11 @@ class IndexedDBMock {
 								return {
 									onsuccess: null,
 									onerror: null,
-									result: Object.values(IndexedDBMock.stores[name] || {})
+									result: Object.values(IndexedDBMock.stores[storeName] || {})
 								};
 							},
 							clear: () => {
-								IndexedDBMock.stores[name] = {};
+								IndexedDBMock.stores[storeName] = {};
 								return {
 									onsuccess: null,
 									onerror: null
@@ -61,16 +64,23 @@ class IndexedDBMock {
 			},
 			onerror: null,
 			onsuccess: null,
-			onupgradeneeded: null
-		};
+			onupgradeneeded: null,
+			addEventListener: (event: string, callback: any) => {
+				if (event === 'upgradeneeded') {
+					onupgradeneededCallback = callback;
+				} else if (event === 'success') {
+					onsuccessCallback = callback;
+				}
+			}
+		} as any;
 
 		// Simulate async behavior
 		setTimeout(() => {
-			if (request.onupgradeneeded) {
-				request.onupgradeneeded({ target: request, oldVersion: 0 });
+			if (onupgradeneededCallback) {
+				onupgradeneededCallback({ target: request, oldVersion: 0 });
 			}
-			if (request.onsuccess) {
-				request.onsuccess();
+			if (onsuccessCallback) {
+				onsuccessCallback();
 			}
 		}, 0);
 
@@ -79,6 +89,12 @@ class IndexedDBMock {
 
 	static reset() {
 		IndexedDBMock.stores = {};
+	}
+
+	static initializeSchema(storeName: string) {
+		if (!IndexedDBMock.stores[storeName]) {
+			IndexedDBMock.stores[storeName] = {};
+		}
 	}
 }
 
@@ -114,3 +130,15 @@ Object.defineProperty(window, 'location', {
 beforeEach(() => {
 	IndexedDBMock.reset();
 });
+
+export { IndexedDBMock };
+
+export const initializeSchema = async (storeName?: string) => {
+	if (storeName) {
+		IndexedDBMock.initializeSchema(storeName);
+	} else {
+		// Initialize default stores
+		IndexedDBMock.initializeSchema('chat-history');
+		IndexedDBMock.initializeSchema('chat-state');
+	}
+};

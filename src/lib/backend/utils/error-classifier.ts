@@ -47,6 +47,8 @@ interface ErrorPattern {
 	userMessage: string;
 }
 
+export type { ErrorPattern };
+
 /**
  * Error classification patterns
  */
@@ -321,7 +323,7 @@ export async function withErrorClassification<T>(
 		// Log with appropriate level
 		logger[classified.logLevel](
 			`Error classified: ${classified.category}`,
-			error instanceof Error ? error : new Error(String(error))
+			{ error: error instanceof Error ? error : new Error(String(error)) }
 		);
 
 		return {

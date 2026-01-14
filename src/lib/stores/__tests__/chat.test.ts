@@ -5,7 +5,12 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 // Mock IndexedDB
-const mockIndexedDB = {
+interface MockIndexedDB {
+	stores: Record<string, Record<string, unknown>>;
+	open: ReturnType<typeof vi.fn>;
+}
+
+const mockIndexedDB: MockIndexedDB = {
 	stores: {},
 	open: vi.fn((name: string, version: number) => ({
 		onerror: null,
@@ -63,33 +68,70 @@ vi.mock('$app/environment', () => ({
 	browser: true
 }));
 
+// Define types for mock store
+interface MockMessage {
+	role: string;
+	content: string;
+	timestamp: Date;
+}
+
+interface MockConversation {
+	id: string;
+	title: string;
+	messages: MockMessage[];
+	model: string;
+	createdAt: Date;
+	updatedAt: Date;
+}
+
+interface MockChatStore {
+	getMessages: () => MockMessage[];
+	setMessages: (newMessages: MockMessage[]) => void;
+	clearMessages: () => void;
+	getIsLoading: () => boolean;
+	setIsLoading: (value: boolean) => void;
+	getError: () => string | null;
+	setError: (value: string | null) => void;
+	clearErrors: () => void;
+	getCurrentModel: () => string;
+	setCurrentModel: (model: string) => void;
+	getConversations: () => MockConversation[];
+	setConversations: (newConversations: MockConversation[]) => void;
+	getCurrentConversationId: () => string | null;
+	setCurrentConversationId: (id: string | null) => void;
+	deleteConversation: (id: string) => void;
+}
+
 // Create mock for chat store
-const createChatStore = () => {
-	let messages = [];
+const createChatStore = (): MockChatStore => {
+	let messages: MockMessage[] = [];
 	let isLoading = false;
-	let error = null;
+	let error: string | null = null;
 	let currentModel = 'openai/gpt-3.5-turbo';
-	const conversations = [];
-	let currentConversationId = null;
+	let conversations: MockConversation[] = [];
+	let currentConversationId: string | null = null;
 
 	return {
 		getMessages: () => messages,
-		setMessages: (newMessages) => { messages = newMessages; },
+		setMessages: (newMessages: MockMessage[]) => { messages = newMessages; },
+		clearMessages: () => { messages = []; },
 		getIsLoading: () => isLoading,
-		setIsLoading: (value) => { isLoading = value; },
+		setIsLoading: (value: boolean) => { isLoading = value; },
 		getError: () => error,
-		setError: (value) => { error = value; },
+		setError: (value: string | null) => { error = value; },
+		clearErrors: () => { error = null; },
 		getCurrentModel: () => currentModel,
-		setCurrentModel: (model) => { currentModel = model; },
+		setCurrentModel: (model: string) => { currentModel = model; },
 		getConversations: () => conversations,
-		setConversations: (newConversations) => { conversations = newConversations; },
+		setConversations: (newConversations: MockConversation[]) => { conversations = newConversations; },
 		getCurrentConversationId: () => currentConversationId,
-		setCurrentConversationId: (id) => { currentConversationId = id; }
+		setCurrentConversationId: (id: string | null) => { currentConversationId = id; },
+		deleteConversation: (id: string) => { conversations = conversations.filter(c => c.id !== id); }
 	};
 };
 
 describe('Chat Actions (without store)', () => {
-	let store;
+	let store: MockChatStore;
 
 	beforeEach(() => {
 		store = createChatStore();
@@ -173,7 +215,7 @@ describe('Chat Actions (without store)', () => {
 });
 
 describe('Chat History Management', () => {
-	let store;
+	let store: MockChatStore;
 
 	beforeEach(() => {
 		store = createChatStore();
@@ -233,7 +275,7 @@ describe('Chat History Management', () => {
 });
 
 describe('Model Configuration', () => {
-	let store;
+	let store: MockChatStore;
 
 	beforeEach(() => {
 		store = createChatStore();

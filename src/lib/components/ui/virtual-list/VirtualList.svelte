@@ -46,7 +46,7 @@
 	// Recalculate all item offsets
 	function recalculateOffsets(): void {
 		let offset = 0;
-		const newOffsets: Record<string, number>> = {};
+		const newOffsets: Record<string, number> = {};
 
 		for (let i = 0; i < items.length; i++) {
 			const key = keyExtractor(items[i], i);

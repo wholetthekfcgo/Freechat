@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { classifyError, isRetryable, getBackoffDelay, shouldTripCircuitBreaker } from '$lib/backend/utils/error-classifier';
+import { classifyError, isRetryable, getBackoffDelay, shouldTripCircuitBreaker, ErrorCategory } from '$lib/backend/utils/error-classifier';
 
 describe('Error Classifier', () => {
 	describe('classification', () => {
@@ -58,10 +58,10 @@ describe('Error Classifier', () => {
 
 	describe('retry logic', () => {
 		it('should identify retryable errors', () => {
-			expect(isRetryable('TRANSIENT')).toBe(true);
-			expect(isRetryable('PERMANENT')).toBe(false);
-			expect(isRetryable('RATE_LIMIT')).toBe(true);
-			expect(isRetryable('SERVICE_UNAVAILABLE')).toBe(true);
+			expect(isRetryable(ErrorCategory.TRANSIENT)).toBe(true);
+			expect(isRetryable(ErrorCategory.PERMANENT)).toBe(false);
+			expect(isRetryable(ErrorCategory.RATE_LIMIT)).toBe(true);
+			expect(isRetryable(ErrorCategory.SERVICE_UNAVAILABLE)).toBe(true);
 		});
 
 		it('should calculate appropriate backoff delays', () => {

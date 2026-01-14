@@ -38,7 +38,8 @@ export class IndexedDBChatRepository implements ChatRepository {
 			const request = indexedDB.open(DB_NAME, DB_VERSION);
 
 			request.onerror = () => {
-				reject(new RepositoryError('Failed to open IndexedDB', 'UNKNOWN', request.error));
+				const error = request.error;
+				reject(new RepositoryError('Failed to open IndexedDB', 'UNKNOWN', error || undefined));
 			};
 
 			request.onsuccess = () => {
@@ -89,7 +90,8 @@ export class IndexedDBChatRepository implements ChatRepository {
 			};
 
 			request.onerror = () => {
-				reject(new RepositoryError(`Failed to find conversation ${id}`, 'NOT_FOUND', request.error));
+				const error = request.error;
+				reject(new RepositoryError(`Failed to find conversation ${id}`, 'NOT_FOUND', error || undefined));
 			};
 		});
 	}
@@ -116,7 +118,8 @@ export class IndexedDBChatRepository implements ChatRepository {
 			};
 
 			request.onerror = () => {
-				reject(new RepositoryError('Failed to fetch conversations', 'UNKNOWN', request.error));
+				const error = request.error;
+				reject(new RepositoryError('Failed to fetch conversations', 'UNKNOWN', error || undefined));
 			};
 		});
 	}
@@ -132,7 +135,8 @@ export class IndexedDBChatRepository implements ChatRepository {
 			request.onsuccess = () => resolve();
 
 			request.onerror = () => {
-				reject(new RepositoryError('Failed to save conversation', 'SAVE_FAILED', request.error));
+				const error = request.error;
+				reject(new RepositoryError('Failed to save conversation', 'SAVE_FAILED', error || undefined));
 			};
 		});
 	}
@@ -148,7 +152,8 @@ export class IndexedDBChatRepository implements ChatRepository {
 			request.onsuccess = () => resolve();
 
 			request.onerror = () => {
-				reject(new RepositoryError(`Failed to delete conversation ${id}`, 'DELETE_FAILED', request.error));
+				const error = request.error;
+				reject(new RepositoryError(`Failed to delete conversation ${id}`, 'DELETE_FAILED', error || undefined));
 			};
 		});
 	}
@@ -176,7 +181,8 @@ export class IndexedDBChatRepository implements ChatRepository {
 			};
 
 			request.onerror = () => {
-				reject(new RepositoryError('Failed to search conversations by date', 'UNKNOWN', request.error));
+				const error = request.error;
+				reject(new RepositoryError('Failed to search conversations by date', 'UNKNOWN', error || undefined));
 			};
 		});
 	}
@@ -203,7 +209,8 @@ export class IndexedDBChatRepository implements ChatRepository {
 			};
 
 			request.onerror = () => {
-				reject(new RepositoryError('Failed to search conversations by model', 'UNKNOWN', request.error));
+				const error = request.error;
+				reject(new RepositoryError('Failed to search conversations by model', 'UNKNOWN', error || undefined));
 			};
 		});
 	}
@@ -229,7 +236,8 @@ export class IndexedDBChatRepository implements ChatRepository {
 			request.onsuccess = () => resolve();
 
 			request.onerror = () => {
-				reject(new RepositoryError('Failed to clear conversations', 'UNKNOWN', request.error));
+				const error = request.error;
+				reject(new RepositoryError('Failed to clear conversations', 'UNKNOWN', error || undefined));
 			};
 		});
 	}

@@ -1,10 +1,13 @@
-import { json } from '@sveltejs/kit';
+import { json, type RequestEvent } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { openRouterCircuitBreaker } from '$lib/backend/core/circuit-breaker';
 import { degradationManager } from '$lib/backend/utils/graceful-degradation';
 import { getOpenRouterKey } from '$lib/env';
 import { logger } from '$lib/utils/logger';
 import { getCorrelationContext } from '$lib/backend/utils/correlation';
+
+// Define MaybePromise locally since it's not exported from @sveltejs/kit
+type MaybePromise<T> = T | Promise<T>;
 
 /**
  * Health Check Endpoint
@@ -112,7 +115,7 @@ export const GET: RequestHandler = async ({ request }) => {
 		}
 
 		// Get system info
-		const memoryUsage = process.memoryUsage();
+		const memoryUsage = process?.memoryUsage?.() ?? { heapUsed: 0, heapTotal: 1 };
 		const memoryPercentage = (memoryUsage.heapUsed / memoryUsage.heapTotal) * 100;
 
 		const healthResponse: HealthCheckResponse = {
@@ -138,8 +141,8 @@ export const GET: RequestHandler = async ({ request }) => {
 				}
 			},
 			system: {
-				nodeVersion: process.version,
-				platform: process.platform,
+				nodeVersion: process?.version ?? 'unknown',
+				platform: process?.platform ?? 'unknown',
 				memory: {
 					used: Math.round(memoryUsage.heapUsed / 1024 / 1024), // MB
 					total: Math.round(memoryUsage.heapTotal / 1024 / 1024), // MB
@@ -161,7 +164,7 @@ export const GET: RequestHandler = async ({ request }) => {
 		                   overallStatus === 'degraded' ? 200 : 503;
 
 		return json(healthResponse, { 
-			statusCode,
+			status: statusCode,
 			headers: {
 				'x-correlation-id': correlationId || '',
 				'cache-control': 'no-cache, no-store, must-revalidate',
@@ -225,8 +228,31 @@ export const POST: RequestHandler = async ({ request }) => {
 			}
 		}
 
-		// Return updated health status
-		return await GET({ request });
+		// Return updated health status - reuse the GET handler logic
+		// We need to construct the event properly for the GET handler
+		const healthResponse = await json(await GET({ 
+			request, 
+			params: {}, 
+			route: { id: '/api/health' }, 
+			url: new URL(request.url), 
+			cookies: (() => ({
+				get: () => undefined,
+				set: () => {},
+				delete: () => {},
+				serialize: () => ''
+			})) as any,
+			fetch, 
+			getClientAddress: () => '127.0.0.1', 
+			locals: {}, 
+			isDataRequest: false, 
+			isSubRequest: false, 
+			setHeaders: () => {},
+			platform: undefined,
+			tracing: undefined,
+			isRemoteRequest: false
+		} as any));
+		
+		return healthResponse;
 	} catch (error) {
 		logger.error('Health check action failed', error, { correlationId });
 

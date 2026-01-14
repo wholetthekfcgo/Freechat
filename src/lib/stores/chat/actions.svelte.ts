@@ -369,7 +369,6 @@ export async function renameConversation(conversationId: string, newTitle: strin
 export function clearMessages(): void {
 	chatState.messages = [];
 	chatState.error = null;
-	chatState.currentConversationId = null;
 }
 
 /**

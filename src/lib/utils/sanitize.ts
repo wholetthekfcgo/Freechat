@@ -65,8 +65,6 @@ if (browser) {
 		// Add rel="noopener noreferrer" to all links for security
 		ADD_ATTR: ['target'],
 		FORCE_BODY: false,
-		// Strip dangerous HTML comments
-		ALLOW_COMMENTS: false,
 		// Allow data: and https: protocols
 		ALLOW_DATA_ATTR: false,
 		ALLOW_UNKNOWN_PROTOCOLS: false,

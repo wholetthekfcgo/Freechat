@@ -16,20 +16,31 @@ export type WithElementRef<T, U extends HTMLElement = HTMLElement> = T & { ref?:
 
 // Configure marked for markdown rendering with syntax highlighting
 marked.setOptions({
-	highlight: function(code, lang) {
-		if (lang && hljs.getLanguage(lang)) {
-			try {
-				return hljs.highlight(code, { language: lang }).value;
-			} catch (err) {
-				console.error('Highlight.js error:', err);
-			}
-		}
-		return hljs.highlightAuto(code).value;
-	},
-	langPrefix: 'hljs language-',
- breaks: true,
+	breaks: true,
 	gfm: true
 });
+
+// Custom renderer for syntax highlighting
+const renderer = new marked.Renderer();
+renderer.code = function({ text, lang }: { text: string; lang?: string }) {
+	const language = lang || '';
+	let highlighted: string;
+	
+	if (language && hljs.getLanguage(language)) {
+		try {
+			highlighted = hljs.highlight(text, { language }).value;
+		} catch (err) {
+			console.error('Highlight.js error:', err);
+			highlighted = hljs.highlightAuto(text).value;
+		}
+	} else {
+		highlighted = hljs.highlightAuto(text).value;
+	}
+	
+	return `<pre><code class="hljs language-${language}">${highlighted}</code></pre>`;
+} as any;
+
+marked.use({ renderer });
 
 export function renderMarkdown(content: string): string {
 	return marked.parse(content) as string;

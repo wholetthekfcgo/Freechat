@@ -36,7 +36,10 @@ export async function callOpenRouter(
         headers,
         body: JSON.stringify({
           model: request.model,
-          messages: request.messages,
+          messages: request.messages.map(m => ({
+            role: m.role,
+            content: m.content
+          })),
           stream: false,
           temperature: request.temperature || 0.7,
           max_tokens: request.max_tokens || 1000
@@ -104,7 +107,10 @@ export async function streamOpenRouter(
       },
       body: JSON.stringify({
         model: request.model,
-        messages: request.messages,
+        messages: request.messages.map(m => ({
+          role: m.role,
+          content: m.content
+        })),
         stream: true,
         streamOptions: { includeUsage: true },
         temperature: request.temperature || 0.7,

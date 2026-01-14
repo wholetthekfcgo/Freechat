@@ -61,7 +61,7 @@ export async function load(): Promise<ChatHistory> {
 				}
 			} catch (decryptError) {
 				// Decryption failed - try unencrypted fallback
-				logger.warn('Failed to decrypt, trying unencrypted fallback', decryptError);
+				logger.warn('Failed to decrypt, trying unencrypted fallback', { error: decryptError });
 			}
 		}
 		

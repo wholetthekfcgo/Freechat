@@ -2,7 +2,7 @@
  * Integration tests for chat store with security and safety features
  */
 
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { chatState, chatHistory, chatActions } from '../chat.svelte';
 
 // Mock dependencies
@@ -131,7 +131,7 @@ describe('Chat Store Integration', () => {
 				id: 'conv-1',
 				title: 'Test Chat',
 				messages: [
-					{ id: '1', role: 'user', content: 'Hello', timestamp: new Date() }
+					{ id: '1', role: 'user' as const, content: 'Hello', timestamp: new Date() }
 				],
 				model: 'test-model',
 				createdAt: new Date(),
