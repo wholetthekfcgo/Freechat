@@ -381,6 +381,229 @@ export function setModel(model: string): void {
 }
 
 /**
+ * Edit a user message and regenerate response
+ * 
+ * @param messageId - ID of the message to edit
+ * @param newContent - New content for the message
+ */
+export async function editAndRegenerate(messageId: string, newContent: string): Promise<void> {
+	const messages = [...chatState.messages];
+	const messageIndex = messages.findIndex(m => m.id === messageId);
+	
+	if (messageIndex === -1) {
+		logger.warn('Message not found for editing', { messageId });
+		return;
+	}
+	
+	const message = messages[messageIndex];
+	
+	// Only allow editing user messages
+	if (message.role !== 'user') {
+		logger.warn('Only user messages can be edited', { messageId, role: message.role });
+		return;
+	}
+	
+	// Update the message content and timestamp in place
+	messages[messageIndex] = {
+		...message,
+		content: newContent,
+		timestamp: new Date()
+	};
+	
+	// Remove all messages after the edited message (assistant responses)
+	chatState.messages = messages.slice(0, messageIndex + 1);
+	
+	logger.info('Message edited and regenerating', { messageId, contentLength: newContent.length });
+	
+	// Create abort controller for this request
+	const abortController = new AbortController();
+	chatState.abortController = abortController;
+	chatState.canStopGeneration = true;
+	chatState.isLoading = true;
+	chatState.error = null;
+
+	try {
+		// Wrap API call with rate limiting and retry logic
+		await withRateLimitAndRetry(async () => {
+			// Check if user aborted before starting the request
+			if (abortController.signal.aborted) {
+				throw new DOMException('Request was aborted', 'AbortError');
+			}
+			
+			logger.streamStart();
+			const response = await queueRequest(
+				() => fetch('/api/chat/stream', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({
+						model: chatState.currentModel,
+						messages: chatState.messages
+					}),
+					signal: abortController.signal
+				}),
+				() => abortController.abort(),
+				0 // Normal priority
+			);
+
+			if (!response.ok) {
+				throw new Error('Failed to get response');
+			}
+
+			const reader = response.body?.getReader();
+			if (!reader) {
+				throw new Error('No response body');
+			}
+			
+			const decoder = new TextDecoder();
+			let assistantContent = '';
+			let buffer = '';
+			let chunkCount = 0;
+
+			while (true) {
+				const { done, value } = await reader.read();
+				if (done) {
+					logger.streamComplete(chunkCount);
+					break;
+				}
+
+				buffer += decoder.decode(value, { stream: true });
+				const lines = buffer.split('\n');
+				buffer = lines.pop() || '';
+
+				for (const line of lines) {
+					const trimmed = line.trim();
+					if (!trimmed.startsWith('data: ') || trimmed === 'data: [DONE]') continue;
+
+					try {
+						const data = JSON.parse(trimmed.slice(6));
+						chunkCount++;
+
+						// Handle error chunks
+						if (data.error) {
+							logger.error('Error chunk received', data.error);
+							throw new Error(data.error.message || 'Stream error occurred');
+						}
+
+						// Handle content chunks
+						if (data.content) {
+							assistantContent += data.content;
+							logger.streamChunk(chunkCount, data.content, assistantContent.length);
+
+							// Update messages reactively
+							const currentMessages = [...chatState.messages];
+							const lastMessage = currentMessages[currentMessages.length - 1];
+
+							if (lastMessage?.role === 'assistant') {
+								lastMessage.content = assistantContent;
+							} else {
+								currentMessages.push({
+									id: crypto.randomUUID(),
+									role: 'assistant',
+									content: assistantContent,
+									timestamp: new Date()
+								});
+							}
+
+							chatState.messages = currentMessages;
+						}
+
+						// Handle usage statistics (final chunk)
+						if (data.usage) {
+							logger.info('Usage statistics received', data.usage);
+						}
+
+						// Check for completion
+						if (data.finishReason && data.finishReason !== 'stop') {
+							logger.warn(`Stream finished with reason: ${data.finishReason}`, { finishReason: data.finishReason });
+						}
+					} catch (e) {
+						// Re-throw intentional errors
+						if (e instanceof Error && e.message.includes('Stream error')) {
+							throw e;
+						}
+						logger.error('Error parsing SSE', e);
+					}
+				}
+			}
+		}, 3); // Max 3 retries
+	} catch (error) {
+		if (error instanceof Error && error.name === 'AbortError') {
+			chatState.error = 'Generation stopped by user';
+		} else {
+			// Network error - attempt stream recovery
+			if (error instanceof Error && (error.message.includes('network') || error.message.includes('fetch'))) {
+				logger.warn('Network error detected, attempting stream recovery', { error: error.message });
+				
+				// Check if we have partial content to recover
+				const currentMessages = [...chatState.messages];
+				const lastMessage = currentMessages[currentMessages.length - 1];
+				
+				if (lastMessage?.role === 'assistant' && lastMessage.content && lastMessage.content.length > 0) {
+					logger.info('Recovering partial stream content', { 
+						contentLength: lastMessage.content.length 
+					});
+					
+					// Mark as partial but keep the content
+					(lastMessage as any).isPartial = true;
+					chatState.messages = currentMessages;
+					chatState.error = 'Response was interrupted. Some content may be incomplete. Click regenerate to try again.';
+				} else {
+					chatState.error = error instanceof Error ? error.message : 'Unknown error occurred';
+				}
+			} else {
+				chatState.error = error instanceof Error ? error.message : 'Unknown error occurred';
+			}
+		}
+		chatState.isLoading = false;
+		chatState.canStopGeneration = false;
+		chatState.abortController = null;
+	}
+
+	chatState.isLoading = false;
+	chatState.canStopGeneration = false;
+	chatState.abortController = null;
+	
+	// Save current conversation to history with quota check
+	await saveCurrentConversation();
+}
+
+/**
+ * Edit a user message without regenerating
+ * 
+ * @param messageId - ID of the message to edit
+ * @param newContent - New content for the message
+ */
+export function editMessage(messageId: string, newContent: string): void {
+	const messages = [...chatState.messages];
+	const messageIndex = messages.findIndex(m => m.id === messageId);
+	
+	if (messageIndex === -1) {
+		logger.warn('Message not found for editing', { messageId });
+		return;
+	}
+	
+	const message = messages[messageIndex];
+	
+	// Only allow editing user messages
+	if (message.role !== 'user') {
+		logger.warn('Only user messages can be edited', { messageId, role: message.role });
+		return;
+	}
+	
+	// Update the message content and timestamp
+	messages[messageIndex] = {
+		...message,
+		content: newContent,
+		timestamp: new Date()
+	};
+	
+	// Remove all messages after the edited message (assistant responses)
+	chatState.messages = messages.slice(0, messageIndex + 1);
+	
+	logger.info('Message edited', { messageId, contentLength: newContent.length });
+}
+
+/**
  * Export all actions as a single object for convenient importing
  */
 export const chatActions = {
@@ -393,5 +616,7 @@ export const chatActions = {
 	deleteConversation,
 	renameConversation,
 	clearMessages,
-	setModel
+	setModel,
+	editMessage,
+	editAndRegenerate
 };
