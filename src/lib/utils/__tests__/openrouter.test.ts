@@ -13,20 +13,31 @@ global.fetch = vi.fn();
 
 // Helper function to create a mock Response with a proper ReadableStream
 const createMockResponse = (body: ReadableStream | null, ok = true, status = 200): Response => {
-	return {
+	const response = {
 		ok,
 		status,
 		statusText: 'OK',
 		redirected: false,
 		url: 'https://api.openrouter.com/v1/chat/completions',
 		headers: new Headers(),
-		body,
 		json: async () => ({}),
 		blob: async () => new Blob(),
 		arrayBuffer: async () => new ArrayBuffer(0),
 		formData: async () => new FormData(),
 		clone: () => createMockResponse(body, ok, status)
 	} as Response;
+	
+	// Use Object.defineProperty to set the read-only body property
+	if (body) {
+		Object.defineProperty(response, 'body', {
+			value: body,
+			writable: false,
+			enumerable: true,
+			configurable: true
+		});
+	}
+	
+	return response;
 };
 
 // Helper to create a proper ReadableStream mock
@@ -50,7 +61,26 @@ const createMockReadableStream = (chunks: string[]): ReadableStream<Uint8Array> 
 	});
 };
 
-describe('OpenRouter Utils', () => {
+// Helper to create a mock ReadableStream from a mock reader
+const createMockStreamFromReader = (reader: { read: any }): ReadableStream<Uint8Array> => {
+	return new ReadableStream({
+		start(controller) {
+			const pump = async () => {
+				const result = await (reader.read as any)();
+				if (result.done) {
+					controller.close();
+				} else if (result.value) {
+					controller.enqueue(result.value);
+					// Recursively call pump, but need to be careful about 'this'
+					return pump();
+				}
+			};
+			pump();
+		}
+	});
+};
+
+describe('callOpenRouter', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 	});

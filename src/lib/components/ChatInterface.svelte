@@ -23,6 +23,7 @@
 		onSendMessage,
 		onClear,
 		onExport,
+		onRegenerate,
 		onModelChange
 	}: {
 		messages: Message[];
@@ -31,6 +32,7 @@
 		currentModel?: string;
 		onSendMessage: (message: string) => void;
 		onClear?: () => void;
+		onRegenerate?: () => Promise<void>;
 		onExport?: (format: 'markdown' | 'json') => void;
 		onModelChange?: (model: string) => void;
 	} = $props();
@@ -289,6 +291,7 @@
 										<p class="text-body-sm text-muted-foreground">{conv.messages.length} messages</p>
 									</div>
 									<div class="flex items-center gap-1">
+										{#if onExport}
 										<button
 											onclick={(e) => {
 												e.stopPropagation();
@@ -300,6 +303,7 @@
 										>
 											<Download class="w-3.5 h-3.5" />
 										</button>
+										{/if}
 										<button
 											onclick={(e) => {
 												e.stopPropagation();
@@ -333,7 +337,11 @@
 						</div>
 					{:else if messages.length > 100}
 						<!-- Use virtual scrolling for large conversations -->
-						<VirtualChatList {messages} {onRegenerate} />
+						{#if onRegenerate}
+							<VirtualChatList {messages} {onRegenerate} />
+						{:else}
+							<VirtualChatList {messages} onRegenerate={handleRegenerate} />
+						{/if}
 					{:else}
 						<!-- Regular rendering for small conversations -->
 						{#each messages as message (message.id)}

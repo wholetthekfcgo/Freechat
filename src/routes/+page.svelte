@@ -22,16 +22,21 @@
 	const currentModel = $derived(chatState.currentModel);
 
 	// Wrap async handlers with error tracking
-	const handleSendMessage = withErrorHandling(
-		async (message: string) => {
+	async function handleSendMessage(message: string) {
+		try {
 			await chatActions.sendMessage(message, true);
-			return undefined;
-		},
-		'ChatInterface.sendMessage'
-	) as (message: string) => Promise<void>;
+		} catch (error) {
+			errorTracker.captureError(error as Error, 'ChatInterface.sendMessage');
+			throw error;
+		}
+	}
 
 	function handleClear() {
 		chatActions.clearMessages();
+	}
+
+	async function handleRegenerate() {
+		await chatActions.regenerateLastResponse();
 	}
 
 	function handleExport(format: 'markdown' | 'json') {
@@ -109,6 +114,7 @@
 		onSendMessage={handleSendMessage}
 		onClear={handleClear}
 		onExport={handleExport}
+		onRegenerate={handleRegenerate}
 		onModelChange={handleModelChange}
 	/>
 </ErrorBoundary>
