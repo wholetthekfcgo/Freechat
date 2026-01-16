@@ -1,0 +1,11 @@
+services:
+  ai-chatbot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: freechat-ai
+    restart: unless-stopped
+    ports:
+      - "4173:4173"
+    env_file:
+      - .env

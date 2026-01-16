@@ -35,7 +35,7 @@ const DEFAULT_TIMEOUT_MS = 30000; // 30 seconds default
 const timeoutConfig: TimeoutConfig = {
 	defaultTimeoutMs: DEFAULT_TIMEOUT_MS,
 	routeTimeouts: new Map([
-		[/^\/api\/chat\/stream$/i.source, 60000], // 60 seconds for streaming
+		[/^\/api\/chat\/stream$/i.source, 120000], // 120 seconds for streaming (increased for Docker)
 		[/^\/api\/chat$/i.source, 30000], // 30 seconds for non-streaming
 		[/^\/api\/.*/i.source, 15000] // 15 seconds for other API routes
 	])

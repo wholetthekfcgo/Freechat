@@ -4,8 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "vite dev",
-    "build": "PATH=\"/home/fahad/.bun/bin:/usr/local/bin:/usr/bin:/bin\" node ./node_modules/vite/bin/vite.js build",
-    "preview": "vite preview",
+    "build": "vite build",
+    "preview": "node build/index.js",
     "check": "svelte-kit sync && svelte-check --workspace .",
     "check:watch": "svelte-kit sync && svelte-check --workspace . --watch",
     "test": "vitest",
@@ -16,6 +16,7 @@
     "@internationalized/date": "^3.10.1",
     "@lucide/svelte": "^0.562.0",
     "@sveltejs/adapter-auto": "^7.0.0",
+    "@sveltejs/adapter-node": "^5.5.1",
     "@sveltejs/kit": "^2.49.4",
     "@sveltejs/vite-plugin-svelte": "^6.2.4",
     "@tailwindcss/postcss": "^4.1.18",

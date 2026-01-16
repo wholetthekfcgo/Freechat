@@ -9,7 +9,7 @@ import { z } from 'zod';
 export const MessageSchema = z.object({
 	role: z.enum(['user', 'assistant', 'system']),
 	content: z.string().min(1).max(100000), // Max 100k characters
-	timestamp: z.coerce.date()
+	timestamp: z.coerce.date().optional()
 });
 
 // Chat request schema

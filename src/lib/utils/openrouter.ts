@@ -88,7 +88,7 @@ export async function streamOpenRouter(
   apiKey: string,
   request: ChatRequest,
   onChunk: (content: string, metadata?: { usage?: any; finishReason?: string; error?: any }) => void,
-  timeoutMs: number = 60000
+  timeoutMs: number = 120000
 ): Promise<void> {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => {
