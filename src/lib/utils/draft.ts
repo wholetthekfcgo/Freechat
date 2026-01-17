@@ -3,6 +3,8 @@
  * Saves incomplete messages to sessionStorage to prevent data loss on refresh/navigation
  */
 
+import { logger } from './logger';
+
 const DRAFT_KEY = 'chat-draft-message';
 
 export class DraftManager {
@@ -22,8 +24,8 @@ export class DraftManager {
 		try {
 			sessionStorage.setItem(DRAFT_KEY, message);
 		} catch (error) {
+			logger.warn('Failed to save draft', error);
 			// Silently fail - quota exceeded or privacy mode
-			console.warn('Failed to save draft:', error);
 		}
 	}
 
@@ -36,7 +38,7 @@ export class DraftManager {
 		try {
 			return sessionStorage.getItem(DRAFT_KEY) || '';
 		} catch (error) {
-			console.warn('Failed to load draft:', error);
+			logger.warn('Failed to load draft', error);
 			return '';
 		}
 	}
@@ -50,7 +52,7 @@ export class DraftManager {
 		try {
 			sessionStorage.removeItem(DRAFT_KEY);
 		} catch (error) {
-			console.warn('Failed to clear draft:', error);
+			logger.warn('Failed to clear draft', error);
 		}
 	}
 

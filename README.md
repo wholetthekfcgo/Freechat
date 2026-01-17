@@ -85,9 +85,21 @@ ai-chatbot/
 │   │   │   ├── ChatInterface.svelte
 │   │   │   ├── MessageBubble.svelte
 │   │   │   ├── VirtualChatList.svelte
-│   │   │   └── ui/            # Reusable UI components
+│   │   │   └── ui/            # Reusable UI components (button, input, dialog, etc.)
 │   │   ├── stores/           # Svelte 5 stores with runes
-│   │   │   └── chat.svelte.ts
+│   │   │   ├── chat/
+│   │   │   │   ├── actions.svelte.ts    # Chat action methods
+│   │   │   │   ├── state.svelte.ts      # Reactive state
+│   │   │   │   └── index.ts             # Public API exports
+│   │   │   ├── commands/      # Command pattern for undo/redo (unused)
+│   │   │   ├── persistence.svelte.ts     # IndexedDB persistence layer
+│   │   │   └── chat.svelte.ts  # Legacy compatibility (deprecated)
+│   │   ├── backend/          # Backend utilities (NOT in README before)
+│   │   │   ├── core/         # Core patterns (circuit breaker)
+│   │   │   ├── middleware/   # Error handling, logging, timeout
+│   │   │   ├── integration/  # Integration tests
+│   │   │   ├── utils/        # Error classification, retry, SSE
+│   │   │   └── index.ts      # Central exports
 │   │   ├── utils/            # Utility functions
 │   │   │   ├── sanitize.ts           # XSS protection
 │   │   │   ├── indexeddb.ts          # IndexedDB wrapper
@@ -97,21 +109,33 @@ ai-chatbot/
 │   │   │   ├── stream-recovery.ts    # Partial stream recovery
 │   │   │   ├── beforeunload.ts       # Data loss prevention
 │   │   │   ├── encryption.ts         # Data encryption
-│   │   │   └── logger.ts             # Structured logging
+│   │   │   ├── logger.ts             # Structured logging
+│   │   │   ├── draft.ts              # Draft message management
+│   │   │   ├── error-tracker.ts      # Error tracking
+│   │   │   ├── announcer.ts          # ARIA announcements
+│   │   │   └── openrouter.ts         # OpenRouter API client
+│   │   ├── schemas/          # Zod validation schemas (NOT in README before)
+│   │   │   └── validation.ts         # Request/response validation
+│   │   ├── test/             # Test utilities and mocks
 │   │   └── types/            # TypeScript types
 │   ├── routes/               # SvelteKit routes
 │   │   ├── api/
-│   │   │   └── chat/
-│   │   │       ├── +server.ts         # Non-streaming endpoint
-│   │   │       └── stream/
-│   │   │           └── +server.ts     # Streaming endpoint
+│   │   │   ├── chat/
+│   │   │   │   ├── +server.ts         # Non-streaming endpoint
+│   │   │   │   └── stream/
+│   │   │   │       └── +server.ts     # Streaming endpoint
+│   │   │   └── health/
+│   │   │       └── +server.ts         # Health check endpoint
 │   │   ├── +layout.svelte
-│   │   └── +page.svelte              # Main chat page
+│   │   ├── +layout.ts
+│   │   ├── +page.svelte              # Main chat page
+│   │   └── +page.server.ts
 │   └── app.css
 ├── static/                   # Static assets
 ├── .env.example             # Environment variables template
 ├── package.json
 ├── svelte.config.ts
+├── vitest.config.ts         # Vitest configuration
 ├── tailwind.config.js
 └── tsconfig.json
 ```

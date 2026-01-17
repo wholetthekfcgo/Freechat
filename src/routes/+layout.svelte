@@ -8,12 +8,14 @@
 	// In Svelte 5, layout components receive children as a prop
 	let { children } = $props();
 
+	// Ref to main content element
+	let mainContentElement: HTMLElement | undefined = $state();
+
 	// Skip to main content handler
 	function skipToContent() {
-		const mainContent = document.getElementById('main-content');
-		if (mainContent) {
-			mainContent.focus();
-			mainContent.scrollIntoView({ behavior: 'smooth' });
+		if (mainContentElement) {
+			mainContentElement.focus();
+			mainContentElement.scrollIntoView({ behavior: 'smooth' });
 		}
 	}
 
@@ -61,6 +63,7 @@
 	<div class="bg-background text-foreground min-h-screen">
 		<!-- Main content region with proper semantics -->
 		<main 
+			bind:this={mainContentElement}
 			id="main-content" 
 			tabindex="-1"
 			aria-label="Chat interface"

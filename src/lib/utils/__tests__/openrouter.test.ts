@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { callOpenRouter, streamOpenRouter } from '../openrouter';
-import { getOpenRouterKey } from '$lib/env';
-import type { ChatRequest } from '$lib/types/chat';
+import { callOpenRouter, streamOpenRouter } from '../openrouter.js';
+import { getOpenRouterKey } from '$lib/env.js';
+import type { ChatRequest } from '$lib/types/chat.js';
 
 // Mock the env module
 vi.mock('$lib/env', () => ({

@@ -46,7 +46,8 @@ export async function load(): Promise<ChatHistory> {
 						messages: conv.messages.map((msg) => ({
 							...msg,
 							id: msg.id || crypto.randomUUID(),
-							timestamp: new Date(msg.timestamp)
+							timestamp: new Date(msg.timestamp),
+							isPartial: msg.isPartial || false
 						}))
 					}));
 					
@@ -76,7 +77,8 @@ export async function load(): Promise<ChatHistory> {
 				messages: conv.messages.map((msg) => ({
 					...msg,
 					id: msg.id || crypto.randomUUID(),
-					timestamp: new Date(msg.timestamp)
+					timestamp: new Date(msg.timestamp),
+					isPartial: msg.isPartial || false
 				}))
 			}));
 			return {

@@ -8,7 +8,12 @@ export default defineConfig({
 		globals: true,
 		environment: 'jsdom',
 		setupFiles: ['./src/lib/test/setup.ts'],
-		include: ['src/**/*.{test,spec}.{js,ts,svelte}'],
+		include: [
+			'src/**/*.{test,spec}.{js,ts,svelte}',
+			'src/**/*.test.{js,ts}',
+			'src/**/*.spec.{js,ts}',
+			'src/**/__tests__/**/*.{js,ts}'
+		],
 		exclude: ['node_modules/', '.svelte-kit/'],
 		coverage: {
 			provider: 'v8',

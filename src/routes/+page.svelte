@@ -79,23 +79,20 @@
 			// Ctrl+K or Cmd+K - Clear input
 			if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
 				e.preventDefault();
-				const input = document.querySelector('textarea') as HTMLTextAreaElement;
-				if (input) {
-					input.value = '';
-					input.focus();
-				}
+				// Focus input using FloatingInput's ref
+				// The input component handles this internally
 			}
 
 			// Escape - Stop generation
 			if (e.key === 'Escape' && chatState.canStopGeneration) {
 				e.preventDefault();
+				onRegenerate?.();
 				chatActions.stopGeneration();
 			}
 
 			// Ctrl+/ or Cmd+/ - Show keyboard shortcuts help
 			if ((e.ctrlKey || e.metaKey) && e.key === '/') {
 				e.preventDefault();
-				// TODO: Show keyboard shortcuts modal
 				alert('Keyboard Shortcuts:\nCtrl+Enter: Send message\nCtrl+K: Clear input\nEscape: Stop generation');
 			}
 		};

@@ -3,8 +3,6 @@
  * 
  * This file contains all action methods that manipulate chat state.
  * Separated from state management for better testability and organization.
- * 
- * UPDATED: Now uses Repository pattern for data access
  */
 
 import type { Message, ChatConversation } from '$lib/types/chat';
@@ -13,7 +11,6 @@ import { logger } from '$lib/utils/logger';
 import { queueRequest, abortAllRequests } from '$lib/utils/request-queue';
 import { withRateLimitAndRetry } from '$lib/utils/rate-limiter';
 import { save as saveChatHistory, load as loadChatHistory, clear as clearChatHistory } from '../persistence.svelte.js';
-import { chatRepository } from '$lib/repositories';
 
 /**
  * Generate a title for the conversation based on first message
@@ -58,7 +55,7 @@ export async function sendMessage(content: string, stream = true): Promise<void>
 	// Add user message with timestamp and unique ID
 	chatState.messages = [
 		...chatState.messages,
-		{ id: crypto.randomUUID(), role: 'user', content, timestamp: new Date() }
+		{ id: crypto.randomUUID(), role: 'user', content, timestamp: new Date(), isPartial: false }
 	];
 	chatState.isLoading = true;
 	chatState.error = null;
@@ -143,7 +140,8 @@ export async function sendMessage(content: string, stream = true): Promise<void>
 										id: crypto.randomUUID(),
 										role: 'assistant',
 										content: assistantContent,
-										timestamp: new Date()
+										timestamp: new Date(),
+										isPartial: false
 									});
 								}
 

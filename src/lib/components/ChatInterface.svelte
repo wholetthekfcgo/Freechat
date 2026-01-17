@@ -12,8 +12,6 @@
 	import { announce, announceError, initAnnouncer } from '$lib/utils/announcer';
 	import { onMount } from 'svelte';
 	import { ConfirmDialog } from '$lib/components/ui/dialog';
-	import { commandStack } from '$lib/stores/commands';
-	import { createCommands } from '$lib/stores/commands';
 
 	let {
 		messages = [],
@@ -110,25 +108,12 @@
 		conversationToDelete = null;
 	}
 
-	function handleUndo() {
-		commandStack.undo();
-		announce('Undid last action');
-	}
-
-	function handleRedo() {
-		commandStack.redo();
-		announce('Redid action');
-	}
-
 	function handleKeyDown(event: KeyboardEvent) {
 		// Ctrl/Cmd + K: Focus input
 		if ((event.ctrlKey || event.metaKey) && event.key === 'k') {
 			event.preventDefault();
-			const input = document.querySelector('textarea[placeholder*="Message"]') as HTMLTextAreaElement;
-			if (input) {
-				input.focus();
-				announce('Input focused');
-			}
+			// Input focusing is handled by FloatingInput component
+			announce('Input focused');
 		}
 
 		// Ctrl/Cmd + Enter: Submit

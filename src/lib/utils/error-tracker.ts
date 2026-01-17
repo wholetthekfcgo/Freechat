@@ -45,7 +45,7 @@ class ErrorTracker {
 
 		// In development, show full details
 		if (this.isDevelopment) {
-			console.error('Error captured:', report);
+			logger.error('Error captured', { report });
 		}
 
 		// TODO: Send to error reporting service (e.g., Sentry)

@@ -22,7 +22,7 @@ function initializeChatHistory() {
 	// Only run in browser environment
 	if (typeof window === 'undefined') return;
 	
-	const STORAGE_KEY = 'chat-history-encrypted';
+	const STORAGE_KEY = 'chat-history';
 	try {
 		persistence.load().then(loaded => {
 			chatHistory.conversations = loaded.conversations;

@@ -5,6 +5,7 @@
 	import { sanitizeHTML, isSafePlainText } from '$lib/utils/sanitize';
 	import { chatActions } from '$lib/stores/chat.svelte';
 	import { tick } from 'svelte';
+	import { logger } from '$lib/utils/logger';
 
 	let { message, onRegenerate }: { message: Message; onRegenerate?: () => void } = $props();
 
@@ -47,7 +48,7 @@
 				// Use the new editAndRegenerate function that handles everything
 				await chatActions.editAndRegenerate(message.id, editedContent.trim());
 			} catch (error) {
-				console.error('Failed to edit message and regenerate:', error);
+				logger.error('Failed to edit message and regenerate', error);
 			} finally {
 				isRegenerating = false;
 			}
