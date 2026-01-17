@@ -11,7 +11,7 @@ import type { Message, ChatConversation } from '$lib/types/chat';
 import { chatState, chatHistory } from './state.svelte.js';
 import { logger } from '$lib/utils/logger';
 import { queueRequest, abortAllRequests } from '$lib/utils/request-queue';
-import { withRateLimitAndRetry, recordApiRequest } from '$lib/utils/rate-limiter';
+import { withRateLimitAndRetry } from '$lib/utils/rate-limiter';
 import { save as saveChatHistory, load as loadChatHistory, clear as clearChatHistory } from '../persistence.svelte.js';
 import { chatRepository } from '$lib/repositories';
 
@@ -65,6 +65,7 @@ export async function sendMessage(content: string, stream = true): Promise<void>
 
 	try {
 		// Wrap API call with rate limiting and retry logic
+		// Use streaming rate limiter for stream requests to allow higher throughput
 		await withRateLimitAndRetry(async () => {
 			// Check if user aborted before starting the request
 			if (abortController.signal.aborted) {

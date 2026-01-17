@@ -301,14 +301,17 @@ export async function withRetry<T>(
  * 
  * @param fn - Function to execute
  * @param maxRetries - Maximum number of retries
+ * @param useStreamingLimiter - Whether to use streaming rate limiter (default: false)
  * @returns Promise with the function result
  */
 export async function withRateLimitAndRetry<T>(
 	fn: () => Promise<T>,
-	maxRetries = 3
+	maxRetries = 3,
+	useStreamingLimiter = false
 ): Promise<T> {
+	const rateLimiter = useStreamingLimiter ? streamingRateLimiter : apiRateLimiter;
 	return withRetry(
-		() => withRateLimit(fn, apiRateLimiter),
+		() => withRateLimit(fn, rateLimiter),
 		maxRetries
 	);
 }
