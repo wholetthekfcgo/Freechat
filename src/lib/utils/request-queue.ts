@@ -5,6 +5,7 @@
  */
 
 import { logger } from './logger';
+import { generateUUID } from './crypto';
 
 interface QueuedRequest<T = any> {
 	execute: () => Promise<T>;
@@ -39,7 +40,7 @@ class RequestQueue {
 		abort: () => void,
 		priority = 0
 	): Promise<T> {
-		const requestId = `req-${Date.now()}-${crypto.randomUUID().slice(0, 8)}`;
+		const requestId = `req-${Date.now()}-${generateUUID().slice(0, 8)}`;
 
 		return new Promise((resolve, reject) => {
 			const queuedRequest: QueuedRequest<T> = {

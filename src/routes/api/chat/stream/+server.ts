@@ -6,6 +6,7 @@ import { ChatRequestSchema } from '$lib/schemas/validation';
 import { classifyError } from '$lib/backend/utils/error-classifier';
 import { getOrCreateCorrelationId, setCorrelationContext, clearCorrelationContext } from '$lib/backend/utils/correlation';
 import { withTimeout } from '$lib/backend/middleware/timeout';
+import { generateUUID } from '$lib/utils/crypto';
 
 const baseHandler: RequestHandler = async ({ request }) => {
 	// Add correlation tracking
@@ -63,7 +64,7 @@ const baseHandler: RequestHandler = async ({ request }) => {
 			
 			// Transform messages to include required id field
 			const messagesWithIds = body.messages.map(msg => ({
-				id: crypto.randomUUID(),
+				id: generateUUID(),
 				role: msg.role,
 				content: msg.content,
 				timestamp: new Date()

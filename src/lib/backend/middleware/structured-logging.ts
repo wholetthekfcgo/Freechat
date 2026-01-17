@@ -18,6 +18,7 @@
 import { logger } from '$lib/utils/logger';
 import { getCorrelationContext } from '$lib/backend/utils/correlation';
 import type { RequestEvent } from '@sveltejs/kit';
+import { generateUUID } from '../../utils/crypto';
 
 export interface LogEntry {
 	timestamp: string;
@@ -202,7 +203,7 @@ export function withStructuredLogging(config: Partial<StructuredLoggerConfig> = 
 	const finalConfig = { ...DEFAULT_CONFIG, ...config };
 
 	return async ({ event, resolve }) => {
-		const correlationId = event.request.headers.get('x-correlation-id') || crypto.randomUUID();
+		const correlationId = event.request.headers.get('x-correlation-id') || generateUUID();
 		const startTime = Date.now();
 
 		// Check if route should be excluded

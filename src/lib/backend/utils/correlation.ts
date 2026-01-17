@@ -15,6 +15,7 @@
  */
 
 import { logger } from '$lib/utils/logger';
+import { generateUUID } from '../../utils/crypto';
 
 const CORRELATION_ID_HEADER = 'x-correlation-id';
 const REQUEST_ID_HEADER = 'x-request-id';
@@ -59,7 +60,7 @@ class CorrelationContext {
  */
 export function generateCorrelationId(): string {
 	const timestamp = Date.now().toString(36);
-	const random = crypto.randomUUID().split('-')[0];
+	const random = generateUUID().split('-')[0];
 	return `${timestamp}-${random}`;
 }
 

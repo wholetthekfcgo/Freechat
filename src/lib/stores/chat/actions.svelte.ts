@@ -11,6 +11,7 @@ import { logger } from '$lib/utils/logger';
 import { queueRequest, abortAllRequests } from '$lib/utils/request-queue';
 import { withRateLimitAndRetry } from '$lib/utils/rate-limiter';
 import { save as saveChatHistory, load as loadChatHistory, clear as clearChatHistory } from '../persistence.svelte.js';
+import { generateUUID } from '$lib/utils/crypto';
 
 /**
  * Generate a title for the conversation based on first message
@@ -55,7 +56,7 @@ export async function sendMessage(content: string, stream = true): Promise<void>
 	// Add user message with timestamp and unique ID
 	chatState.messages = [
 		...chatState.messages,
-		{ id: crypto.randomUUID(), role: 'user', content, timestamp: new Date(), isPartial: false }
+		{ id: generateUUID(), role: 'user', content, timestamp: new Date(), isPartial: false }
 	];
 	chatState.isLoading = true;
 	chatState.error = null;
