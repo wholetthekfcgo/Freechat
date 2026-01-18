@@ -138,7 +138,7 @@ export async function sendMessage(content: string, stream = true): Promise<void>
 									lastMessage.content = assistantContent;
 								} else {
 									messages.push({
-										id: crypto.randomUUID(),
+										id: generateUUID(),
 										role: 'assistant',
 										content: assistantContent,
 										timestamp: new Date(),
@@ -192,7 +192,7 @@ export async function sendMessage(content: string, stream = true): Promise<void>
 
 				chatState.messages = [
 					...chatState.messages,
-					{ id: crypto.randomUUID(), role: 'assistant', content: assistantMessage, timestamp: new Date() }
+					{ id: generateUUID(), role: 'assistant', content: assistantMessage, timestamp: new Date() }
 				];
 			}
 		}, 3); // Max 3 retries
@@ -273,13 +273,13 @@ export async function regenerateLastResponse(): Promise<void> {
  */
 export async function saveCurrentConversation(): Promise<void> {
 	if (chatState.messages.length === 0) return;
+		return;
 
 	const conversation: ChatConversation = {
-		id: chatHistory?.currentConversationId || crypto.randomUUID(),
+		id: chatHistory?.currentConversationId || generateUUID(),
 		title: generateTitle(chatState.messages),
 		messages: chatState.messages,
 		model: chatState.currentModel,
-		createdAt: new Date(),
 		updatedAt: new Date()
 	};
 
@@ -497,12 +497,13 @@ export async function editAndRegenerate(messageId: string, newContent: string): 
 								lastMessage.content = assistantContent;
 							} else {
 								currentMessages.push({
-									id: crypto.randomUUID(),
+									id: generateUUID(),
 									role: 'assistant',
 									content: assistantContent,
-									timestamp: new Date()
-								});
-							}
+									timestamp: new Date(),
+										isPartial: false
+									});
+								}
 
 							chatState.messages = currentMessages;
 						}
