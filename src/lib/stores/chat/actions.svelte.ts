@@ -273,17 +273,22 @@ export async function regenerateLastResponse(): Promise<void> {
  */
 export async function saveCurrentConversation(): Promise<void> {
 	if (chatState.messages.length === 0) return;
-		return;
+
+	// Ensure conversations array exists
+	if (!chatHistory.conversations) {
+		chatHistory.conversations = [];
+	}
 
 	const conversation: ChatConversation = {
 		id: chatHistory?.currentConversationId || generateUUID(),
 		title: generateTitle(chatState.messages),
 		messages: chatState.messages,
 		model: chatState.currentModel,
-		updatedAt: new Date()
+		updatedAt: new Date(),
+		createdAt: new Date() // Add createdAt field
 	};
 
-	const conversations = chatHistory?.conversations ?? [];
+	const conversations = chatHistory.conversations;
 	const existingIndex = conversations.findIndex(
 		c => c.id === conversation.id
 	);
@@ -294,10 +299,15 @@ export async function saveCurrentConversation(): Promise<void> {
 		conversations.unshift(conversation);
 	}
 
-	if (chatHistory) {
-		chatHistory.conversations = conversations;
-		chatHistory.currentConversationId = conversation.id;
-	}
+	// Update the reactive state
+	chatHistory.conversations = conversations;
+	chatHistory.currentConversationId = conversation.id;
+	
+	logger.info('Saving conversation', { 
+		id: conversation.id, 
+		messageCount: conversation.messages.length,
+		totalConversations: conversations.length 
+	});
 	
 	await saveCurrentHistory();
 }

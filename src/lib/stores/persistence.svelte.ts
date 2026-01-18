@@ -117,12 +117,23 @@ export async function save(history: ChatHistory): Promise<void> {
 	}
 	
 	try {
+		// Validate input
+		if (!history || !history.conversations) {
+			logger.warn('Invalid history object, skipping save', { history });
+			return;
+		}
+		
 		// Prepare data with version info
 		const dataToSave = {
 			...history,
 			version: STORAGE_VERSION,
 			savedAt: new Date().toISOString()
 		};
+		
+		logger.info('Attempting to save chat history', { 
+			conversationCount: history.conversations.length,
+			currentId: history.currentConversationId 
+		});
 		
 		let encrypted: string;
 		
@@ -159,6 +170,9 @@ export async function save(history: ChatHistory): Promise<void> {
 		} else {
 			// Successfully saved encrypted, remove any unencrypted fallback
 			await idb.delete(STORES.CHAT_HISTORY, UNENCRYPTED_KEY);
+			logger.info('Chat history saved successfully', { 
+				conversationCount: history.conversations.length 
+			});
 		}
 		
 		const conversationCount = history?.conversations?.length ?? 0;

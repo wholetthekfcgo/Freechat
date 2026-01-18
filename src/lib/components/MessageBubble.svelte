@@ -24,9 +24,33 @@
 	});
 
 	async function copyToClipboard() {
-		await navigator.clipboard.writeText(message.content);
-		copied = true;
-		setTimeout(() => (copied = false), 2000);
+		try {
+			// Check if clipboard API is available
+			if (!navigator.clipboard || !navigator.clipboard.writeText) {
+				throw new Error('Clipboard API not available');
+			}
+			await navigator.clipboard.writeText(message.content);
+			copied = true;
+			setTimeout(() => (copied = false), 2000);
+		} catch (error) {
+			logger.error('Failed to copy to clipboard', error);
+			// Fallback: use textarea method for wider browser support
+			const textarea = document.createElement('textarea');
+			textarea.value = message.content;
+			textarea.style.position = 'fixed';
+			textarea.style.opacity = '0';
+			document.body.appendChild(textarea);
+			textarea.select();
+			try {
+				document.execCommand('copy');
+				copied = true;
+				setTimeout(() => (copied = false), 2000);
+			} catch (fallbackError) {
+				logger.error('Fallback copy also failed', fallbackError);
+			} finally {
+				document.body.removeChild(textarea);
+			}
+		}
 	}
 
 	async function startEdit() {
