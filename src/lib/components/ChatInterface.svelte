@@ -315,9 +315,49 @@
 				<div bind:this={scrollAreaElement} class="px-8 py-6 max-w-4xl mx-auto">
 					{#if messages.length === 0}
 						<div class="flex items-center justify-center h-full min-h-[400px]">
-							<div class="text-center space-y-4">
+							<div class="text-center space-y-6 max-w-lg">
+								<!-- Brand Mark -->
 								<div class="text-display-md text-muted-foreground/20">FREECHAT.CC</div>
-								<p class="text-body-md text-muted-foreground font-accent">// Free as in Freedom</p>
+								
+								<!-- Value Propositions -->
+								<div class="grid grid-cols-2 gap-4 pt-6">
+									<div class="border border-border bg-card p-4 text-left hover-lift">
+										<div class="text-primary mb-2">
+											<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+										</div>
+										<h3 class="text-body-sm font-medium text-foreground mb-1">Privacy First</h3>
+										<p class="text-body-sm text-muted-foreground">Local encrypted storage keeps your data yours</p>
+									</div>
+									
+									<div class="border border-border bg-card p-4 text-left hover-lift">
+										<div class="text-primary mb-2">
+											<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+										</div>
+										<h3 class="text-body-sm font-medium text-foreground mb-1">Freedom of Choice</h3>
+										<p class="text-body-sm text-muted-foreground">Access any AI model without lock-in</p>
+									</div>
+									
+									<div class="border border-border bg-card p-4 text-left hover-lift">
+										<div class="text-primary mb-2">
+											<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+										</div>
+										<h3 class="text-body-sm font-medium text-foreground mb-1">Lightning Fast</h3>
+										<p class="text-body-sm text-muted-foreground">Optimized token speed with streaming responses</p>
+									</div>
+									
+									<div class="border border-border bg-card p-4 text-left hover-lift">
+										<div class="text-primary mb-2">
+											<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+										</div>
+										<h3 class="text-body-sm font-medium text-foreground mb-1">Zero Data Retention</h3>
+										<p class="text-body-sm text-muted-foreground">Your conversations are never stored on servers</p>
+									</div>
+								</div>
+								
+								<!-- Call to Action -->
+								<p class="text-body-sm text-muted-foreground pt-4">
+									Start typing to begin your conversation
+								</p>
 							</div>
 						</div>
 					{:else if messages.length > 100}

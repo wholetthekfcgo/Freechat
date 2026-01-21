@@ -2,31 +2,31 @@
 @import "tw-animate-css";
 
 :root {
-  /* === NOIR PALETTE === */
+  /* === NOIR PALETTE ENHANCED === */
   
   /* Core Colors - Deep Charcoal to Warm Cream */
   --background: 240 10% 4%; /* #0a0a0a - deepest charcoal */
   --foreground: 38 20% 94%; /* #f5f0e8 - warm cream */
   
-  /* Surface Colors */
+  /* Surface Colors - Enhanced depth */
   --card: 0 0% 7%; /* #111111 - near-black */
   --card-foreground: 38 20% 94%;
   --popover: 0 0% 7%;
   --popover-foreground: 38 20% 94%;
   
-  /* Primary Accent - Warm Orange (WCAG AA compliant) */
-  --primary: 18 100% 65%; /* #ff8533 - adjusted for 7:1 AAA contrast */
+  /* Primary Accent - Vibrant Ember Orange (WCAG AAA compliant) */
+  --primary: 18 100% 62%; /* #ff7a2a - vibrant ember */
   --primary-foreground: 0 0% 100%;
   
-  /* Secondary - Muted Dark */
-  --secondary: 0 0% 12%;
+  /* Secondary - Sophisticated Deep Blue-Grey */
+  --secondary: 215 25% 15%; /* #1a202c - deep blue-grey */
   --secondary-foreground: 38 20% 94%;
   
   /* Muted - For backgrounds */
   --muted: 0 0% 10%;
   --muted-foreground: 0 0% 55%; /* #8c8c8c - lighter for better contrast */
   
-  /* Accent - Subtle */
+  /* Accent - Subtle highlight */
   --accent: 0 0% 12%;
   --accent-foreground: 38 20% 94%;
   
@@ -39,6 +39,27 @@
   --input: 0 0% 20%;
   --ring: 18 100% 60%;
   
+  /* === BRAND COLOR SYSTEM === */
+  
+  /* Brand Primary - Ember */
+  --brand-ember: 18 100% 62%;
+  --brand-ember-hover: 18 100% 58%;
+  --brand-ember-muted: 18 50% 20%;
+  
+  /* Brand Secondary - Steel */
+  --brand-steel: 215 20% 25%;
+  --brand-steel-light: 215 20% 35%;
+  --brand-steel-dark: 215 20% 15%;
+  
+  /* Brand Accent - Gold (premium feel) */
+  --brand-gold: 45 95% 55%;
+  --brand-gold-muted: 45 50% 20%;
+  
+  /* Semantic Colors */
+  --success: 142 76% 36%;
+  --warning: 45 100% 51%;
+  --info: 199 89% 48%;
+  
   /* Charts (keeping but may not use) */
   --chart-1: 220 70% 50%;
   --chart-2: 160 60% 45%;
@@ -49,34 +70,58 @@
   /* Sidebar */
   --sidebar: 0 0% 7%;
   --sidebar-foreground: 38 20% 94%;
-  --sidebar-primary: 18 100% 65%; /* Match updated primary */
+  --sidebar-primary: 18 100% 62%; /* Match updated primary */
   --sidebar-primary-foreground: 0 0% 100%;
   --sidebar-accent: 0 0% 12%;
   --sidebar-accent-foreground: 38 20% 94%;
   --sidebar-border: 0 0% 20%;
   --sidebar-ring: 18 100% 60%;
-
-  /* Warning color for token counter (WCAG AA compliant) */
-  --warning: 45 100% 51%; /* Amber - 6.8:1 contrast on dark */
   
   /* === CUSTOM NOIR VARIABLES === */
   
-  /* Typography */
+  /* Typography - Enhanced system */
   --font-display: 'Space Grotesk', sans-serif;
   --font-body: 'JetBrains Mono', monospace;
   --font-accent: 'Instrument Serif', serif;
+  
+  /* Brand Typography Scale */
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.25rem;
+  --text-2xl: 1.5rem;
+  --text-3xl: 1.875rem;
+  --text-4xl: 2.25rem;
+  --text-5xl: 3rem;
+  --text-6xl: 3.75rem;
   
   /* Shadows - Dramatic Depth */
   --shadow-subtle: 0 2px 8px rgba(0, 0, 0, 0.3);
   --shadow-medium: 0 4px 16px rgba(0, 0, 0, 0.4);
   --shadow-dramatic: 0 8px 32px rgba(0, 0, 0, 0.5);
-  --shadow-glow: 0 0 24px rgba(255, 107, 53, 0.15);
+  --shadow-glow: 0 0 24px rgba(255, 122, 42, 0.2);
+  --shadow-glow-strong: 0 0 32px rgba(255, 122, 42, 0.3);
   --shadow-inset: inset 0 2px 8px rgba(0, 0, 0, 0.4);
   
   /* Atmospheric Effects */
   --grain-opacity: 0.03;
   --glass-bg: rgba(17, 17, 17, 0.85);
   --glass-border: rgba(255, 255, 255, 0.08);
+  
+  /* Animation timing */
+  --transition-fast: 150ms;
+  --transition-base: 250ms;
+  --transition-slow: 400ms;
+  
+  /* Spacing system */
+  --spacing-xs: 0.5rem;
+  --spacing-sm: 0.75rem;
+  --spacing-md: 1rem;
+  --spacing-lg: 1.5rem;
+  --spacing-xl: 2rem;
+  --spacing-2xl: 3rem;
+  --spacing-3xl: 4rem;
   
   /* Radius - Keep Brutalist Sharp */
   --radius: 0rem;

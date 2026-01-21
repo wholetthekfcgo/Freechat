@@ -1,6 +1,17 @@
 # FREECHAT.CC
 
-Free as in Freedom - A modern, production-hardened AI chatbot built with SvelteKit, powered by OpenRouter API.
+**Free as in Freedom** - A modern, production-hardened AI chatbot built with SvelteKit, powered by OpenRouter API.
+
+## 🎯 Why FREECHAT.CC?
+
+In a world of walled gardens and locked-down AI platforms, FREECHAT.CC stands for something different:
+
+- **Freedom of Choice** - Access any AI model through OpenRouter without lock-in
+- **Privacy First** - Local encrypted storage, your data never leaves your device unprotected
+- **Zero Data Retention** - Your conversations are never stored on servers
+- **Lightning Fast** - Optimized token speed with streaming responses
+
+We believe AI tools should empower you, not restrict you. That's what "free as in freedom" means to us.
 
 ## 🛡️ Production-Ready Features
 
