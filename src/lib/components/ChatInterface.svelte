@@ -4,7 +4,7 @@
 	import VirtualChatList from '$lib/components/VirtualChatList.svelte';
 	import FloatingInput from '$lib/components/FloatingInput.svelte';
 	import ScrollArea from '$lib/components/ui/scroll-area/scroll-area.svelte';
-	import { Trash2, Download, Plus, Square, RotateCcw, History, Undo, Redo } from '@lucide/svelte';
+	import { Trash2, Download, Upload, Plus, Square, RotateCcw, History, Undo, Redo, TrendingUp } from '@lucide/svelte';
 	import Button from '$lib/components/ui/button/button.svelte';
 	import { tick } from 'svelte';
 	import { chatState, chatActions, chatHistory } from '$lib/stores/chat.svelte';
@@ -12,6 +12,8 @@
 	import { announce, announceError, initAnnouncer } from '$lib/utils/announcer';
 	import { onMount } from 'svelte';
 	import { ConfirmDialog } from '$lib/components/ui/dialog';
+
+	import { formatTokenCount, formatCost } from '$lib/utils/token-tracker';
 
 	let {
 		messages = [],
@@ -21,8 +23,12 @@
 		onSendMessage,
 		onClear,
 		onExport,
+		onImport,
 		onRegenerate,
-		onModelChange
+		onModelChange,
+		totalTokens = 0,
+		totalCost = 0,
+		requestCount = 0
 	}: {
 		messages: Message[];
 		isLoading: boolean;
@@ -32,7 +38,11 @@
 		onClear?: () => void;
 		onRegenerate?: () => Promise<void>;
 		onExport?: (format: 'markdown' | 'json') => void;
+		onImport?: (file: File) => Promise<boolean>;
 		onModelChange?: (model: string) => void;
+		totalTokens?: number;
+		totalCost?: number;
+		requestCount?: number;
 	} = $props();
 
 	let inputMessage = $state('');

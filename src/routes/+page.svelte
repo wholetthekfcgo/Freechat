@@ -1,8 +1,9 @@
 <script lang="ts">
 	import { browser } from '$app/environment';
 	import ChatInterface from '$lib/components/ChatInterface.svelte';
-	import { chatState, chatActions } from '$lib/stores/chat.svelte.js';
+	import { chatState, chatActions, tokenUsage } from '$lib/stores/chat.svelte.js';
 	import { errorTracker, withErrorHandling } from '$lib/utils/error-tracker';
+	import { formatTokenCount, formatCost } from '$lib/utils/token-tracker';
 	import type { PageData } from './$types';
 	import ErrorBoundary from '$lib/components/ErrorBoundary.svelte';
 
@@ -20,6 +21,9 @@
 	const isLoading = $derived(chatState.isLoading);
 	const error = $derived(chatState.error);
 	const currentModel = $derived(chatState.currentModel);
+	const totalTokens = $derived(tokenUsage.totalTokens);
+	const totalCost = $derived(tokenUsage.totalCost);
+	const requestCount = $derived(tokenUsage.requestCount);
 
 	// Wrap async handlers with error tracking
 	async function handleSendMessage(message: string) {
@@ -64,6 +68,55 @@
 		a.download = filename;
 		a.click();
 		URL.revokeObjectURL(url);
+	}
+
+	async function handleImport(file: File) {
+		try {
+			const content = await file.text();
+			let importedMessages: any[] = [];
+
+			// Determine format and parse accordingly
+			if (file.name.endsWith('.json')) {
+				importedMessages = JSON.parse(content);
+			} else if (file.name.endsWith('.md')) {
+				// Parse markdown format
+				const sections = content.split('## ');
+				for (const section of sections) {
+					const lines = section.trim().split('\n');
+					if (lines.length < 2) continue;
+					
+					const role = lines[0].toLowerCase().replace(':', '').trim();
+					const content_text = lines.slice(1).join('\n').trim();
+					
+					if (role === 'user' || role === 'assistant') {
+						importedMessages.push({
+							id: crypto.randomUUID(),
+							role,
+							content: content_text,
+							timestamp: new Date(),
+							isPartial: false
+						});
+					}
+				}
+			} else {
+				throw new Error('Unsupported file format. Please use .json or .md files.');
+			}
+
+			// Validate messages array
+			if (!Array.isArray(importedMessages) || importedMessages.length === 0) {
+				throw new Error('Invalid file format: No messages found.');
+			}
+
+			// Create a new conversation with imported messages
+			await chatActions.startNewChat();
+			chatState.messages = importedMessages;
+			await chatActions.saveCurrentConversation();
+			
+			return true;
+		} catch (error) {
+			console.error('Import failed:', error);
+			throw error;
+		}
 	}
 
 	function handleModelChange(model: string) {
@@ -111,7 +164,11 @@
 		onSendMessage={handleSendMessage}
 		onClear={handleClear}
 		onExport={handleExport}
+		onImport={handleImport}
 		onRegenerate={handleRegenerate}
 		onModelChange={handleModelChange}
+		{totalTokens}
+		{totalCost}
+		{requestCount}
 	/>
 </ErrorBoundary>

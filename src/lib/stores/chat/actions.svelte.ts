@@ -6,12 +6,13 @@
  */
 
 import type { Message, ChatConversation } from '$lib/types/chat';
-import { chatState, chatHistory } from './state.svelte.js';
+import { chatState, chatHistory, tokenUsage } from './state.svelte.js';
 import { logger } from '$lib/utils/logger';
 import { queueRequest, abortAllRequests } from '$lib/utils/request-queue';
 import { withRateLimitAndRetry } from '$lib/utils/rate-limiter';
 import { save as saveChatHistory, load as loadChatHistory, clear as clearChatHistory } from '../persistence.svelte.js';
 import { generateUUID } from '$lib/utils/crypto';
+import { calculateTokenUsage, formatTokenCount, formatCost } from '$lib/utils/token-tracker';
 
 /**
  * Generate a title for the conversation based on first message
@@ -152,6 +153,33 @@ export async function sendMessage(content: string, stream = true): Promise<void>
 							// Handle usage statistics (final chunk)
 							if (data.usage) {
 								logger.info('Usage statistics received', data.usage);
+								
+								// Update token usage tracking
+								const promptMessages = chatState.messages.slice(0, -1);
+								const assistantMessage = chatState.messages[chatState.messages.length - 1];
+								
+								if (assistantMessage) {
+									const usage = calculateTokenUsage(
+										promptMessages,
+										assistantMessage,
+										model
+									);
+									
+									tokenUsage.totalPromptTokens += usage.promptTokens;
+									tokenUsage.totalCompletionTokens += usage.completionTokens;
+									tokenUsage.totalTokens += usage.totalTokens;
+									tokenUsage.totalCost += usage.estimatedCost;
+									tokenUsage.requestCount += 1;
+									tokenUsage.lastUpdated = new Date();
+									
+									logger.info('Token usage updated', {
+										promptTokens: usage.promptTokens,
+										completionTokens: usage.completionTokens,
+										totalTokens: usage.totalTokens,
+										cost: usage.estimatedCost,
+										cumulativeCost: tokenUsage.totalCost
+									});
+								}
 							}
 
 							// Check for completion
@@ -194,6 +222,18 @@ export async function sendMessage(content: string, stream = true): Promise<void>
 					...chatState.messages,
 					{ id: generateUUID(), role: 'assistant', content: assistantMessage, timestamp: new Date() }
 				];
+				
+				// Track token usage for non-streaming responses
+				const promptMessages = chatState.messages.slice(0, -1);
+				const assistantMsg = chatState.messages[chatState.messages.length - 1];
+				const usage = calculateTokenUsage(promptMessages, assistantMsg, model);
+				
+				tokenUsage.totalPromptTokens += usage.promptTokens;
+				tokenUsage.totalCompletionTokens += usage.completionTokens;
+				tokenUsage.totalTokens += usage.totalTokens;
+				tokenUsage.totalCost += usage.estimatedCost;
+				tokenUsage.requestCount += 1;
+				tokenUsage.lastUpdated = new Date();
 			}
 		}, 3); // Max 3 retries
 	} catch (error) {

@@ -37,6 +37,19 @@ export const chatHistory = $state<ChatHistory>({
 });
 
 /**
+ * Token usage statistics for current session
+ * Tracks cumulative token usage and costs across all requests
+ */
+export const tokenUsage = $state({
+	totalPromptTokens: 0,
+	totalCompletionTokens: 0,
+	totalTokens: 0,
+	totalCost: 0,
+	requestCount: 0,
+	lastUpdated: new Date()
+});
+
+/**
  * Reset chat state to initial values
  * Useful for starting fresh or clearing errors
  */

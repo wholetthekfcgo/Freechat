@@ -612,6 +612,13 @@ class Logger {
 
 			request.onsuccess = (event) => {
 				const db = (event.target as IDBOpenDBRequest).result;
+				
+				// Check if store exists before trying to access it
+				if (!db.objectStoreNames.contains(storeName)) {
+					db.close();
+					return;
+				}
+				
 				const transaction = db.transaction([storeName], 'readwrite');
 				const store = transaction.objectStore(storeName);
 
@@ -657,8 +664,22 @@ class Logger {
 			const storeName = 'logs';
 			const request = indexedDB.open(dbName, 1);
 
+			request.onupgradeneeded = (event) => {
+				const db = (event.target as IDBOpenDBRequest).result;
+				if (!db.objectStoreNames.contains(storeName)) {
+					db.createObjectStore(storeName, { keyPath: 'id' });
+				}
+			};
+
 			request.onsuccess = (event) => {
 				const db = (event.target as IDBOpenDBRequest).result;
+				
+				// Check if store exists before trying to access it
+				if (!db.objectStoreNames.contains(storeName)) {
+					db.close();
+					return;
+				}
+				
 				const transaction = db.transaction([storeName], 'readonly');
 				const store = transaction.objectStore(storeName);
 				const getAllRequest = store.getAll();
@@ -692,12 +713,30 @@ class Logger {
 			const storeName = 'logs';
 			const request = indexedDB.open(dbName, 1);
 
+			request.onupgradeneeded = (event) => {
+				const db = (event.target as IDBOpenDBRequest).result;
+				if (!db.objectStoreNames.contains(storeName)) {
+					db.createObjectStore(storeName, { keyPath: 'id' });
+				}
+			};
+
 			request.onsuccess = (event) => {
 				const db = (event.target as IDBOpenDBRequest).result;
+				
+				// Check if store exists before trying to access it
+				if (!db.objectStoreNames.contains(storeName)) {
+					db.close();
+					return;
+				}
+				
 				const transaction = db.transaction([storeName], 'readwrite');
 				const store = transaction.objectStore(storeName);
 				store.clear();
 				db.close();
+			};
+
+			request.onerror = () => {
+				console.debug('Failed to clear persisted logs');
 			};
 		} catch (error) {
 			console.error('Error clearing persisted logs:', error);

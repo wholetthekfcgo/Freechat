@@ -5,12 +5,12 @@
  * @deprecated Use $lib/stores/chat/index.ts instead
  */
 
-import { chatState, chatHistory } from './chat/state.svelte.js';
+import { chatState, chatHistory, tokenUsage } from './chat/state.svelte.js';
 import { chatActions } from './chat/actions.svelte.js';
 import { persistence } from './persistence.svelte.js';
 
 // Re-export everything for backward compatibility
-export { chatState, chatHistory };
+export { chatState, chatHistory, tokenUsage };
 export type { ChatState, ChatHistory } from '$lib/types/chat';
 export { chatActions };
 export { persistence };
