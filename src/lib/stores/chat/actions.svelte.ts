@@ -51,8 +51,8 @@ export async function sendMessage(content: string, stream = true): Promise<void>
 	const model = chatState.currentModel;
 
 	// Check if user has credits remaining
-	if (tokenUsage.requestCount >= 60) {
-		chatState.error = 'Rate limit reached. You have used all 60 credits. Please wait for refill.';
+	if (tokenUsage.requestCount >= 30) {
+		chatState.error = 'Rate limit reached. You have used all 30 credits. Click the + button to get 30 more credits every hour.';
 		return;
 	}
 

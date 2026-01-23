@@ -15,16 +15,19 @@
 	let previousFocus = $state<HTMLElement | null>(null);
 	let selectedPackage = $state<string | null>(null);
 	let isProcessing = $state(false);
+	let nextRefillTime = $state<number>(Date.now() + 60 * 60 * 1000); // 1 hour from now
+	let canRefillFree = $derived(nextRefillTime < Date.now());
 
 	// Credit packages
 	const packages = [
 		{
 			id: 'starter',
-			name: 'Starter Pack',
+			name: 'Free Refill',
 			credits: 30,
 			price: 0,
 			popular: false,
-			description: 'Perfect for trying out'
+			description: 'Free 30 credits every hour',
+			isFree: true
 		},
 		{
 			id: 'standard',
@@ -32,7 +35,8 @@
 			credits: 100,
 			price: 5,
 			popular: true,
-			description: 'Best value for regular users'
+			description: 'Best value for regular users',
+			isFree: false
 		},
 		{
 			id: 'premium',
@@ -40,9 +44,23 @@
 			credits: 250,
 			price: 10,
 			popular: false,
-			description: 'For power users'
+			description: 'For power users',
+			isFree: false
 		}
 	];
+
+	// Update timer every second and make time reactive
+	let timeRemaining = $state(getTimeRemaining());
+	
+	$effect(() => {
+		const interval = setInterval(() => {
+			timeRemaining = getTimeRemaining();
+			if (nextRefillTime < Date.now()) {
+				canRefillFree = true;
+			}
+		}, 1000);
+		return () => clearInterval(interval);
+	});
 
 	// Focus trap and previous focus management
 	$effect(() => {
@@ -81,11 +99,24 @@
 	async function handlePurchase(packageId: string) {
 		if (isProcessing) return;
 
+		// Check if this is the free tier and timer hasn't expired
+		const pkg = packages.find(p => p.id === packageId);
+		if (pkg?.isFree && !canRefillFree) {
+			announce('Please wait for the timer to expire before claiming free credits again.');
+			return;
+		}
+
 		selectedPackage = packageId;
 		isProcessing = true;
 
 		try {
 			await onPurchase?.(packageId);
+			
+			// Reset timer for free tier
+			if (pkg?.isFree) {
+				nextRefillTime = Date.now() + 60 * 60 * 1000; // 1 hour from now
+			}
+			
 			handleClose();
 		} catch (error) {
 			console.error('Purchase failed:', error);
@@ -93,6 +124,16 @@
 			isProcessing = false;
 			selectedPackage = null;
 		}
+	}
+
+	// Format time remaining as HH:MM:SS
+	function getTimeRemaining(): string {
+		const now = Date.now();
+		const diff = Math.max(0, nextRefillTime - now);
+		const hours = Math.floor(diff / (1000 * 60 * 60));
+		const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+		const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+		return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
 	}
 
 	// Focus trap within dialog
@@ -133,7 +174,7 @@
 
 {#if open}
 	<div
-		class="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm animate-fade-in"
+		class="fixed inset-0 z-50 flex items-center justify-center bg-[#0a0a0a] animate-fade-in"
 		role="presentation"
 	>
 		<div
@@ -167,16 +208,33 @@
 			<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
 				{#each packages as pkg}
 					<button
-						disabled={isProcessing}
+						disabled={isProcessing || (pkg.isFree && !canRefillFree)}
 						onclick={() => handlePurchase(pkg.id)}
 						class="relative p-6 text-left border-2 transition-all duration-200 hover-lift {pkg.popular
 							? 'border-primary bg-primary/5 shadow-glow'
 							: 'border-border bg-card hover:border-primary/50'} {selectedPackage ===
 							pkg.id
 							? 'ring-2 ring-primary'
-							: ''} {isProcessing ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}"
+							: ''} {(isProcessing || (pkg.isFree && !canRefillFree)) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}"
 						aria-label="Buy {pkg.name} - {pkg.credits} credits for ${pkg.price}"
 					>
+						{#if pkg.isFree && !canRefillFree}
+							<div
+								class="absolute inset-0 flex flex-col items-center justify-center bg-card/95 rounded z-10"
+							>
+								<div class="text-center">
+									<div class="text-primary font-semibold mb-2">
+										<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6 mx-auto mb-2">
+											<circle cx="12" cy="12" r="10"/>
+											<polyline points="12 6 12 12 16 14"/>
+										</svg>
+									</div>
+									<p class="text-body-sm text-foreground font-semibold">Next free in:</p>
+									<p class="text-display-md text-primary">{timeRemaining}</p>
+								</div>
+							</div>
+						{/if}
+
 						{#if pkg.popular}
 							<div
 								class="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-primary text-primary-foreground text-body-xs font-semibold uppercase tracking-wide"
@@ -203,7 +261,7 @@
 						<div class="flex items-center justify-center gap-2 text-body-sm text-foreground">
 							{#if pkg.price === 0}
 								<Check class="w-4 h-4 text-primary" />
-								<span>Free to start</span>
+								<span>Free every hour</span>
 							{:else}
 								<Check class="w-4 h-4 text-primary" />
 								<span>Instant delivery</span>

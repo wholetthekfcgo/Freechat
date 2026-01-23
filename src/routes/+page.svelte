@@ -25,7 +25,7 @@
 	const totalCost = $derived(tokenUsage.totalCost);
 	const requestCount = $derived(tokenUsage.requestCount);
 	const capacity = $derived(60);
-	const remainingTokens = $derived(capacity - requestCount); // Remaining credits
+	const remainingTokens = $derived(30 - requestCount); // Remaining credits (start with 30, refill 30 every hour)
 
 	// Wrap async handlers with error tracking
 	async function handleSendMessage(message: string) {

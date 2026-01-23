@@ -125,10 +125,31 @@
 	}
 
 	async function handlePurchaseCredits(packageId: string) {
-		// For now, just log the purchase
-		console.log('Purchased credits package:', packageId);
-		// TODO: Integrate with payment backend
-		announce(`Credits purchased: ${packageId}`);
+		// Check if this is the free tier
+		if (packageId === 'starter') {
+			// Check if timer has expired
+			const currentTime = Date.now();
+			const refillTime = localStorage.getItem('freeCreditRefillTime');
+			
+			if (refillTime && currentTime < parseInt(refillTime)) {
+				const timeLeft = Math.ceil((parseInt(refillTime) - currentTime) / 1000 / 60);
+				announce(`Please wait ${timeLeft} minutes before claiming free credits again.`);
+				return;
+			}
+			
+			// Set next refill time (1 hour from now)
+			const nextRefill = Date.now() + (60 * 60 * 1000);
+			localStorage.setItem('freeCreditRefillTime', nextRefillTime.toString());
+		}
+		
+		// Reset credits to 30 and clear request count
+		tokenUsage.requestCount = 0;
+		
+		// Show success message
+		announce('30 credits redeemed! You can now continue chatting.');
+		
+		// Log for now - TODO: Integrate with payment/backend system
+		console.log('Redeemed credits via modal:', packageId);
 	}
 
 	function handleKeyDown(event: KeyboardEvent) {
