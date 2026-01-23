@@ -50,9 +50,9 @@ async function saveCurrentHistory(): Promise<void> {
 export async function sendMessage(content: string, stream = true): Promise<void> {
 	const model = chatState.currentModel;
 
-	// Check if user has prompts remaining
+	// Check if user has credits remaining
 	if (tokenUsage.requestCount >= 60) {
-		chatState.error = 'Rate limit reached. You have used all 60 prompts. Please wait for refill.';
+		chatState.error = 'Rate limit reached. You have used all 60 credits. Please wait for refill.';
 		return;
 	}
 

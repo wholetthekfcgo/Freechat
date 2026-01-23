@@ -51,12 +51,12 @@ export const tokenUsage = $state({
 
 /**
  * Token bucket rate limiting state
- * Tracks remaining prompts using token bucket algorithm
+ * Tracks remaining credits using token bucket algorithm
  */
 export const tokenBucket = $state({
 	remainingTokens: 60,  // Start with full capacity (60)
 	capacity: 60,          // Max capacity
-	maxPromptsPerPeriod: 60, // Maximum prompts per period
+	maxCreditsPerPeriod: 60, // Maximum credits per period
 	lastRefillTime: Date.now()
 });
 

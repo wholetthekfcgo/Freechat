@@ -379,14 +379,14 @@ class TokenBucketRateLimiter {
 	private tokens: number;
 	private lastRefillTime: number;
 	private config: TokenBucketConfig;
-	private maxPromptsPerPeriod: number;
+	private maxCreditsPerPeriod: number;
 
 	constructor(config: TokenBucketConfig) {
 		this.config = config;
 		this.tokens = config.capacity;
 		this.lastRefillTime = Date.now();
-		// Max prompts = capacity (can accumulate up to 60)
-		this.maxPromptsPerPeriod = config.capacity;
+		// Max credits = capacity (can accumulate up to 60)
+		this.maxCreditsPerPeriod = config.capacity;
 	}
 
 	/**
@@ -512,29 +512,29 @@ class TokenBucketRateLimiter {
 }
 
 /**
- * Token bucket rate limiter for user prompts
+ * Token bucket rate limiter for user credits
  * 
  * Configuration:
  * - 60 tokens capacity (max capacity allows for accumulation)
  * - 30 tokens refill every 1 hour
- * - Maximum 60 prompts capacity (can accumulate up to 60)
+ * - Maximum 60 credits capacity (can accumulate up to 60)
  * 
  * This provides:
- * - Start with 60 prompts available (full capacity)
+ * - Start with 60 credits available (full capacity)
  * - Use them at any pace (burst or spread out)
  * - Every hour, 30 tokens are added (up to max capacity of 60)
  * - Allows building up tokens if not using them all
  * - Predictable hourly quota without sudden cutoffs
  */
 export const tokenBucketLimiter = new TokenBucketRateLimiter({
-	capacity: 60,              // 60 prompts max capacity
+	capacity: 60,              // 60 credits max capacity
 	tokensPerRefill: 30,       // Refill 30 tokens every hour
 	refillIntervalMs: 60 * 60 * 1000, // Every 1 hour
 	maxBurst: 60               // Allow bursts up to 60
 });
 
 /**
- * Check if prompt is allowed under token bucket rate limit
+ * Check if credit request is allowed under token bucket rate limit
  * 
  * @returns Token bucket status
  */
@@ -543,11 +543,11 @@ export function checkTokenBucketLimit(): TokenBucketStatus {
 }
 
 /**
- * Consume a token for a prompt request
+ * Consume a token for a credit request
  * 
  * @returns true if token was consumed, false if rate limited
  */
-export function consumePromptToken(): boolean {
+export function consumeCreditToken(): boolean {
 	return tokenBucketLimiter.consumeToken();
 }
 

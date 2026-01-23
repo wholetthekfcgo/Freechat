@@ -12,6 +12,7 @@
 	import { announce, announceError, initAnnouncer } from '$lib/utils/announcer';
 	import { onMount } from 'svelte';
 	import { ConfirmDialog } from '$lib/components/ui/dialog';
+	import BuyCreditsModal from '$lib/components/BuyCreditsModal.svelte';
 
 	import { formatTokenCount, formatCost } from '$lib/utils/token-tracker';
 
@@ -54,6 +55,7 @@
 	let showSidebar = $state(false);
 	let showClearDialog = $state(false);
 	let showDeleteDialog = $state(false);
+	let showBuyCreditsModal = $state(false);
 	let conversationToDelete: string | null = null;
 
 	// Initialize screen reader announcer on mount
@@ -120,6 +122,13 @@
 		}
 		showDeleteDialog = false;
 		conversationToDelete = null;
+	}
+
+	async function handlePurchaseCredits(packageId: string) {
+		// For now, just log the purchase
+		console.log('Purchased credits package:', packageId);
+		// TODO: Integrate with payment backend
+		announce(`Credits purchased: ${packageId}`);
 	}
 
 	function handleKeyDown(event: KeyboardEvent) {
@@ -233,15 +242,23 @@
 				</div>
 			</div>
 			
-			<!-- Prompts Left Display -->
+			<!-- Credits Left Display with Plus Button -->
 			<div class="flex items-center gap-2 px-4 py-2 bg-card border border-border rounded-lg shadow-sm">
 				<TrendingUp class="w-4 h-4 text-primary" />
 				<div class="flex flex-col">
-					<span class="text-body-xs text-muted-foreground font-accent">PROMPTS LEFT</span>
+					<span class="text-body-xs text-muted-foreground font-accent">CREDITS LEFT</span>
 					<span class="text-body-sm font-semibold text-foreground">
 						{remainingTokens} / {capacity}
 					</span>
 				</div>
+				<button
+					onclick={() => (showBuyCreditsModal = true)}
+					class="h-6 w-6 p-0 flex items-center justify-center bg-primary hover:bg-primary/80 text-primary-foreground rounded click-shrink transition-colors"
+					title="Add more credits"
+					aria-label="Add more credits"
+				>
+					<Plus class="w-3.5 h-3.5" />
+				</button>
 			</div>
 		</div>
 
@@ -466,5 +483,11 @@
 		variant="danger"
 		onConfirm={handleDeleteConfirm}
 		onCancel={() => (showDeleteDialog = false)}
+	/>
+
+	<BuyCreditsModal
+		open={showBuyCreditsModal}
+		onClose={() => (showBuyCreditsModal = false)}
+		onPurchase={handlePurchaseCredits}
 	/>
 </div>
