@@ -28,7 +28,9 @@
 		onModelChange,
 		totalTokens = 0,
 		totalCost = 0,
-		requestCount = 0
+		requestCount = 0,
+		remainingTokens = 60,
+		capacity = 60
 	}: {
 		messages: Message[];
 		isLoading: boolean;
@@ -43,6 +45,8 @@
 		totalTokens?: number;
 		totalCost?: number;
 		requestCount?: number;
+		remainingTokens?: number;
+		capacity?: number;
 	} = $props();
 
 	let inputMessage = $state('');
@@ -226,6 +230,17 @@
 					<p class="text-body-sm text-muted-foreground mt-1 font-accent">
 						// Free as in Freedom
 					</p>
+				</div>
+			</div>
+			
+			<!-- Prompts Left Display -->
+			<div class="flex items-center gap-2 px-4 py-2 bg-card border border-border rounded-lg shadow-sm">
+				<TrendingUp class="w-4 h-4 text-primary" />
+				<div class="flex flex-col">
+					<span class="text-body-xs text-muted-foreground font-accent">PROMPTS LEFT</span>
+					<span class="text-body-sm font-semibold text-foreground">
+						{remainingTokens} / {capacity}
+					</span>
 				</div>
 			</div>
 		</div>

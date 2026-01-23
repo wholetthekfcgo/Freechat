@@ -24,6 +24,8 @@
 	const totalTokens = $derived(tokenUsage.totalTokens);
 	const totalCost = $derived(tokenUsage.totalCost);
 	const requestCount = $derived(tokenUsage.requestCount);
+	const capacity = $derived(60);
+	const remainingTokens = $derived(capacity - requestCount); // Remaining prompts
 
 	// Wrap async handlers with error tracking
 	async function handleSendMessage(message: string) {
@@ -167,6 +169,8 @@
 		onImport={handleImport}
 		onRegenerate={handleRegenerate}
 		onModelChange={handleModelChange}
+		{remainingTokens}
+		{capacity}
 		{totalTokens}
 		{totalCost}
 		{requestCount}

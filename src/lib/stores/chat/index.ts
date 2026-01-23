@@ -17,7 +17,7 @@
  */
 
 // Export state
-export { chatState, chatHistory } from './state.svelte.js';
+export { chatState, chatHistory, tokenUsage, tokenBucket } from './state.svelte.js';
 export type { ChatState, ChatHistory } from '$lib/types/chat';
 
 // Export state utilities

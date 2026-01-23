@@ -50,6 +50,12 @@ async function saveCurrentHistory(): Promise<void> {
 export async function sendMessage(content: string, stream = true): Promise<void> {
 	const model = chatState.currentModel;
 
+	// Check if user has prompts remaining
+	if (tokenUsage.requestCount >= 60) {
+		chatState.error = 'Rate limit reached. You have used all 60 prompts. Please wait for refill.';
+		return;
+	}
+
 	// Create abort controller for this request
 	const abortController = new AbortController();
 	chatState.abortController = abortController;
