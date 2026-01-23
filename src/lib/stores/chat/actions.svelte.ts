@@ -13,6 +13,7 @@ import { withRateLimitAndRetry } from '$lib/utils/rate-limiter';
 import { save as saveChatHistory, load as loadChatHistory, clear as clearChatHistory } from '../persistence.svelte.js';
 import { generateUUID } from '$lib/utils/crypto';
 import { calculateTokenUsage, formatTokenCount, formatCost } from '$lib/utils/token-tracker';
+import { prependSystemPrompt } from '$lib/utils/system-prompt';
 
 /**
  * Generate a title for the conversation based on first message
@@ -73,13 +74,16 @@ export async function sendMessage(content: string, stream = true): Promise<void>
 			
 			if (stream) {
 				logger.streamStart();
+				// Prepend system prompt to messages for API call
+				const messagesWithSystem = prependSystemPrompt(chatState.messages);
+				
 				const response = await queueRequest(
 					() => fetch('/api/chat/stream', {
 						method: 'POST',
 						headers: { 'Content-Type': 'application/json' },
 						body: JSON.stringify({
 							model,
-							messages: chatState.messages
+							messages: messagesWithSystem
 						}),
 						signal: abortController.signal
 					}),
@@ -197,13 +201,16 @@ export async function sendMessage(content: string, stream = true): Promise<void>
 				}
 			} else {
 				// Handle non-streaming
+				// Prepend system prompt to messages for API call
+				const messagesWithSystem = prependSystemPrompt(chatState.messages);
+				
 				const response = await queueRequest(
 					() => fetch('/api/chat', {
 						method: 'POST',
 						headers: { 'Content-Type': 'application/json' },
 						body: JSON.stringify({
 							model,
-							messages: chatState.messages
+							messages: messagesWithSystem
 						}),
 						signal: abortController.signal
 					}),
@@ -480,6 +487,9 @@ export async function editAndRegenerate(messageId: string, newContent: string): 
 				throw new DOMException('Request was aborted', 'AbortError');
 			}
 			
+			// Prepend system prompt to messages for API call
+			const messagesWithSystem = prependSystemPrompt(chatState.messages);
+			
 			logger.streamStart();
 			const response = await queueRequest(
 				() => fetch('/api/chat/stream', {
@@ -487,7 +497,7 @@ export async function editAndRegenerate(messageId: string, newContent: string): 
 					headers: { 'Content-Type': 'application/json' },
 					body: JSON.stringify({
 						model: chatState.currentModel,
-						messages: chatState.messages
+						messages: messagesWithSystem
 					}),
 					signal: abortController.signal
 				}),
