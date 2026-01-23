@@ -2,6 +2,7 @@
  * Rate limiting utility for API requests
  * 
  * Prevents hitting API rate limits and implements backoff strategies
+ * Supports both sliding window and token bucket algorithms
  */
 
 import { logger } from './logger';
@@ -15,11 +16,30 @@ interface RateLimitConfig {
 	minInterval?: number;
 }
 
+interface TokenBucketConfig {
+	// Maximum number of tokens in the bucket (capacity)
+	capacity: number;
+	// Number of tokens to add per refill interval
+	tokensPerRefill: number;
+	// Time between refills in milliseconds
+	refillIntervalMs: number;
+	// Maximum burst size (optional, for limiting bursts)
+	maxBurst?: number;
+}
+
 interface RateLimitStatus {
 	allowed: boolean;
 	retryAfter?: number;
 	remainingRequests: number;
 	resetTime: number;
+}
+
+interface TokenBucketStatus {
+	allowed: boolean;
+	retryAfter?: number;
+	remainingTokens: number;
+	capacity: number;
+	timeUntilRefill: number;
 }
 
 class RateLimiter {
@@ -344,10 +364,286 @@ export function getRateLimitStatus(): {
 }
 
 /**
+ * Token Bucket Rate Limiter Class
+ * 
+ * Implements the token bucket algorithm for rate limiting.
+ * Tokens are added to the bucket at a fixed rate. Requests consume tokens.
+ * If the bucket is empty, requests are denied until tokens are refilled.
+ * 
+ * Benefits over sliding window:
+ * - Allows bursts up to capacity
+ * - Smooth rate limiting with predictable refill
+ * - Better for API quotas with periodic limits
+ */
+class TokenBucketRateLimiter {
+	private tokens: number;
+	private lastRefillTime: number;
+	private config: TokenBucketConfig;
+	private maxPromptsPerPeriod: number;
+
+	constructor(config: TokenBucketConfig) {
+		this.config = config;
+		this.tokens = config.capacity;
+		this.lastRefillTime = Date.now();
+		// Max prompts = capacity (can accumulate up to 60)
+		this.maxPromptsPerPeriod = config.capacity;
+	}
+
+	/**
+	 * Refill tokens based on elapsed time
+	 */
+	private refill(): void {
+		const now = Date.now();
+		const elapsedMs = now - this.lastRefillTime;
+		
+		// Calculate how many refill intervals have passed
+		const intervalsPassed = Math.floor(elapsedMs / this.config.refillIntervalMs);
+		
+		if (intervalsPassed > 0) {
+			// Add tokens for each complete interval
+			const tokensToAdd = intervalsPassed * this.config.tokensPerRefill;
+			
+			// Don't exceed capacity
+			this.tokens = Math.min(
+				this.config.capacity,
+				this.tokens + tokensToAdd
+			);
+			
+			// Update last refill time to account for complete intervals only
+			this.lastRefillTime += intervalsPassed * this.config.refillIntervalMs;
+			
+			if (tokensToAdd > 0) {
+				logger.debug('Tokens refilled', {
+					tokensAdded: tokensToAdd,
+					currentTokens: this.tokens,
+					intervalsPassed
+				});
+			}
+		}
+	}
+
+	/**
+	 * Check if a request is allowed (has enough tokens)
+	 * 
+	 * @returns Token bucket status
+	 */
+	checkLimit(): TokenBucketStatus {
+		// First, refill tokens based on elapsed time
+		this.refill();
+		
+		const now = Date.now();
+		const allowed = this.tokens >= 1;
+		
+		// Calculate time until next refill
+		const timeSinceLastRefill = now - this.lastRefillTime;
+		const timeUntilRefill = Math.max(0, this.config.refillIntervalMs - timeSinceLastRefill);
+		
+		// Calculate retry after time if not allowed
+		const retryAfter = allowed ? undefined : timeUntilRefill;
+		
+		return {
+			allowed,
+			retryAfter,
+			remainingTokens: Math.floor(this.tokens),
+			capacity: this.config.capacity,
+			timeUntilRefill
+		};
+	}
+
+	/**
+	 * Consume a token for a request
+	 * 
+	 * @returns true if token was consumed, false if bucket was empty
+	 */
+	consumeToken(): boolean {
+		const status = this.checkLimit();
+		
+		if (status.allowed) {
+			this.tokens -= 1;
+			logger.debug('Token consumed', {
+				remainingTokens: this.tokens,
+				capacity: this.config.capacity
+			});
+			return true;
+		}
+		
+		return false;
+	}
+
+	/**
+	 * Reset the token bucket to full capacity
+	 */
+	reset(): void {
+		this.tokens = this.config.capacity;
+		this.lastRefillTime = Date.now();
+		logger.debug('Token bucket reset', {
+			tokens: this.tokens,
+			capacity: this.config.capacity
+		});
+	}
+
+	/**
+	 * Update configuration
+	 */
+	updateConfig(config: Partial<TokenBucketConfig>): void {
+		this.config = { ...this.config, ...config };
+		// Max prompts is the capacity (can accumulate up to max)
+		this.maxPromptsPerPeriod = this.config.capacity;
+		logger.debug('Token bucket config updated', { config: this.config });
+	}
+
+	/**
+	 * Get current bucket state
+	 */
+	getState(): {
+		tokens: number;
+		capacity: number;
+		maxPromptsPerPeriod: number;
+		lastRefillTime: number;
+	} {
+		this.refill();
+		return {
+			tokens: Math.floor(this.tokens),
+			capacity: this.config.capacity,
+			maxPromptsPerPeriod: this.maxPromptsPerPeriod,
+			lastRefillTime: this.lastRefillTime
+		};
+	}
+}
+
+/**
+ * Token bucket rate limiter for user prompts
+ * 
+ * Configuration:
+ * - 60 tokens capacity (max capacity allows for accumulation)
+ * - 30 tokens refill every 1 hour
+ * - Maximum 60 prompts capacity (can accumulate up to 60)
+ * 
+ * This provides:
+ * - Start with 60 prompts available (full capacity)
+ * - Use them at any pace (burst or spread out)
+ * - Every hour, 30 tokens are added (up to max capacity of 60)
+ * - Allows building up tokens if not using them all
+ * - Predictable hourly quota without sudden cutoffs
+ */
+export const tokenBucketLimiter = new TokenBucketRateLimiter({
+	capacity: 60,              // 60 prompts max capacity
+	tokensPerRefill: 30,       // Refill 30 tokens every hour
+	refillIntervalMs: 60 * 60 * 1000, // Every 1 hour
+	maxBurst: 60               // Allow bursts up to 60
+});
+
+/**
+ * Check if prompt is allowed under token bucket rate limit
+ * 
+ * @returns Token bucket status
+ */
+export function checkTokenBucketLimit(): TokenBucketStatus {
+	return tokenBucketLimiter.checkLimit();
+}
+
+/**
+ * Consume a token for a prompt request
+ * 
+ * @returns true if token was consumed, false if rate limited
+ */
+export function consumePromptToken(): boolean {
+	return tokenBucketLimiter.consumeToken();
+}
+
+/**
+ * Wait until token is available (with timeout)
+ * 
+ * @param timeoutMs - Maximum time to wait (default: 1 hour)
+ * @returns Promise that resolves when token is available
+ */
+export async function waitForToken(timeoutMs = 60 * 60 * 1000): Promise<void> {
+	const startTime = Date.now();
+	
+	while (Date.now() - startTime < timeoutMs) {
+		const status = tokenBucketLimiter.checkLimit();
+		
+		if (status.allowed) {
+			logger.debug('Token available after wait', {
+				waited: Date.now() - startTime
+			});
+			return;
+		}
+		
+		// Wait until next refill (with some buffer)
+		const waitTime = Math.min(status.timeUntilRefill + 100, 5000);
+		
+		logger.debug('Waiting for token refill', {
+			waitTime,
+			timeUntilRefill: status.timeUntilRefill
+		});
+		
+		await sleep(waitTime);
+	}
+	
+	throw new Error(`Token bucket timeout after ${timeoutMs}ms`);
+}
+
+/**
+ * Execute a function with token bucket rate limiting
+ * 
+ * @param fn - Function to execute
+ * @returns Promise with the function result
+ * 
+ * @example
+ * ```ts
+ * const result = await withTokenBucket(
+ *   () => fetch('/api/chat')
+ * );
+ * ```
+ */
+export async function withTokenBucket<T>(fn: () => Promise<T>): Promise<T> {
+	await waitForToken();
+	tokenBucketLimiter.consumeToken();
+	return fn();
+}
+
+/**
+ * Get token bucket status for UI display
+ */
+export function getTokenBucketStatus(): {
+	allowed: boolean;
+	remainingTokens: number;
+	capacity: number;
+	maxPromptsPerPeriod: number;
+	timeUntilRefill: number;
+	retryAfter?: number;
+} {
+	const status = tokenBucketLimiter.checkLimit();
+	const state = tokenBucketLimiter.getState();
+	
+	return {
+		...status,
+		maxPromptsPerPeriod: state.maxPromptsPerPeriod
+	};
+}
+
+/**
  * Reset all rate limiters (useful for testing or after errors)
  */
 export function resetRateLimiters(): void {
 	apiRateLimiter.reset();
 	streamingRateLimiter.reset();
+	tokenBucketLimiter.reset();
 	logger.info('All rate limiters reset');
+}
+
+/**
+ * Get comprehensive rate limit status for all limiters
+ */
+export function getAllRateLimitStatus(): {
+	api: RateLimitStatus;
+	streaming: RateLimitStatus;
+	tokenBucket: TokenBucketStatus;
+} {
+	return {
+		api: apiRateLimiter.checkLimit(),
+		streaming: streamingRateLimiter.checkLimit(),
+		tokenBucket: tokenBucketLimiter.checkLimit()
+	};
 }
