@@ -5,6 +5,7 @@ import { degradationManager } from '$lib/backend/utils/graceful-degradation';
 import { getOpenRouterKey } from '$lib/env';
 import { logger } from '$lib/utils/logger';
 import { getCorrelationContext } from '$lib/backend/utils/correlation';
+import { checkRateLimit } from '$lib/backend/middleware/security';
 
 // Define MaybePromise locally since it's not exported from @sveltejs/kit
 type MaybePromise<T> = T | Promise<T>;
@@ -19,6 +20,9 @@ type MaybePromise<T> = T | Promise<T>;
  * - 200: System healthy
  * - 503: System unhealthy (degraded or circuit breaker open)
  */
+
+// Health check secret - Set via environment variable in production
+const HEALTH_CHECK_SECRET = typeof process !== 'undefined' ? process.env.HEALTH_CHECK_SECRET : undefined;
 
 interface HealthCheckResponse {
 	status: 'healthy' | 'degraded' | 'unhealthy';
@@ -193,8 +197,56 @@ export const GET: RequestHandler = async ({ request }) => {
  * POST endpoint to manually reset circuit breaker and degradation
  * Useful for testing and recovery
  */
-export const POST: RequestHandler = async ({ request }) => {
+export const POST: RequestHandler = async ({ request, getClientAddress }) => {
 	const correlationId = getCorrelationContext();
+	
+	// Rate limit health check POST requests (admin actions)
+	const ip = getClientAddress();
+	const rateLimitResult = checkRateLimit(ip, 10, 60000); // 10 requests per minute
+	
+	if (!rateLimitResult.allowed) {
+		logger.warn('Health check POST rate limit exceeded', { correlationId, ip });
+		return json({
+			error: 'Rate limit exceeded',
+			message: 'Too many admin actions. Please try again later.',
+			correlationId
+		}, { 
+			status: 429,
+			headers: { 
+				'x-correlation-id': correlationId || '',
+				'Retry-After': '60'
+			}
+		});
+	}
+	
+	// Check authorization if secret is configured
+	const authHeader = request.headers.get('authorization');
+	if (HEALTH_CHECK_SECRET) {
+		if (!authHeader || !authHeader.startsWith('Bearer ')) {
+			logger.warn('Health check POST missing authorization', { correlationId, ip });
+			return json({
+				error: 'Unauthorized',
+				details: 'Authorization header required',
+				correlationId
+			}, { 
+				status: 401,
+				headers: { 'x-correlation-id': correlationId || '' }
+			});
+		}
+		
+		const providedSecret = authHeader.slice(7);
+		if (providedSecret !== HEALTH_CHECK_SECRET) {
+			logger.warn('Health check POST invalid authorization', { correlationId, ip });
+			return json({
+				error: 'Forbidden',
+				details: 'Invalid authorization token',
+				correlationId
+			}, { 
+				status: 403,
+				headers: { 'x-correlation-id': correlationId || '' }
+			});
+		}
+	}
 
 	try {
 		const body = await request.json();
@@ -242,7 +294,7 @@ export const POST: RequestHandler = async ({ request }) => {
 				serialize: () => ''
 			})) as any,
 			fetch, 
-			getClientAddress: () => '127.0.0.1', 
+			getClientAddress, 
 			locals: {}, 
 			isDataRequest: false, 
 			isSubRequest: false, 

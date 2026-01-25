@@ -23,7 +23,16 @@ export const ChatMessageSchema = z.object({
  * Chat request schema
  */
 export const ChatRequestSchema = z.object({
-	messages: z.array(ChatMessageSchema).min(1).max(100), // Max 100 messages per request
+	messages: z.array(ChatMessageSchema)
+		.min(1)
+		.max(100)
+		.refine(
+			(msgs) => {
+				const totalSize = msgs.reduce((acc, msg) => acc + msg.content.length, 0);
+				return totalSize <= 500_000; // 500KB total limit
+			},
+			{ message: "Total message content exceeds 500KB limit" }
+		),
 	model: z.string().min(1).max(255),
 	temperature: z.number().min(0).max(2).optional(),
 	maxTokens: z.number().min(1).max(32000).optional()
@@ -33,7 +42,16 @@ export const ChatRequestSchema = z.object({
  * Stream request schema
  */
 export const StreamRequestSchema = z.object({
-	messages: z.array(ChatMessageSchema).min(1).max(100),
+	messages: z.array(ChatMessageSchema)
+		.min(1)
+		.max(100)
+		.refine(
+			(msgs) => {
+				const totalSize = msgs.reduce((acc, msg) => acc + msg.content.length, 0);
+				return totalSize <= 500_000; // 500KB total limit
+			},
+			{ message: "Total message content exceeds 500KB limit" }
+		),
 	model: z.string().min(1).max(255),
 	temperature: z.number().min(0).max(2).optional(),
 	maxTokens: z.number().min(1).max(32000).optional()

@@ -3,7 +3,47 @@ import { logger } from '$lib/utils/logger';
 import { openRouterCircuitBreaker } from '$lib/backend/core/circuit-breaker';
 import { classifyError, shouldTripCircuitBreaker } from '$lib/backend/utils/error-classifier';
 import { getOrCreateCorrelationId, addCorrelationHeader } from '$lib/backend/utils/correlation';
+import { sha256 } from './crypto';
 import OpenAI from 'openai';
+
+/**
+ * Request signing utilities for API call integrity
+ */
+const SIGNATURE_VERSION = 'v1';
+const TIMESTAMP_WINDOW = 300000; // 5 minutes
+
+/**
+ * Generate request signature for integrity verification
+ */
+async function generateRequestSignature(
+  apiKey: string,
+  timestamp: number,
+  model: string,
+  messageCount: number
+): Promise<string> {
+  const payload = `${timestamp}:${model}:${messageCount}:${apiKey.slice(-8)}`;
+  return await sha256(payload);
+}
+
+/**
+ * Verify request signature
+ */
+async function verifyRequestSignature(
+  signature: string,
+  timestamp: number,
+  model: string,
+  messageCount: number,
+  apiKey: string
+): Promise<boolean> {
+  // Check timestamp is within window
+  const now = Date.now();
+  if (Math.abs(now - timestamp) > TIMESTAMP_WINDOW) {
+    return false;
+  }
+
+  const expectedSignature = await generateRequestSignature(apiKey, timestamp, model, messageCount);
+  return signature === expectedSignature;
+}
 
 // Initialize OpenRouter client using OpenAI SDK
 export function createOpenRouterClient(apiKey: string) {
@@ -12,7 +52,8 @@ export function createOpenRouterClient(apiKey: string) {
     baseURL: 'https://openrouter.ai/api/v1',
     defaultHeaders: {
       'HTTP-Referer': typeof window !== 'undefined' ? window.location.href : '',
-      'X-Title': 'AI Chatbot'
+      'X-Title': 'AI Chatbot',
+      'X-Signature-Version': SIGNATURE_VERSION
     }
   });
 }

@@ -5,12 +5,17 @@ const config = {
 	kit: {
 		adapter: adapter({
 			esm: true
-		})
+		}),
+		// Alias for environment-specific modules
+		alias: {
+			$env: '$lib/env'
+		}
 	},
 	// Enable Svelte 5 runes mode
 	preprocess: undefined,
 	// Add server-side environment variables
 	// These will be available in SvelteKit server code via process.env
+	// Client-side env vars should be prefixed with VITE_ and loaded via $env/static/public
 };
 
 export default config;

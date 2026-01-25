@@ -14,8 +14,32 @@ const IV_LENGTH = 12;
 const KEY_ITERATIONS = 100000;
 
 /**
+ * Get encryption base secret from environment or use secure fallback
+ * In production, this should be set via environment variable
+ */
+function getEncryptionBaseSecret(): string {
+	// Check for environment variable (server-side)
+	if (typeof process !== 'undefined' && process.env?.ENCRYPTION_SECRET) {
+		return process.env.ENCRYPTION_SECRET;
+	}
+	
+	// Check for Vite env variable (client-side)
+	if (typeof import.meta !== 'undefined' && import.meta.env?.VITE_ENCRYPTION_SECRET) {
+		return import.meta.env.VITE_ENCRYPTION_SECRET;
+	}
+	
+	// Fallback: Use a domain-specific secret
+	// This is better than the previous hardcoded approach but still not ideal for production
+	// Production deployment should set ENCRYPTION_SECRET environment variable
+	const domainSecret = `freechat-encryption-${typeof window !== 'undefined' ? window.location.hostname : 'local'}`;
+	
+	logger.warn('Using fallback encryption secret - Set ENCRYPTION_SECRET or VITE_ENCRYPTION_SECRET for better security');
+	return domainSecret;
+}
+
+/**
  * Get or create a user-specific encryption key
- * Uses a combination of browser fingerprint and app secret
+ * Uses a combination of domain secret and user-specific entropy
  */
 async function getEncryptionKey(): Promise<CryptoKey> {
 	// Create a persistent key for this user/browser
@@ -40,21 +64,33 @@ async function getEncryptionKey(): Promise<CryptoKey> {
 }
 
 /**
- * Create key material from app secret and browser fingerprint
+ * Create key material from app secret and browser-specific data
+ * Enhanced with better entropy sources
  */
 async function getKeyMaterial(): Promise<CryptoKey> {
-	// Use app identifier as base secret
-	const appSecret = 'noir-chat-encryption-key-2024';
+	// Use secure base secret from environment or fallback
+	const baseSecret = getEncryptionBaseSecret();
 	
-	// Add browser-specific data for uniqueness
-	const browserData = [
-		navigator.userAgent,
-		navigator.language,
+	// Add browser-specific data with better entropy
+	const entropySources = [
+		// Screen dimensions (basic entropy)
 		screen.width.toString(),
-		screen.height.toString()
-	].join('|');
+		screen.height.toString(),
+		screen.colorDepth.toString(),
+		// Timezone info
+		Intl.DateTimeFormat().resolvedOptions().timeZone,
+		// Language
+		navigator.language,
+		// Hardware concurrency (if available)
+		navigator.hardwareConcurrency?.toString() || '1',
+		// Device memory (if available)
+		(navigator as any).deviceMemory?.toString() || '1',
+		// User agent hash (not raw UA for privacy)
+		await sha256(navigator.userAgent)
+	];
 	
-	const combined = appSecret + browserData;
+	// Combine all entropy sources with the base secret
+	const combined = baseSecret + '|' + entropySources.join('|');
 	
 	return window.crypto.subtle.importKey(
 		'raw',
@@ -63,6 +99,17 @@ async function getKeyMaterial(): Promise<CryptoKey> {
 		false,
 		['deriveKey']
 	);
+}
+
+/**
+ * Hash a string using SHA-256 (for one-way transformations)
+ * Used here for creating deterministic but non-reversible values
+ */
+async function sha256(data: string): Promise<string> {
+	const dataBytes = new TextEncoder().encode(data);
+	const hashBuffer = await window.crypto.subtle.digest('SHA-256', dataBytes);
+	const hashArray = Array.from(new Uint8Array(hashBuffer));
+	return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
 /**

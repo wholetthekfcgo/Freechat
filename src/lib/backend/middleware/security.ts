@@ -5,6 +5,48 @@
 import type { Handle } from '@sveltejs/kit';
 
 /**
+ * CORS configuration
+ * Add your allowed origins here
+ */
+const ALLOWED_ORIGINS = [
+	'http://localhost:5173',
+	'http://localhost:3000',
+	'http://localhost:4173', // Preview server
+	// Add production domains when deployed:
+	// 'https://yourdomain.com',
+	// 'https://www.yourdomain.com'
+];
+
+/**
+ * Check if origin is allowed
+ */
+function isOriginAllowed(origin: string | null): boolean {
+	if (!origin) return true; // Same-origin requests
+	
+	return ALLOWED_ORIGINS.some(allowed => {
+		// Exact match or subdomain match
+		return origin === allowed || origin.endsWith(`.${allowed.replace('https://', '')}`);
+	});
+}
+
+/**
+ * CORS headers for allowed origins
+ */
+function getCORSHeaders(origin: string | null): Record<string, string> {
+	if (!origin || !isOriginAllowed(origin)) {
+		return {};
+	}
+
+	return {
+		'Access-Control-Allow-Origin': origin,
+		'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
+		'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With, X-Correlation-ID',
+		'Access-Control-Max-Age': '86400', // 24 hours
+		'Access-Control-Allow-Credentials': 'true'
+	};
+}
+
+/**
  * Security headers configuration
  */
 const SECURITY_HEADERS = {
@@ -33,7 +75,7 @@ const SECURITY_HEADERS = {
  */
 const CSP_POLICY = [
 	"default-src 'self'",
-	"script-src 'self' 'unsafe-inline' 'unsafe-eval'", // unsafe-inline needed for Svelte
+	"script-src 'self'", // Removed unsafe-eval for better security
 	"style-src 'self' 'unsafe-inline'", // unsafe-inline needed for Svelte styles
 	"img-src 'self' data: blob: https://*.githubusercontent.com",
 	"font-src 'self' data:",
@@ -50,6 +92,17 @@ const CSP_POLICY = [
  * Apply security headers to all responses
  */
 export const handleSecurityHeaders: Handle = async ({ event, resolve }) => {
+	// Handle CORS preflight
+	if (event.request.method === 'OPTIONS') {
+		const origin = event.request.headers.get('origin');
+		const corsHeaders = getCORSHeaders(origin);
+		
+		return new Response(null, {
+			status: 204,
+			headers: corsHeaders
+		});
+	}
+
 	const response = await resolve(event);
 
 	// Apply security headers
@@ -59,6 +112,16 @@ export const handleSecurityHeaders: Handle = async ({ event, resolve }) => {
 
 	// Apply CSP
 	response.headers.set('Content-Security-Policy', CSP_POLICY);
+
+	// Apply CORS headers for API routes
+	if (event.url.pathname.startsWith('/api/')) {
+		const origin = event.request.headers.get('origin');
+		const corsHeaders = getCORSHeaders(origin);
+		
+		Object.entries(corsHeaders).forEach(([key, value]) => {
+			response.headers.set(key, value);
+		});
+	}
 
 	return response;
 };
