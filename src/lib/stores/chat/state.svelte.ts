@@ -3,10 +3,14 @@
  * 
  * Core reactive state for the chat application using Svelte 5 runes.
  * Manages current session state and conversation history.
+ * 
+ * Updated to use TanStack Pacer reactive state for rate limiting and queue management.
  */
 
 import type { ChatState, ChatHistory } from '$lib/types/chat';
 import { browser } from '$app/environment';
+import { apiRetryerState, streamingRetryerState } from '$lib/utils/rate-limiter';
+import { queueState } from '$lib/utils/request-queue';
 
 /**
  * Current chat session state
@@ -108,4 +112,31 @@ export function getCurrentConversation(): ChatHistory['conversations'][number] |
  */
 export function canStopGeneration(): boolean {
 	return chatState.canStopGeneration && chatState.abortController !== null;
+}
+
+// ============================================================================
+// PACER STATE ACCESSORS
+// ============================================================================
+
+/**
+ * Get API retryer state
+ * Reactive state for retry attempts, execution status, and error state
+ */
+export function getApiRetryerStatus() {
+	return apiRetryerState;
+}
+
+/**
+ * Get streaming retryer state
+ */
+export function getStreamingRetryerStatus() {
+	return streamingRetryerState;
+}
+
+/**
+ * Get request queue state
+ * Reactive state for queue length, processing status, and pending items
+ */
+export function getRequestQueueStatus() {
+	return queueState;
 }
