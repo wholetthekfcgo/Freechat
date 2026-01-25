@@ -6,10 +6,8 @@ const config = {
 		adapter: adapter({
 			esm: true
 		}),
-		// Alias for environment-specific modules
-		alias: {
-			$env: '$lib/env'
-		}
+		// Note: Removed $env alias as it conflicts with SvelteKit's built-in $env modules
+		// Use $lib/env directly for custom environment utilities
 	},
 	// Enable Svelte 5 runes mode
 	preprocess: undefined,

@@ -47,6 +47,7 @@
   },
   "type": "module",
   "dependencies": {
+    "@tanstack/pacer": "^0.17.3",
     "@types/dompurify": "^3.2.0",
     "dompurify": "^3.3.1",
     "gpt-tokenizer": "^3.4.0",

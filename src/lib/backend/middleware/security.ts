@@ -72,21 +72,27 @@ const SECURITY_HEADERS = {
 /**
  * Content Security Policy
  * Configure based on your needs
+ * In development, we need 'unsafe-inline' and 'unsafe-eval' for SvelteKit's inline scripts
  */
-const CSP_POLICY = [
-	"default-src 'self'",
-	"script-src 'self'", // Removed unsafe-eval for better security
-	"style-src 'self' 'unsafe-inline'", // unsafe-inline needed for Svelte styles
-	"img-src 'self' data: blob: https://*.githubusercontent.com",
-	"font-src 'self' data:",
-	"connect-src 'self' https://openrouter.ai https://*.openrouter.ai",
-	"media-src 'self' blob:",
-	"object-src 'none'",
-	"base-uri 'self'",
-	"form-action 'self'",
-	"frame-ancestors 'none'",
-	"upgrade-insecure-requests"
-].join('; ');
+const getCSPPolicy = (dev: boolean = false): string => {
+	const policies = [
+		"default-src 'self'",
+		// In dev, allow inline scripts and eval for SvelteKit's inline initialization scripts
+		dev ? "script-src 'self' 'unsafe-inline' 'unsafe-eval'" : "script-src 'self'",
+		"style-src 'self' 'unsafe-inline'", // unsafe-inline needed for Svelte styles
+		"img-src 'self' data: blob: https: https://*.githubusercontent.com",
+		"font-src 'self' data: https://fonts.gstatic.com",
+		"connect-src 'self' https://openrouter.ai https://*.openrouter.ai",
+		"media-src 'self' blob:",
+		"object-src 'none'",
+		"base-uri 'self'",
+		"form-action 'self'",
+		"frame-ancestors 'none'",
+		"upgrade-insecure-requests"
+	];
+	
+	return policies.join('; ');
+};
 
 /**
  * Apply security headers to all responses
@@ -110,8 +116,13 @@ export const handleSecurityHeaders: Handle = async ({ event, resolve }) => {
 		response.headers.set(key, value);
 	});
 
-	// Apply CSP
-	response.headers.set('Content-Security-Policy', CSP_POLICY);
+	// Apply CSP - use dev mode based on environment
+	const isDev = event.platform?.env?.mode === 'development' || 
+	              process.env.NODE_ENV === 'development' ||
+	              !event.url.hostname.includes('.') || // Check if not a domain
+	              event.url.hostname === 'localhost';
+	
+	response.headers.set('Content-Security-Policy', getCSPPolicy(isDev));
 
 	// Apply CORS headers for API routes
 	if (event.url.pathname.startsWith('/api/')) {

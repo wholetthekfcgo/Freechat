@@ -1,57 +1,39 @@
 /**
  * Performance utility functions
+ * 
+ * NOTE: We're gradually migrating to TanStack Pacer utilities.
+ * - debounce: Now using @tanstack/pacer
+ * - throttle: Now using @tanstack/pacer
+ * - rafThrottle: Kept custom implementation (no direct Pacer equivalent)
  */
+
+import { debounce as pacerDebounce, throttle as pacerThrottle } from '@tanstack/pacer';
 
 /**
  * Debounce function to limit execution rate
+ * Powered by TanStack Pacer
  */
 export function debounce<T extends (...args: any[]) => any>(
 	fn: T,
 	delay: number
 ): (...args: Parameters<T>) => void {
-	let timeoutId: ReturnType<typeof setTimeout> | null = null;
-
-	return function (this: any, ...args: Parameters<T>) {
-		if (timeoutId) {
-			clearTimeout(timeoutId);
-		}
-
-		timeoutId = setTimeout(() => {
-			fn.apply(this, args);
-			timeoutId = null;
-		}, delay);
-	};
+	return pacerDebounce(fn, { wait: delay });
 }
 
 /**
  * Throttle function to ensure maximum execution rate
+ * Powered by TanStack Pacer
  */
 export function throttle<T extends (...args: any[]) => any>(
 	fn: T,
 	interval: number
 ): (...args: Parameters<T>) => void {
-	let lastCall = 0;
-	let timeoutId: ReturnType<typeof setTimeout> | null = null;
-
-	return function (this: any, ...args: Parameters<T>) {
-		const now = Date.now();
-		const timeSinceLastCall = now - lastCall;
-
-		if (timeSinceLastCall >= interval) {
-			lastCall = now;
-			fn.apply(this, args);
-		} else if (!timeoutId) {
-			timeoutId = setTimeout(() => {
-				lastCall = Date.now();
-				timeoutId = null;
-				fn.apply(this, args);
-			}, interval - timeSinceLastCall);
-		}
-	};
+	return pacerThrottle(fn, { interval });
 }
 
 /**
  * Request animation frame throttle for smooth animations
+ * Custom implementation (no direct Pacer equivalent)
  */
 export function rafThrottle<T extends (...args: any[]) => any>(fn: T): (...args: Parameters<T>) => void {
 	let rafId: number | null = null;

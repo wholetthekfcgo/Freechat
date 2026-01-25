@@ -7,7 +7,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import {
 	tokenBucketLimiter,
 	checkTokenBucketLimit,
-	consumePromptToken,
+	consumeCreditToken,
 	getTokenBucketStatus,
 	resetRateLimiters,
 	withTokenBucket,
