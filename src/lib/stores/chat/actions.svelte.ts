@@ -140,12 +140,16 @@ export async function sendMessage(content: string, stream = true): Promise<void>
 								assistantContent += data.content;
 								logger.streamChunk(chunkCount, data.content, assistantContent.length);
 
-								// Update messages reactively
+								// Update messages reactively with immutable update
 								const messages = [...chatState.messages];
 								const lastMessage = messages[messages.length - 1];
 
 								if (lastMessage?.role === 'assistant') {
-									lastMessage.content = assistantContent;
+									// Immutable update - create new object
+									messages[messages.length - 1] = {
+										...lastMessage,
+										content: assistantContent
+									};
 								} else {
 									messages.push({
 										id: crypto.randomUUID(),
@@ -265,9 +269,16 @@ export async function sendMessage(content: string, stream = true): Promise<void>
 						contentLength: lastMessage.content.length 
 					});
 					
-					// Mark as partial but keep the content
-					(lastMessage as any).isPartial = true;
-					chatState.messages = messages;
+					// Mark as partial but keep the content - use proper type
+					const partialMessage: Message & { isPartial: true } = {
+						...lastMessage,
+						isPartial: true
+					};
+					
+					chatState.messages = messages.map(m => 
+						m.id === lastMessage.id ? partialMessage : m
+					);
+					
 					chatState.error = 'Response was interrupted. Some content may be incomplete. Click regenerate to try again.';
 				} else {
 					chatState.error = error instanceof Error ? error.message : 'Unknown error occurred';

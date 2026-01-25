@@ -157,7 +157,7 @@
 	});
 </script>
 
-<ErrorBoundary componentName="PageComponent" onRetry={async () => { await handleSendMessage(''); }}>
+<ErrorBoundary>
 	<ChatInterface
 		{messages}
 		{isLoading}

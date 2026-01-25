@@ -81,37 +81,29 @@ export function withTimeout<T extends RequestEvent = RequestEvent>(
 		}, timeoutMs);
 
 		try {
-			// Clone the request to avoid "already used" errors
+			// Read raw body before creating request to avoid cloning issues
 			const originalRequest = event.request;
+			let rawBody: ArrayBuffer | null = null;
 			
-			// Clone the request body before it's consumed
-			let timeoutAwareRequest: Request;
-			try {
-				timeoutAwareRequest = originalRequest.clone();
-			} catch (cloneError) {
-				// If cloning fails, the body may have already been consumed
-				logger.warn('Could not clone request, using original', {
-					route,
-					error: cloneError instanceof Error ? cloneError.message : String(cloneError)
-				});
-				timeoutAwareRequest = originalRequest;
-			}
-			
-			// Create a new request with abort signal if we successfully cloned
-			if (timeoutAwareRequest !== originalRequest) {
+			// Only read body if it exists (GET/HEAD requests don't have body)
+			if (originalRequest.method !== 'GET' && originalRequest.method !== 'HEAD') {
 				try {
-					const requestWithSignal = new Request(timeoutAwareRequest, {
-						signal: controller.signal
-					});
-					timeoutAwareRequest = requestWithSignal;
-				} catch (signalError) {
-					// If we can't add signal, continue without it
-					logger.warn('Could not add abort signal to request', {
+					rawBody = await originalRequest.arrayBuffer();
+				} catch (bodyError) {
+					logger.warn('Could not read request body', {
 						route,
-						error: signalError instanceof Error ? signalError.message : String(signalError)
+						error: bodyError instanceof Error ? bodyError.message : String(bodyError)
 					});
 				}
 			}
+			
+			// Create new request with abort signal and raw body
+			const timeoutAwareRequest = new Request(originalRequest.url, {
+				method: originalRequest.method,
+				headers: originalRequest.headers,
+				body: rawBody,
+				signal: controller.signal
+			});
 
 			// Override event with timeout-aware request
 			const timeoutAwareEvent = {

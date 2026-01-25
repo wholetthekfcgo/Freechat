@@ -1,143 +1,108 @@
 <script lang="ts">
-	import { logger } from '$lib/utils/logger';
+	import { onDestroy } from 'svelte';
 	import { errorTracker } from '$lib/utils/error-tracker';
-	import { AlertCircle, RefreshCw } from '@lucide/svelte';
-	import Button from './ui/button/button.svelte';
+	import type { ErrorSnapshot } from '$lib/utils/errors';
 	import type { Snippet } from 'svelte';
-
-	let {
-		children,
-		fallback,
-		onRetry,
-		componentName = 'UnknownComponent',
-		showDetails = true
-	}: {
+	
+	interface Props {
+		fallback?: ErrorSnapshot;
+		onReset?: () => void;
 		children: Snippet;
-		fallback?: Snippet;
-		onRetry?: () => void | Promise<void>;
-		componentName?: string;
-		showDetails?: boolean;
-	} = $props();
-
-	const shouldShowDetails = $derived(showDetails);
-
-	let error: Error | null = $state(null);
+	}
+	
+	let { fallback, onReset, children }: Props = $props();
+	
 	let hasError = $state(false);
-	let isRetrying = $state(false);
-
-	async function handleError(err: Error) {
-		error = err;
+	let errorInfo = $state<ErrorSnapshot | null>(null);
+	
+	// Track errors using error tracker
+	onDestroy(() => {
+		if (errorInfo?.error) {
+			errorTracker.captureError(errorInfo.error, 'ErrorBoundary');
+		}
+	});
+	
+	/**
+	 * Handle child component errors
+	 */
+	function handleError(event: ErrorEvent): void {
+		event.preventDefault();
+		
+		const snapshot: ErrorSnapshot = {
+			error: event.error || new Error(event.message),
+			componentStack: event.colno ? `Line ${event.colno}` : undefined,
+			timestamp: new Date(),
+			context: {
+				message: event.message,
+				filename: event.filename,
+				lineno: event.lineno,
+				colno: event.colno
+			}
+		};
+		
+		errorInfo = snapshot;
 		hasError = true;
 		
-		// Capture error for tracking
-		errorTracker.captureError(err, componentName);
+		// Log to error tracker
+		errorTracker.captureError(snapshot.error, 'ErrorBoundary');
 		
-		// Log the error
-		logger.error(`Error boundary caught error in ${componentName}`, err);
+		console.error('Error boundary caught:', snapshot.error);
 	}
-
-	function handleReset() {
+	
+	/**
+	 * Reset the error state and retry
+	 */
+	function handleReset(): void {
 		hasError = false;
-		error = null;
-		isRetrying = false;
+		errorInfo = null;
+		onReset?.();
 	}
-
-	async function handleRetry() {
-		if (!onRetry) return;
+	
+	// Set up global error handler
+	if (typeof window !== 'undefined') {
+		window.addEventListener('error', handleError);
 		
-		isRetrying = true;
-		
-		try {
-			await onRetry();
-			handleReset();
-		} catch (err) {
-			// If retry fails, capture the new error
-			if (err instanceof Error) {
-				await handleError(err);
-			}
-			isRetrying = false;
-		}
+		onDestroy(() => {
+			window.removeEventListener('error', handleError);
+		});
 	}
-
-	function getUserFriendlyMessage(): string {
-		if (!error) return 'Something went wrong';
-		return errorTracker.getUserFriendlyMessage(error);
-	}
-
-	function isRetryableError(): boolean {
-		return error ? errorTracker.isRetryable(error) : false;
-	}
-
-	// Expose error handling to child components
-	const errorContext = $derived({
-		handleError,
-		componentName
-	});
-
-	// In Svelte 5, we need to use error handling in parent
-	// For now, this component will be used as a wrapper
 </script>
 
-{#if hasError}
-	<div class="error-boundary flex flex-col items-center justify-center min-h-[400px] p-8 border border-destructive bg-destructive/5">
-		<div class="flex items-center gap-4 mb-6">
-			<div class="p-3 bg-destructive/10 rounded-full">
-				<AlertCircle class="w-8 h-8 text-destructive" />
-			</div>
-			<div>
-				<h2 class="text-display-sm text-foreground mb-2">Application Error</h2>
-				<p class="text-body-md text-muted-foreground">{getUserFriendlyMessage()}</p>
-			</div>
-		</div>
-
-		{#if showDetails && error}
-			<div class="mb-6 p-4 bg-card border border-border rounded max-w-2xl">
-				<p class="text-body-sm font-mono text-muted-foreground mb-2">Error details:</p>
-				<p class="text-body-sm text-destructive font-mono mb-4">{error.message}</p>
-				
-				{#if error.stack}
-					<details class="cursor-pointer">
-						<summary class="text-body-sm text-muted-foreground hover:text-foreground mb-2">
-							View stack trace
-						</summary>
-						<pre class="text-body-xs font-mono text-muted-foreground overflow-x-auto p-2 bg-background rounded">{error.stack}</pre>
-					</details>
-				{/if}
-
-				<p class="text-body-xs text-muted-foreground mt-2">
-					Component: {componentName}
-				</p>
-			</div>
-		{/if}
-
-		<div class="flex gap-4">
-			{#if onRetry && isRetryableError()}
-				<Button
-					onclick={handleRetry}
-					disabled={isRetrying}
-					class="bg-primary text-primary-foreground hover:bg-primary/90 click-shrink"
-				>
-					{#if isRetrying}
-						<span class="text-body-md">Retrying...</span>
-					{:else}
-						<RefreshCw class="w-4 h-4 mr-2" />
-						<span class="text-body-md">Try Again</span>
+{#if hasError && errorInfo}
+	<div class="error-boundary" role="alert" aria-live="assertive">
+		<div class="error-content">
+			<h2>Something went wrong</h2>
+			<p class="error-message">
+				{errorInfo.error.message || 'An unexpected error occurred'}
+			</p>
+			
+			{#if import.meta.env.DEV}
+				<details class="error-details">
+					<summary>Error Details (Development)</summary>
+					<pre>{errorInfo.error.stack || 'No stack trace available'}</pre>
+					{#if errorInfo.componentStack}
+						<p><strong>Component:</strong> {errorInfo.componentStack}</p>
 					{/if}
-				</Button>
+				</details>
 			{/if}
-
-			<Button
-				onclick={handleReset}
-				variant="ghost"
-				class="text-muted-foreground hover:text-foreground hover:bg-muted click-shrink"
-			>
-				<span class="text-body-md">Dismiss</span>
-			</Button>
+			
+			<div class="error-actions">
+				<button 
+					class="retry-button" 
+					onclick={handleReset}
+					aria-label="Try again"
+				>
+					Try Again
+				</button>
+				<button 
+					class="reload-button"
+					onclick={() => window.location.reload()}
+					aria-label="Reload the page"
+				>
+					Reload Page
+				</button>
+			</div>
 		</div>
-
-		<p class="mt-6 text-body-sm text-muted-foreground font-accent">
-			If this problem persists, please refresh the page or contact support.
-		</p>
 	</div>
 {:else}
 	{@render children()}
@@ -145,26 +110,80 @@
 
 <style>
 	.error-boundary {
-		animation: fadeInUp 0.3s ease-out;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		min-height: 400px;
+		padding: 2rem;
+		background: var(--color-background, #0a0a0a);
+		color: var(--color-foreground, #f5f0e8);
 	}
-
-	@keyframes fadeInUp {
-		from {
-			opacity: 0;
-			transform: translateY(10px);
-		}
-		to {
-			opacity: 1;
-			transform: translateY(0);
-		}
+	
+	.error-content {
+		max-width: 600px;
+		text-align: center;
 	}
-
-	/* Improve accessibility */
-	details > summary {
-		list-style: none;
+	
+	.error-content h2 {
+		font-size: 1.5rem;
+		margin-bottom: 1rem;
+		color: var(--color-destructive, #ef4444);
 	}
-
-	details > summary::-webkit-details-marker {
-		display: none;
+	
+	.error-message {
+		margin-bottom: 1.5rem;
+		color: var(--color-muted-foreground, #999);
+		line-height: 1.6;
+	}
+	
+	.error-details {
+		margin: 1.5rem 0;
+		text-align: left;
+		background: var(--color-muted, #1a1a1a);
+		padding: 1rem;
+		border-radius: 4px;
+		border: 1px solid var(--color-border, #333);
+	}
+	
+	.error-details summary {
+		cursor: pointer;
+		font-weight: 600;
+		margin-bottom: 0.5rem;
+	}
+	
+	.error-details pre {
+		white-space: pre-wrap;
+		word-wrap: break-word;
+		font-size: 0.875rem;
+		color: var(--color-muted-foreground, #999);
+		margin: 0;
+	}
+	
+	.error-actions {
+		display: flex;
+		gap: 1rem;
+		justify-content: center;
+		margin-top: 1.5rem;
+	}
+	
+	.retry-button,
+	.reload-button {
+		padding: 0.75rem 1.5rem;
+		background: var(--color-primary, #e65c25);
+		color: white;
+		border: none;
+		border-radius: 4px;
+		font-weight: 600;
+		cursor: pointer;
+		transition: opacity 0.2s;
+	}
+	
+	.retry-button:hover,
+	.reload-button:hover {
+		opacity: 0.9;
+	}
+	
+	.reload-button {
+		background: var(--color-muted, #333);
 	}
 </style>

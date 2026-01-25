@@ -7,6 +7,9 @@
 
 import { logger } from './logger';
 
+// Apply AbortSignal.timeout polyfill for older browsers
+import '$lib/utils/abort-signal-polyfill';
+
 const DB_NAME = 'noir-chat-db';
 const DB_VERSION = 1;
 
@@ -104,7 +107,7 @@ class IndexedDBWrapper {
 	}
 
 	/**
-	 * Set a value in a store
+	 * Set a value in a store with proper transaction completion handling
 	 */
 	async set<T>(storeName: StoreName, value: T): Promise<boolean> {
 		try {
@@ -114,13 +117,20 @@ class IndexedDBWrapper {
 			const request = store.put(value);
 
 			return new Promise((resolve, reject) => {
-				request.onsuccess = () => {
-					logger.debug('Value saved to IndexedDB', { storeName });
+				// Wait for transaction to complete, not just the request
+				transaction.oncomplete = () => {
+					logger.debug('Transaction completed, value saved to IndexedDB', { storeName });
 					resolve(true);
 				};
+				
+				transaction.onerror = () => {
+					logger.error('Transaction failed to save to IndexedDB', { storeName, error: transaction.error });
+					reject(new Error('Transaction failed: ' + transaction.error?.message));
+				};
+				
 				request.onerror = () => {
-					logger.error('Failed to save to IndexedDB', { storeName, error: request.error });
-					reject(new Error('Failed to save value: ' + request.error?.message));
+					logger.error('Request failed to save to IndexedDB', { storeName, error: request.error });
+					reject(new Error('Request failed: ' + request.error?.message));
 				};
 			});
 		} catch (error) {

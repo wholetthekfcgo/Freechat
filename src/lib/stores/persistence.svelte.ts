@@ -91,14 +91,17 @@ export async function load(): Promise<ChatHistory> {
 		return { conversations: [], currentConversationId: null };
 	} catch (error) {
 		logger.error('Failed to load chat history', error);
-		// Clear corrupted data
-		try {
-			await idb.delete(STORES.CHAT_HISTORY, STORAGE_KEY);
-			await idb.delete(STORES.CHAT_HISTORY, UNENCRYPTED_KEY);
-		} catch (e) {
-			// Ignore
-		}
-		return { conversations: [], currentConversationId: null };
+		
+		// Don't auto-delete data - notify user instead
+		// Clearing corrupted data causes data loss without user consent
+		logger.warn('Data load failed, returning empty state without deleting data');
+		
+		return { 
+			conversations: [], 
+			currentConversationId: null,
+			hasCorruptedData: true,
+			loadError: error instanceof Error ? error.message : 'Unknown error'
+		};
 	}
 }
 

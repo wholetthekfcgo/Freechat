@@ -43,8 +43,27 @@ const baseHandler: RequestHandler = async ({ request }) => {
 		// Get API key using validated env accessor
 		const apiKey = getOpenRouterKey();
 
-		// Validate request body
-		const rawBody = await request.json();
+		// Validate request body with try-catch for JSON parsing
+		let rawBody: unknown;
+		try {
+			rawBody = await request.json();
+		} catch (parseError) {
+			logger.error('Failed to parse request body as JSON', { 
+				correlationId,
+				error: parseError instanceof Error ? parseError.message : 'Unknown error'
+			});
+			
+			return json(
+				{ 
+					error: 'Invalid JSON', 
+					details: 'Request body must be valid JSON',
+					correlationId 
+				},
+				{ status: 400, headers: { 'x-correlation-id': correlationId } }
+			);
+		}
+		
+		// Validate with Zod schema
 		const body = ChatRequestSchema.parse(rawBody);
 		
 		logger.info('Request validated, calling OpenRouter', { 

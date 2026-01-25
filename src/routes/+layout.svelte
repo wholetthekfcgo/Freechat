@@ -59,7 +59,7 @@
 	{announcer}
 </div>
 
-<ErrorBoundary componentName="RootLayout">
+<ErrorBoundary>
 	<div class="bg-background text-foreground min-h-screen">
 		<!-- Main content region with proper semantics -->
 		<main 

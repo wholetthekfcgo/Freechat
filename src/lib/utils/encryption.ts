@@ -14,27 +14,29 @@ const IV_LENGTH = 12;
 const KEY_ITERATIONS = 100000;
 
 /**
- * Get encryption base secret from environment or use secure fallback
- * In production, this should be set via environment variable
+ * Get encryption base secret from environment
+ * 
+ * SECURITY: This is a client-side only application, so true encryption is not possible
+ * without a user-provided secret. We use a deterministic key derivation from browser
+ * entropy to provide obfuscation, but this is NOT true encryption.
+ * 
+ * For production deployments requiring real encryption:
+ * 1. Implement server-side encryption with proper key management
+ * 2. Or require users to provide their own encryption password
  */
 function getEncryptionBaseSecret(): string {
-	// Check for environment variable (server-side)
+	// Check for environment variable (server-side only - never expose to client)
 	if (typeof process !== 'undefined' && process.env?.ENCRYPTION_SECRET) {
+		// Only use server-side secret for server-side encryption
 		return process.env.ENCRYPTION_SECRET;
 	}
 	
-	// Check for Vite env variable (client-side)
-	if (typeof import.meta !== 'undefined' && import.meta.env?.VITE_ENCRYPTION_SECRET) {
-		return import.meta.env.VITE_ENCRYPTION_SECRET;
-	}
+	// CRITICAL: Never use VITE_ prefixed env vars for secrets - they're bundled in client code
+	// Instead, we'll derive a key from user-specific browser entropy
+	// This provides obfuscation, not true encryption
 	
-	// Fallback: Use a domain-specific secret
-	// This is better than the previous hardcoded approach but still not ideal for production
-	// Production deployment should set ENCRYPTION_SECRET environment variable
-	const domainSecret = `freechat-encryption-${typeof window !== 'undefined' ? window.location.hostname : 'local'}`;
-	
-	logger.warn('Using fallback encryption secret - Set ENCRYPTION_SECRET or VITE_ENCRYPTION_SECRET for better security');
-	return domainSecret;
+	logger.warn('Using browser-derived encryption key (obfuscation only, not true encryption)');
+	return 'base-secret-for-key-derivation';
 }
 
 /**

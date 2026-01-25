@@ -127,7 +127,10 @@ export function navigateWithConfirmation(url: string, confirmation?: string): vo
 	}
 }
 
-// Auto-initialize on import (browser only)
-if (browser) {
+// Auto-initialize on import (browser only) with protection against duplicates
+let initialized = false;
+
+if (browser && !initialized) {
 	initBeforeUnloadHandler();
+	initialized = true;
 }

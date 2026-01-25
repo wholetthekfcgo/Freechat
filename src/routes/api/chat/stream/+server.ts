@@ -49,10 +49,30 @@ const baseHandler: RequestHandler = async ({ request }) => {
 		// Get API key using validated env accessor
 		const apiKey = getOpenRouterKey();
 
+		// Validate request body with try-catch for JSON parsing
+		let rawBody: unknown;
+		try {
+			rawBody = await request.json();
+		} catch (parseError) {
+			const classification = classifyError(parseError);
+			logger[classification.logLevel]('Invalid request body JSON', {
+				error: parseError instanceof Error ? parseError.message : String(parseError),
+				correlationId
+			});
+			
+			return new Response(
+				JSON.stringify({
+					error: 'Invalid JSON',
+					details: 'Request body must be valid JSON',
+					correlationId
+				}),
+				{ status: 400, headers: { 'Content-Type': 'application/json', 'x-correlation-id': correlationId } }
+			);
+		}
+		
+		// Validate with Zod schema
 		let body;
 		try {
-			// Validate request body
-			const rawBody = await request.json();
 			body = ChatRequestSchema.parse(rawBody);
 			
 			logger.info('Stream request validated', { 

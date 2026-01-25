@@ -53,7 +53,7 @@
 			if (offset >= scrollTop) break;
 			start = i;
 		}
-		return Math.max(0, start - 1); // Buffer of 1 item
+		return Math.max(0, start - 3); // Buffer of 3 items above
 	});
 
 	const visibleEnd = $derived(() => {
@@ -63,7 +63,7 @@
 		for (let i = visibleStart(); i < messages.length; i++) {
 			const offset = itemOffsets[messages[i].id] ?? i * estimatedItemHeight;
 			if (offset > viewportBottom) {
-				end = i + 2; // Buffer of 2 items
+				end = i + 5; // Buffer of 5 items below viewport
 				break;
 			}
 		}
