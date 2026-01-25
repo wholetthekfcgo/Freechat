@@ -2,7 +2,7 @@ import type { RequestHandler } from './$types';
 import { streamOpenRouter } from '$lib/utils/openrouter';
 import { getOpenRouterKey } from '$lib/env';
 import { logger } from '$lib/utils/logger';
-import { ChatRequestSchema } from '$lib/schemas/validation';
+import { ChatRequestSchema } from '$lib/backend/schemas/validation';
 import { classifyError } from '$lib/backend/utils/error-classifier';
 import { getOrCreateCorrelationId, setCorrelationContext, clearCorrelationContext } from '$lib/backend/utils/correlation';
 import { withTimeout } from '$lib/backend/middleware/timeout';

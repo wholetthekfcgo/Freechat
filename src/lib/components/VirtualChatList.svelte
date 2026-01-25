@@ -105,6 +105,27 @@
 		recalculateOffsets();
 	});
 
+	// Auto-scroll to bottom when new messages arrive
+	$effect(() => {
+		const lastMessage = messages[messages.length - 1];
+		if (lastMessage && container) {
+			// Check if user is near bottom
+			const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 200;
+			
+			if (isNearBottom) {
+				// Wait for DOM to update
+				tick().then(() => {
+					if (container) {
+						container.scrollTo({
+							top: container.scrollHeight,
+							behavior: 'smooth'
+						});
+					}
+				});
+			}
+		}
+	});
+
 	/**
 	 * Action to measure item height
 	 */

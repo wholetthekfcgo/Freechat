@@ -10,11 +10,17 @@
     "check:watch": "svelte-kit sync && svelte-check --workspace . --watch",
     "test": "vitest",
     "test:ui": "vitest --ui",
-    "test:coverage": "vitest --coverage"
+    "test:coverage": "vitest --coverage",
+    "test:bench": "vitest bench",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "lint": "eslint . --ext .ts,.svelte",
+    "format": "prettier --write ."
   },
   "devDependencies": {
     "@internationalized/date": "^3.10.1",
     "@lucide/svelte": "^0.562.0",
+    "@playwright/test": "^1.58.0",
     "@sveltejs/adapter-auto": "^7.0.0",
     "@sveltejs/adapter-node": "^5.5.1",
     "@sveltejs/kit": "^2.49.4",
@@ -25,6 +31,7 @@
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/svelte": "^5.3.1",
     "@types/node": "^25.0.8",
+    "@vitest/coverage-v8": "^4.0.18",
     "@vitest/ui": "^4.0.17",
     "bits-ui": "^2.15.4",
     "clsx": "^2.1.1",
@@ -47,6 +54,6 @@
     "marked": "^15.0.4",
     "mathjs": "^15.1.0",
     "openai": "^6.16.0",
-    "zod": "^4.3.5"
+    "zod": "^4.3.6"
   }
 }

@@ -102,10 +102,12 @@ class IndexedDBMock {
 global.indexedDB = IndexedDBMock as any;
 
 // Mock crypto.randomUUID
-global.crypto = {
-	...global.crypto,
-	randomUUID: () => 'test-uuid-' + Math.random().toString(36).substring(2, 11)
-} as Crypto;
+if (!global.crypto.randomUUID) {
+	Object.defineProperty(global.crypto, 'randomUUID', {
+		value: () => 'test-uuid-' + Math.random().toString(36).substring(2, 11),
+		writable: true
+	});
+}
 
 // Mock navigator.storage.estimate for quota management
 Object.defineProperty(navigator, 'storage', {

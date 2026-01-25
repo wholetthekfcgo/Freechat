@@ -81,11 +81,37 @@ export function withTimeout<T extends RequestEvent = RequestEvent>(
 		}, timeoutMs);
 
 		try {
-			// Add abort signal to request
+			// Clone the request to avoid "already used" errors
 			const originalRequest = event.request;
-			const timeoutAwareRequest = new Request(originalRequest, {
-				signal: controller.signal
-			});
+			
+			// Clone the request body before it's consumed
+			let timeoutAwareRequest: Request;
+			try {
+				timeoutAwareRequest = originalRequest.clone();
+			} catch (cloneError) {
+				// If cloning fails, the body may have already been consumed
+				logger.warn('Could not clone request, using original', {
+					route,
+					error: cloneError instanceof Error ? cloneError.message : String(cloneError)
+				});
+				timeoutAwareRequest = originalRequest;
+			}
+			
+			// Create a new request with abort signal if we successfully cloned
+			if (timeoutAwareRequest !== originalRequest) {
+				try {
+					const requestWithSignal = new Request(timeoutAwareRequest, {
+						signal: controller.signal
+					});
+					timeoutAwareRequest = requestWithSignal;
+				} catch (signalError) {
+					// If we can't add signal, continue without it
+					logger.warn('Could not add abort signal to request', {
+						route,
+						error: signalError instanceof Error ? signalError.message : String(signalError)
+					});
+				}
+			}
 
 			// Override event with timeout-aware request
 			const timeoutAwareEvent = {

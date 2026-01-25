@@ -180,35 +180,44 @@
 		}
 	}
 
-	// Track previous loading state for announcements
+	// Track loading state for announcements using derived pattern
 	let wasLoading = $state(false);
 
-	// Announce loading state changes
+	const loadingAnnouncement = $derived.by(() => {
+		if (isLoading && !wasLoading) {
+			return 'Generating response';
+		}
+		if (!isLoading && wasLoading) {
+			return error ? `Error: ${error}` : 'Response complete';
+		}
+		return null;
+	});
+
 	$effect(() => {
-		if (isLoading !== wasLoading) {
+		const announcement = loadingAnnouncement;
+		if (announcement) {
+			announce(announcement);
+			// Update wasLoading after effect runs
 			wasLoading = isLoading;
-			
-			if (isLoading) {
-				announce('Generating response');
-			} else if (error) {
-				announce(`Error: ${error}`);
-			} else {
-				announce('Response complete');
-			}
 		}
 	});
 
-	// Track previous messages length for announcements
+	// Track messages length changes for announcements
 	let prevLength = $state(0);
 
-	// Announce new messages
-	$effect(() => {
+	const messageAnnouncement = $derived.by(() => {
 		if (messages.length > prevLength) {
-			prevLength = messages.length;
-			
 			const newMessage = messages[messages.length - 1];
-			const role = newMessage.role === 'user' ? 'You' : 'Assistant';
-			announce(`New ${role} message`);
+			return `New ${newMessage.role === 'user' ? 'You' : 'Assistant'} message`;
+		}
+		return null;
+	});
+
+	$effect(() => {
+		const announcement = messageAnnouncement;
+		if (announcement) {
+			announce(announcement);
+			prevLength = messages.length;
 		}
 	});
 
