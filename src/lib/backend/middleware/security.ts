@@ -110,7 +110,8 @@ export const handleCSRF: Handle = async ({ event, resolve }) => {
 		}
 	}
 
-	return resolve(event);
+	// Return undefined to continue to next middleware
+	return;
 };
 
 /**
@@ -156,10 +157,11 @@ setInterval(() => {
  * Combine all security middleware
  */
 export const handleSecurity: Handle = async ({ event, resolve }) => {
-	// Apply CSRF protection
-	const csrfResult = await handleCSRF({ event, resolve });
-	if (csrfResult.status === 403) {
-		return csrfResult;
+	// Apply CSRF protection - only check origin for state-changing requests
+	if (['POST', 'PUT', 'DELETE', 'PATCH'].includes(event.request.method)) {
+		if (!validateOrigin(event.request)) {
+			return new Response('Invalid origin', { status: 403 });
+		}
 	}
 
 	// Apply security headers

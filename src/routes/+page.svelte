@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { browser } from '$app/environment';
 	import ChatInterface from '$lib/components/ChatInterface.svelte';
-	import { chatState, chatActions, tokenUsage } from '$lib/stores/chat.svelte.js';
+	import { chatState, chatActions, tokenUsage } from '$lib/stores/chat';
 	import { errorTracker, withErrorHandling } from '$lib/utils/error-tracker';
 	import { formatTokenCount, formatCost } from '$lib/utils/token-tracker';
 	import type { PageData } from './$types';

@@ -11,7 +11,6 @@ import { logger } from '$lib/utils/logger';
 import { queueRequest, abortAllRequests } from '$lib/utils/request-queue';
 import { withRateLimitAndRetry } from '$lib/utils/rate-limiter';
 import { save as saveChatHistory, load as loadChatHistory, clear as clearChatHistory } from '../persistence.svelte.js';
-import { generateUUID } from '$lib/utils/crypto';
 import { calculateTokenUsage, formatTokenCount, formatCost } from '$lib/utils/token-tracker';
 import { prependSystemPrompt } from '$lib/utils/system-prompt';
 
@@ -64,7 +63,7 @@ export async function sendMessage(content: string, stream = true): Promise<void>
 	// Add user message with timestamp and unique ID
 	chatState.messages = [
 		...chatState.messages,
-		{ id: generateUUID(), role: 'user', content, timestamp: new Date(), isPartial: false }
+		{ id: crypto.randomUUID(), role: 'user', content, timestamp: new Date(), isPartial: false }
 	];
 	chatState.isLoading = true;
 	chatState.error = null;
@@ -149,7 +148,7 @@ export async function sendMessage(content: string, stream = true): Promise<void>
 									lastMessage.content = assistantContent;
 								} else {
 									messages.push({
-										id: generateUUID(),
+										id: crypto.randomUUID(),
 										role: 'assistant',
 										content: assistantContent,
 										timestamp: new Date(),
@@ -233,7 +232,7 @@ export async function sendMessage(content: string, stream = true): Promise<void>
 
 				chatState.messages = [
 					...chatState.messages,
-					{ id: generateUUID(), role: 'assistant', content: assistantMessage, timestamp: new Date() }
+					{ id: crypto.randomUUID(), role: 'assistant', content: assistantMessage, timestamp: new Date() }
 				];
 				
 				// Track token usage for non-streaming responses
@@ -333,7 +332,7 @@ export async function saveCurrentConversation(): Promise<void> {
 	}
 
 	const conversation: ChatConversation = {
-		id: chatHistory?.currentConversationId || generateUUID(),
+		id: chatHistory?.currentConversationId || crypto.randomUUID(),
 		title: generateTitle(chatState.messages),
 		messages: chatState.messages,
 		model: chatState.currentModel,
@@ -563,13 +562,13 @@ export async function editAndRegenerate(messageId: string, newContent: string): 
 								lastMessage.content = assistantContent;
 							} else {
 								currentMessages.push({
-									id: generateUUID(),
+									id: crypto.randomUUID(),
 									role: 'assistant',
 									content: assistantContent,
 									timestamp: new Date(),
-										isPartial: false
-									});
-								}
+									isPartial: false
+								});
+							}
 
 							chatState.messages = currentMessages;
 						}

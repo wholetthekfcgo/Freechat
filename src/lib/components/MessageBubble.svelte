@@ -3,7 +3,7 @@
 	import { Copy, Check, RotateCcw, Edit2, Save, X } from '@lucide/svelte';
 	import { renderMarkdown } from '$lib/utils';
 	import { sanitizeHTML, isSafePlainText } from '$lib/utils/sanitize';
-	import { chatActions } from '$lib/stores/chat.svelte';
+	import { chatActions } from '$lib/stores/chat';
 	import { tick } from 'svelte';
 	import { logger } from '$lib/utils/logger';
 

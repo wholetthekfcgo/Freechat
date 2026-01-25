@@ -9,7 +9,6 @@ import { browser } from '$app/environment';
 import { logger } from '$lib/utils/logger';
 import { encrypt, decrypt } from '$lib/utils/encryption';
 import { idb, STORES } from '$lib/utils/indexeddb';
-import { generateUUID } from '$lib/utils/crypto';
 import type { ChatHistory } from '$lib/types/chat';
 
 const STORAGE_VERSION = 'v1';
@@ -46,7 +45,7 @@ export async function load(): Promise<ChatHistory> {
 						updatedAt: new Date(conv.updatedAt),
 						messages: conv.messages.map((msg) => ({
 							...msg,
-							id: msg.id || generateUUID(),
+							id: msg.id || crypto.randomUUID(),
 							timestamp: new Date(msg.timestamp),
 							isPartial: msg.isPartial || false
 						}))
@@ -77,7 +76,7 @@ export async function load(): Promise<ChatHistory> {
 				updatedAt: new Date(conv.updatedAt),
 				messages: conv.messages.map((msg) => ({
 					...msg,
-					id: msg.id || generateUUID(),
+					id: msg.id || crypto.randomUUID(),
 					timestamp: new Date(msg.timestamp),
 					isPartial: msg.isPartial || false
 				}))

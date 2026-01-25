@@ -7,7 +7,6 @@ import { ChatRequestSchema } from '$lib/backend/schemas/validation';
 import { withTimeout } from '$lib/backend/middleware/timeout';
 import { classifyError, isRetryable } from '$lib/backend/utils/error-classifier';
 import { getOrCreateCorrelationId, addCorrelationHeader, setCorrelationContext, clearCorrelationContext } from '$lib/backend/utils/correlation';
-import { generateUUID } from '$lib/utils/crypto';
 
 // Wrap handler with timeout and enhanced error handling
 const baseHandler: RequestHandler = async ({ request }) => {
@@ -56,7 +55,7 @@ const baseHandler: RequestHandler = async ({ request }) => {
 		
 		// Transform messages to include required id field
 		const messagesWithIds = body.messages.map(msg => ({
-			id: generateUUID(),
+			id: crypto.randomUUID(),
 			role: msg.role,
 			content: msg.content,
 			timestamp: new Date()

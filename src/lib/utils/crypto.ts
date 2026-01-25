@@ -1,88 +1,47 @@
 /**
- * Crypto utility functions with browser compatibility polyfills
+ * Cryptographic utility functions
  * 
- * Provides safe alternatives for crypto APIs that may not be available
- * in all browser environments or contexts.
+ * Provides secure random number generation and UUID generation
  */
 
 /**
  * Generate a random UUID v4
  * 
- * Uses crypto.randomUUID() when available, with a fallback
- * to a manual implementation for older browsers or restricted contexts.
+ * Uses crypto.getRandomValues() for secure random number generation
+ * Falls back to Math.random() in environments where crypto is not available
  * 
- * @returns A random UUID v4 string
+ * @returns A UUID v4 string
+ * 
+ * @example
+ * ```ts
+ * const id = generateUUID();
+ * console.log(id); // "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d"
+ * ```
  */
 export function generateUUID(): string {
-	// Check if we're in a browser environment
-	if (typeof window !== 'undefined' && window.crypto) {
-		// Try using the modern API
-		if (typeof window.crypto.randomUUID === 'function') {
-			return window.crypto.randomUUID();
-		}
+	// Check if we're in a browser environment with crypto support
+	if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
+		// Use the Web Crypto API for secure random generation
+		const array = new Uint8Array(16);
+		crypto.getRandomValues(array);
 		
-		// Fallback: generate UUID using crypto.getRandomValues
-		if (typeof window.crypto.getRandomValues === 'function') {
-			return generateUUIDFromRandomValues();
-		}
+		// Set version (4) and variant bits
+		array[6] = (array[6] & 0x0f) | 0x40; // version 4
+		array[8] = (array[8] & 0x3f) | 0x80; // variant
+		
+		// Convert to hex string with proper formatting
+		const hex = Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('');
+		return [
+			hex.slice(0, 8),
+			hex.slice(8, 12),
+			hex.slice(12, 16),
+			hex.slice(16, 20),
+			hex.slice(20, 32)
+		].join('-');
 	}
 	
-	// Node.js environment
-	if (typeof require !== 'undefined') {
-		try {
-			const nodeCrypto = require('crypto');
-			return nodeCrypto.randomUUID();
-		} catch (e) {
-			// Continue to Math.random fallback
-		}
-	}
-	
-	// Last resort: Math.random-based fallback (less secure, but better than nothing)
-	// This should rarely be used in modern environments
-	return generateUUIDFromMathRandom();
-}
-
-/**
- * Generate UUID using crypto.getRandomValues
- * More secure than Math.random but compatible with older browsers
- */
-function generateUUIDFromRandomValues(): string {
-	// Create a Uint16Array for 16 bytes (128 bits)
-	const array = new Uint8Array(16);
-	
-	// Fill with random values
-	if (typeof window !== 'undefined' && window.crypto) {
-		window.crypto.getRandomValues(array);
-	} else {
-		// Fallback to Math.random (very unlikely to reach here)
-		for (let i = 0; i < 16; i++) {
-			array[i] = Math.floor(Math.random() * 256);
-		}
-	}
-	
-	// Set version bits (4) and variant bits (8, 9, A, or B)
-	array[6] = (array[6]! & 0x0f) | 0x40; // Version 4
-	array[8] = (array[8]! & 0x3f) | 0x80; // Variant 10
-	
-	// Convert to hex string with proper UUID formatting
-	const hex = Array.from(array)
-		.map((byte) => byte!.toString(16).padStart(2, '0'))
-		.join('');
-	
-	return [
-		hex.slice(0, 8),
-		hex.slice(8, 12),
-		hex.slice(12, 16),
-		hex.slice(16, 20),
-		hex.slice(20, 32)
-	].join('-');
-}
-
-/**
- * Generate UUID using Math.random (least secure, last resort)
- * This should only be used if no secure random source is available
- */
-function generateUUIDFromMathRandom(): string {
+	// Fallback for environments without crypto support (e.g., older Node.js)
+	// This is less secure but provides a working UUID
 	return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
 		const r = (Math.random() * 16) | 0;
 		const v = c === 'x' ? r : (r & 0x3) | 0x8;
@@ -91,24 +50,151 @@ function generateUUIDFromMathRandom(): string {
 }
 
 /**
- * Check if the current environment supports secure random generation
+ * Generate a secure random string of specified length
+ * 
+ * @param length - The length of the random string to generate
+ * @param alphabet - Optional custom character set (default: alphanumeric)
+ * @returns A random string of the specified length
+ * 
+ * @example
+ * ```ts
+ * const token = generateRandomString(32);
+ * const customToken = generateRandomString(16, 'abcdef0123456789');
+ * ```
  */
-export function hasSecureRandom(): boolean {
-	if (typeof window !== 'undefined' && window.crypto) {
-		return (
-			typeof window.crypto.randomUUID === 'function' ||
-			typeof window.crypto.getRandomValues === 'function'
-		);
-	}
-	
-	if (typeof require !== 'undefined') {
-		try {
-			require('crypto');
-			return true;
-		} catch (e) {
-			return false;
+export function generateRandomString(
+	length: number,
+	alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
+): string {
+	if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
+		const array = new Uint8Array(length);
+		crypto.getRandomValues(array);
+		
+		let result = '';
+		for (let i = 0; i < length; i++) {
+			result += alphabet[array[i] % alphabet.length];
 		}
+		return result;
 	}
 	
-	return false;
+	// Fallback
+	let result = '';
+	for (let i = 0; i < length; i++) {
+		result += alphabet[Math.floor(Math.random() * alphabet.length)];
+	}
+	return result;
+}
+
+/**
+ * Generate a cryptographically secure random number between min and max
+ * 
+ * @param min - Minimum value (inclusive)
+ * @param max - Maximum value (exclusive)
+ * @returns A random number in the specified range
+ * 
+ * @example
+ * ```ts
+ * const randomNum = generateRandomNumber(0, 100);
+ * ```
+ */
+export function generateRandomNumber(min: number, max: number): number {
+	if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
+		const range = max - min;
+		const array = new Uint32Array(1);
+		crypto.getRandomValues(array);
+		return min + (array[0] % range);
+	}
+	
+	// Fallback
+	return Math.floor(Math.random() * (max - min)) + min;
+}
+
+/**
+ * Hash a string using SHA-256
+ * 
+ * @param data - The string to hash
+ * @returns A Promise that resolves to the hex-encoded hash
+ * 
+ * @example
+ * ```ts
+ * const hash = await sha256('my-secret-data');
+ * ```
+ */
+export async function sha256(data: string): Promise<string> {
+	if (typeof crypto !== 'undefined' && crypto.subtle) {
+		const encoder = new TextEncoder();
+		const hashBuffer = await crypto.subtle.digest('SHA-256', encoder.encode(data));
+		const hashArray = Array.from(new Uint8Array(hashBuffer));
+		return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+	}
+	
+	// Fallback: simple non-cryptographic hash
+	// This is a basic hash function and should NOT be used for security purposes
+	let hash = 0;
+	for (let i = 0; i < data.length; i++) {
+		const char = data.charCodeAt(i);
+		hash = ((hash << 5) - hash) + char;
+		hash = hash & hash; // Convert to 32-bit integer
+	}
+	return Math.abs(hash).toString(16);
+}
+
+/**
+ * Generate a hash-based message authentication code (HMAC)
+ * 
+ * @param key - The secret key
+ * @param message - The message to authenticate
+ * @returns A Promise that resolves to the hex-encoded HMAC
+ * 
+ * @example
+ * ```ts
+ * const hmac = await hmacSHA256('secret-key', 'message');
+ * ```
+ */
+export async function hmacSHA256(key: string, message: string): Promise<string> {
+	if (typeof crypto !== 'undefined' && crypto.subtle) {
+		const encoder = new TextEncoder();
+		const keyData = encoder.encode(key);
+		const messageData = encoder.encode(message);
+		
+		const cryptoKey = await crypto.subtle.importKey(
+			'raw',
+			keyData,
+			{ name: 'HMAC', hash: 'SHA-256' },
+			false,
+			['sign']
+		);
+		
+		const signature = await crypto.subtle.sign('HMAC', cryptoKey, messageData);
+		const signatureArray = Array.from(new Uint8Array(signature));
+		return signatureArray.map(b => b.toString(16).padStart(2, '0')).join('');
+	}
+	
+	// Fallback: simple concatenation hash (NOT secure, only for compatibility)
+	return await sha256(key + message);
+}
+
+/**
+ * Compare two strings in constant time to prevent timing attacks
+ * 
+ * @param a - First string
+ * @param b - Second string
+ * @returns True if strings are equal, false otherwise
+ * 
+ * @example
+ * ```ts
+ * const match = constantTimeCompare(userInput, expectedValue);
+ * ```
+ */
+export function constantTimeCompare(a: string, b: string): boolean {
+	if (a.length !== b.length) {
+		return false;
+	}
+	
+	let result = 0;
+	for (let i = 0; i < a.length; i++) {
+		result |= a.charCodeAt(i) ^ b.charCodeAt(i);
+	}
+	
+	return result === 0;
 }
