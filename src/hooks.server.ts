@@ -12,7 +12,7 @@ import type { Handle } from '@sveltejs/kit';
  */
 const CSP_HEADER = `
 	default-src 'self';
-	script-src 'self' 'unsafe-inline' 'unsafe-eval';
+	script-src 'self' 'unsafe-inline' 'unsafe-eval' https://static.cloudflareinsights.com;
 	style-src 'self' 'unsafe-inline';
 	img-src 'self' data: https:;
 	font-src 'self' data:;
