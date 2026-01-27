@@ -28,6 +28,7 @@ We believe AI tools should empower you, not restrict you. That's what "free as i
 - **Dynamic Height Measurement**: ResizeObserver for responsive layouts
 - **Optimized Re-renders**: 99% reduction in unnecessary updates
 - **CSS Containment**: Reduced repaints for 60fps scrolling
+- **TanStack Query Integration**: Automatic caching and request deduplication
 
 ### Accessibility (WCAG AA Compliant)
 - **Skip-to-Content Link**: Keyboard navigation shortcut

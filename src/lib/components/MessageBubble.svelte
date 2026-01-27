@@ -103,30 +103,30 @@
 </script>
 
 <article
-	class="message-bubble group relative mb-6 flex gap-4 animate-fade-in {message.role === 'user' ? 'flex-row-reverse' : ''}"
+	class="message-bubble group relative mb-4 sm:mb-6 flex gap-3 sm:gap-4 animate-fade-in {message.role === 'user' ? 'flex-row-reverse' : ''}"
 	onmouseenter={() => (showTimestamp = true)}
 	onmouseleave={() => (showTimestamp = false)}
 >
 	<!-- Avatar -->
 	<div
-		class="flex-shrink-0 w-10 h-10 flex items-center justify-center border {message.role ===
+		class="flex-shrink-0 w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center border {message.role ===
 		'user'
 			? 'bg-primary border-primary text-primary-foreground shadow-medium'
 			: 'bg-card border-border text-foreground shadow-subtle overflow-hidden'}"
 	>
 		{#if message.role === 'user'}
-			<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+			<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
 		{:else}
 			<img src="/favicon.png" alt="AI" class="w-full h-full object-cover" />
 		{/if}
 	</div>
 
 	<!-- Message Content -->
-	<div class="flex-1 {message.role === 'user' ? 'text-right' : 'text-left'}">
+	<div class="flex-1 min-w-0 {message.role === 'user' ? 'text-right' : 'text-left'}">
 		<div
-			class="relative p-5 border {message.role === 'user'
+			class="relative p-3 sm:p-5 border {message.role === 'user'
 				? 'bg-primary text-primary-foreground border-primary shadow-medium'
-				: 'bg-card text-foreground border-border shadow-subtle hover:border-primary/30'} transition-all duration-200 {message.role === 'user' ? 'inline-block text-left max-w-[93%]' : 'inline-block max-w-[93%]'} {isEditing ? 'ring-2 ring-primary' : ''}"
+				: 'bg-card text-foreground border-border shadow-subtle hover:border-primary/30'} transition-all duration-200 {message.role === 'user' ? 'inline-block text-left max-w-[90%] sm:max-w-[93%]' : 'inline-block max-w-[90%] sm:max-w-[93%]'} {isEditing ? 'ring-2 ring-primary' : ''}"
 		>
 			{#if isEditing && message.role === 'user'}
 				<!-- Edit Mode -->
@@ -232,6 +232,44 @@
 		--tw-prose-pre-code: hsl(var(--foreground));
 		--tw-prose-pre-bg: hsl(var(--card));
 		font-family: var(--font-body);
+		font-size: 0.875rem;
+	}
+	
+	/* Mobile responsive prose */
+	@media (max-width: 640px) {
+		:global(.prose) {
+			font-size: 0.813rem;
+		}
+		
+		:global(.prose h1) {
+			font-size: 1.5rem;
+		}
+		
+		:global(.prose h2) {
+			font-size: 1.25rem;
+		}
+		
+		:global(.prose h3) {
+			font-size: 1.125rem;
+		}
+		
+		:global(.prose pre) {
+			padding: 1rem;
+			overflow-x: scroll;
+			-webkit-overflow-scrolling: touch;
+		}
+		
+		:global(.prose code) {
+			font-size: 0.85em;
+			word-break: break-word;
+		}
+		
+		:global(.prose table) {
+			font-size: 0.813rem;
+			display: block;
+			overflow-x: auto;
+			-webkit-overflow-scrolling: touch;
+		}
 	}
 
 	:global(.prose h1),

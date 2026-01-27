@@ -141,8 +141,8 @@
 <svelte:window onclick={handleClickOutside} />
 
 <div class="floating-input bg-background sticky bottom-0 z-50">
-	<div class="max-w-4xl mx-auto">
-		<div class="flex items-center justify-center bg-card shadow-lg rounded-lg p-4">
+	<div class="max-w-4xl mx-auto px-2 sm:px-4">
+		<div class="flex items-center justify-center bg-card shadow-lg rounded-lg p-2 sm:p-4">
 			<!-- Textarea with inline buttons -->
 			<div class="flex-1 relative">
 				<Textarea
@@ -153,25 +153,25 @@
 					placeholder="// Enter your message..."
 					rows={1}
 					disabled={isLoading}
-					class="resize-none bg-transparent text-foreground placeholder:text-muted-foreground focus-visible:ring-0 text-body-md flex-1 pb-12"
-					style="min-height: 120px; max-height: 240px; overflow-y: auto; font-family: var(--font-body);"
+					class="resize-none bg-transparent text-foreground placeholder:text-muted-foreground focus-visible:ring-0 text-body-md flex-1 pb-12 sm:pb-12"
+					style="min-height: 100px; max-height: 200px; overflow-y: auto; font-family: var(--font-body);"
 				/>
 				
 				<!-- Bottom bar with model selector and buttons -->
-				<div class="absolute bottom-2 left-2 right-2 flex items-center justify-between">
-					<!-- Model Selector - Inline, Smaller, Dropup -->
-					<div class="inline-model-selector relative">
+				<div class="absolute bottom-1.5 left-1.5 right-1.5 sm:bottom-2 sm:left-2 sm:right-2 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2">
+					<!-- Model Selector - Full width on mobile -->
+					<div class="inline-model-selector relative w-full sm:w-auto">
 						<button
 							onclick={toggleModel}
 							onkeydown={handleModelKeydown}
 							aria-haspopup="listbox"
 							aria-expanded={isModelOpen}
-							class="flex items-center gap-1.5 px-2 py-1.5 text-body-sm bg-muted/50 hover:bg-muted border border-border/50 rounded-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary"
+							class="flex items-center justify-between w-full sm:w-auto gap-1.5 px-2 py-1.5 text-body-sm bg-muted/50 hover:bg-muted border border-border/50 rounded-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary touch-target"
 							title="Select model"
 						>
-							<span class="text-muted-foreground font-medium">{selectedModelName}</span>
+							<span class="text-muted-foreground font-medium truncate">{selectedModelName}</span>
 							<ChevronUp
-								class="w-3.5 h-3.5 text-muted-foreground {isModelOpen ? 'rotate-180' : ''} transition-transform duration-200"
+								class="w-3.5 h-3.5 text-muted-foreground flex-shrink-0 {isModelOpen ? 'rotate-180' : ''} transition-transform duration-200"
 							/>
 						</button>
 
@@ -180,7 +180,7 @@
 								role="listbox"
 								tabindex="0"
 								aria-label="Select AI model"
-								class="absolute bottom-full left-0 mb-2 w-72 bg-card border border-border shadow-dramatic z-50 animate-fade-in glass"
+								class="absolute bottom-full left-0 mb-2 w-full sm:w-72 bg-card border border-border shadow-dramatic z-50 animate-fade-in glass"
 								onkeydown={handleModelKeydown}
 							>
 								<div class="p-2" role="presentation">
@@ -190,14 +190,14 @@
 											role="option"
 											aria-selected={currentModel === modelOption.id}
 											style="--stagger-delay: {index}"
-											class="w-full text-left px-4 py-3 text-body-md hover:bg-primary/10 hover:border-primary border border-transparent transition-all duration-200 {currentModel === modelOption.id
+											class="w-full text-left px-3 sm:px-4 py-2.5 sm:py-3 text-body-md hover:bg-primary/10 hover:border-primary border border-transparent transition-all duration-200 {currentModel === modelOption.id
 												? 'bg-primary/10 border-primary/50 text-foreground'
-												: 'text-foreground'} group focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary"
+												: 'text-foreground'} group focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary touch-target"
 										>
-											<div class="font-mono text-body-sm text-muted-foreground mb-1 opacity-70 group-hover:opacity-100 transition-opacity">
+											<div class="font-mono text-body-xs sm:text-body-sm text-muted-foreground mb-1 opacity-70 group-hover:opacity-100 transition-opacity">
 												{modelOption.id}
 											</div>
-											<div class="font-display font-medium">{modelOption.name}</div>
+											<div class="font-display font-medium text-body-sm">{modelOption.name}</div>
 										</button>
 									{/each}
 								</div>
@@ -206,22 +206,23 @@
 					</div>
 
 					<!-- Right side: Token counter and Action Buttons -->
-					<div class="flex items-center gap-2">
+					<div class="flex items-center justify-between sm:justify-end gap-2">
 						<!-- Token counter - minimalist -->
 						{#if showTokenCounter}
-							<div class="text-body-sm font-mono {tokenCounterColor} opacity-80">
-								{tokenCount} tokens
+							<div class="text-body-xs sm:text-body-sm font-mono {tokenCounterColor} opacity-80">
+								{tokenCount}
 							</div>
 						{/if}
 
 						<!-- Action Buttons Row -->
-						<div class="flex gap-2">
+						<div class="flex gap-1.5 sm:gap-2">
 							<!-- Clear Button -->
 							<button
 								onclick={() => { value = ''; draftManager.clear(); resetTextareaHeight(); }}
-								class="p-2 w-8 h-8 rounded-md bg-muted/50 hover:bg-muted text-muted-foreground hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center transition-colors"
+								class="p-2 w-10 h-10 sm:w-8 sm:h-8 rounded-md bg-muted/50 hover:bg-muted text-muted-foreground hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center transition-colors touch-target"
 								disabled={isLoading || !value.trim()}
 								title="Clear input"
+								aria-label="Clear input"
 							>
 								<X class="w-4 h-4" />
 							</button>
@@ -230,8 +231,9 @@
 							{#if isLoading}
 								<button
 									onclick={onStopGeneration}
-									class="p-2 min-w-10 h-10 bg-red-600 hover:bg-red-700 text-white border-0 shadow-medium hover-lift click-shrink flex items-center justify-center"
+									class="p-2 min-w-10 h-10 bg-red-600 hover:bg-red-700 text-white border-0 shadow-medium hover-lift click-shrink flex items-center justify-center touch-target"
 									title="Stop generation"
+									aria-label="Stop generation"
 								>
 									<Square class="w-5 h-5" />
 								</button>
@@ -239,8 +241,9 @@
 								<button
 									onclick={() => value.trim() && tokenCount < maxTokens && onSubmit()}
 									disabled={!value.trim() || tokenCount >= maxTokens}
-									class="p-2 min-w-10 h-10 bg-primary hover:bg-primary/90 disabled:bg-muted disabled:text-muted-foreground border-0 shadow-medium hover-lift click-shrink flex items-center justify-center text-white"
+									class="p-2 min-w-10 h-10 bg-primary hover:bg-primary/90 disabled:bg-muted disabled:text-muted-foreground border-0 shadow-medium hover-lift click-shrink flex items-center justify-center text-white touch-target"
 									title="Send message"
+									aria-label="Send message"
 								>
 									<ChevronsUp class="w-5 h-5" />
 								</button>

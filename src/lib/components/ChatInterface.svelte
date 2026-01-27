@@ -4,7 +4,7 @@
 	import VirtualChatList from '$lib/components/VirtualChatList.svelte';
 	import FloatingInput from '$lib/components/FloatingInput.svelte';
 	import ScrollArea from '$lib/components/ui/scroll-area/scroll-area.svelte';
-	import { Trash2, Download, Upload, Plus, Square, RotateCcw, History, Undo, Redo, TrendingUp } from '@lucide/svelte';
+	import { Trash2, Download, Upload, Plus, Square, RotateCcw, History, Undo, Redo, TrendingUp, Menu, X } from '@lucide/svelte';
 	import Button from '$lib/components/ui/button/button.svelte';
 	import { tick } from 'svelte';
 	import { chatState, chatActions, chatHistory } from '$lib/stores/chat';
@@ -53,6 +53,7 @@
 	let inputMessage = $state('');
 	let scrollAreaElement: HTMLElement;
 	let showSidebar = $state(false);
+	let mobileMenuOpen = $state(false);
 	let showClearDialog = $state(false);
 	let showDeleteDialog = $state(false);
 	let showBuyCreditsModal = $state(false);
@@ -72,6 +73,22 @@
 		} else {
 			announce(message);
 		}
+	}
+
+	function toggleMobileMenu() {
+		mobileMenuOpen = !mobileMenuOpen;
+		announce(mobileMenuOpen ? 'Menu opened' : 'Menu closed');
+	}
+
+	function closeMobileMenu() {
+		mobileMenuOpen = false;
+		showSidebar = false;
+	}
+
+	function toggleMobileSidebar() {
+		showSidebar = !showSidebar;
+		mobileMenuOpen = showSidebar;
+		announce(showSidebar ? 'Sidebar opened' : 'Sidebar closed');
 	}
 
 	async function handleSubmit() {
@@ -254,10 +271,51 @@
 	});
 </script>
 
-<div class="flex flex-col h-screen bg-background">
-	<!-- Header - Typographic & Asymmetric -->
-	<header class="border-b border-border px-8 py-6 animate-fade-in">
-		<div class="flex items-end justify-between mb-8" style="--stagger-delay: 0">
+<div class="flex flex-col h-screen bg-background overflow-hidden">
+	<!-- Mobile Sidebar Overlay -->
+	{#if mobileMenuOpen}
+		<div 
+			class="mobile-sidebar-overlay"
+			class:open={mobileMenuOpen}
+			onclick={closeMobileMenu}
+			aria-hidden="true"
+		></div>
+	{/if}
+	
+	<!-- Header - Mobile-Responsive -->
+	<header class="mobile-header border-b border-border animate-fade-in">
+		<div class="flex items-center justify-between w-full">
+			<!-- Mobile Menu Button -->
+			<button
+				onclick={toggleMobileSidebar}
+				class="mobile-icon-btn md:hidden touch-target"
+				title="Toggle menu"
+				aria-label="Toggle menu"
+				aria-pressed={mobileMenuOpen}
+			>
+				{#if mobileMenuOpen}
+					<X class="w-6 h-6" />
+				{:else}
+					<Menu class="w-6 h-6" />
+				{/if}
+			</button>
+			
+			<!-- Logo & Title -->
+			<div class="flex items-center gap-2 md:gap-4 flex-1">
+				<img src="/favicon.png" alt="Freechat Logo" class="w-8 h-8 md:w-12 md:h-12" />
+				<div class="flex flex-col">
+					<h1 class="mobile-title text-display-sm md:text-display-lg text-foreground tracking-tight">
+						FREECHAT<span class="text-primary">.</span>CC
+					</h1>
+					<p class="text-body-xs md:text-body-sm text-muted-foreground font-accent">
+						// Free as in Freedom
+					</p>
+				</div>
+			</div>
+		</div>
+		
+		<!-- Second Row: Credits & Actions -->
+		<div class="flex items-center justify-between w-full md:hidden">
 			<!-- Title - Massive Typography -->
 			<div class="flex items-center gap-4">
 				<!-- Logo -->
@@ -273,17 +331,17 @@
 			</div>
 			
 			<!-- Credits Left Display with Plus Button -->
-			<div class="flex items-center gap-2 px-4 py-2 bg-card border border-border rounded-lg shadow-sm">
+			<div class="flex items-center gap-2 mobile-credits bg-card border border-border rounded-lg shadow-sm">
 				<TrendingUp class="w-4 h-4 text-primary" />
 				<div class="flex flex-col">
-					<span class="text-body-xs text-muted-foreground font-accent">CREDITS LEFT</span>
+					<span class="text-body-xs text-muted-foreground font-accent hidden sm:inline">CREDITS LEFT</span>
 					<span class="text-body-sm font-semibold text-foreground">
 						{remainingTokens} / {capacity}
 					</span>
 				</div>
 				<button
 					onclick={() => (showBuyCreditsModal = true)}
-					class="h-6 w-6 p-0 flex items-center justify-center bg-primary hover:bg-primary/80 text-primary-foreground rounded click-shrink transition-colors"
+					class="h-8 w-8 touch-target flex items-center justify-center bg-primary hover:bg-primary/80 text-primary-foreground rounded click-shrink transition-colors"
 					title="Add more credits"
 					aria-label="Add more credits"
 				>
@@ -292,43 +350,53 @@
 			</div>
 		</div>
 
-		<!-- Model Selector + Actions Strip -->
-		<div class="flex items-center justify-end gap-8" style="--stagger-delay: 1">
-			<!-- Icon-only Action Strip -->
-			<div class="flex items-center gap-1">
-				<Button
-					variant="ghost"
-					onclick={() => (showSidebar = !showSidebar)}
-					class="h-8 w-8 p-0 text-muted-foreground hover:text-foreground hover:bg-muted click-shrink"
-					title="Toggle chat history"
-					aria-label="Toggle chat history sidebar"
-					aria-pressed={showSidebar}
-				>
-					<History class="w-3.5 h-3.5" />
-				</Button>
-			</div>
+		<!-- Desktop Actions -->
+		<div class="hidden md:flex items-center justify-end gap-4 w-full">
+			<Button
+				variant="ghost"
+				onclick={() => (showSidebar = !showSidebar)}
+				class="touch-target text-muted-foreground hover:text-foreground hover:bg-muted click-shrink"
+				title="Toggle chat history"
+				aria-label="Toggle chat history sidebar"
+				aria-pressed={showSidebar}
+			>
+				<History class="w-4 h-4" />
+			</Button>
 		</div>
 	</header>
 
-	<div class="flex-1 flex overflow-hidden">
-		<!-- Sidebar - Glassmorphism Chat History -->
+	<div class="flex-1 flex overflow-hidden relative">
 		{#if showSidebar}
-			<aside class="w-80 border-r border-border glass flex flex-col animate-slide-in">
-				<div class="p-6 border-b border-border">
-					<h2 class="text-display-sm text-foreground mb-1">History</h2>
-					<p class="text-body-sm text-muted-foreground font-accent">{chatHistory?.conversations?.length ?? 0} conversations</p>
+			<aside class="mobile-sidebar glass flex flex-col {mobileMenuOpen ? 'open' : ''}">
+				<!-- Mobile Sidebar Header -->
+				<div class="flex items-center justify-between p-4 border-b border-border md:hidden">
+					<h2 class="text-display-sm text-foreground">History</h2>
+					<button
+						onclick={closeMobileMenu}
+						class="mobile-icon-btn touch-target"
+						aria-label="Close sidebar"
+					>
+						<X class="w-6 h-6" />
+					</button>
 				</div>
+				
+				<!-- Desktop Sidebar Header -->
+				<div class="hidden md:block p-6 border-b border-border">
+					<h2 class="text-display-sm text-foreground mb-1">History</h2>
+	<p class="text-body-sm text-muted-foreground font-accent">{chatHistory?.conversations?.length ?? 0} conversations</p>
+				</div>
+				
 				<!-- New Chat Button -->
-				<div class="px-4 pt-4 pb-4 border-b border-border">
+				<div class="p-4 md:px-4 md:pt-4 md:pb-4 border-b border-border">
 					<Button
 						onclick={handleNewChat}
-						class="w-full h-10 bg-primary text-primary-foreground hover:bg-primary/90 click-shrink shadow-medium"
+						class="w-full h-10 bg-primary text-primary-foreground hover:bg-primary/90 click-shrink shadow-medium touch-target"
 					>
 						<Plus class="w-4 h-4 mr-2" />
 						<span class="text-body-md">New Conversation</span>
 					</Button>
 				</div>
-				<div class="flex-1 overflow-y-auto p-4 space-y-2">
+				<div class="flex-1 overflow-y-auto p-4 md:p-4 space-y-2">
 					{#if !chatHistory?.conversations || chatHistory.conversations.length === 0}
 						<div class="text-center py-12">
 							<p class="text-body-sm text-muted-foreground">// No history</p>
@@ -384,16 +452,16 @@
 		<!-- Chat Messages -->
 		<div class="flex-1 overflow-hidden relative">
 			<ScrollArea class="h-full">
-				<div bind:this={scrollAreaElement} class="px-8 py-6 max-w-4xl mx-auto">
+				<div bind:this={scrollAreaElement} class="responsive-max-width py-6 mx-auto">
 					{#if messages.length === 0}
 						<div class="flex items-center justify-center h-full min-h-[400px]">
 							<div class="text-center space-y-6 max-w-lg">
 								<!-- Brand Mark -->
-								<div class="text-display-md text-muted-foreground/20">FREECHAT.CC</div>
+								<div class="text-display-sm md:text-display-md text-muted-foreground/20">FREECHAT.CC</div>
 								
 								<!-- Value Propositions -->
-								<div class="grid grid-cols-2 gap-4 pt-6">
-									<div class="border border-border bg-card p-4 text-left hover-lift">
+								<div class="responsive-grid pt-6">
+									<div class="border border-border bg-card mobile-value-prop text-left hover-lift">
 										<div class="text-primary mb-2">
 											<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
 										</div>
@@ -401,7 +469,7 @@
 										<p class="text-body-sm text-muted-foreground">Local encrypted storage keeps your data yours</p>
 									</div>
 									
-									<div class="border border-border bg-card p-4 text-left hover-lift">
+									<div class="border border-border bg-card mobile-value-prop text-left hover-lift">
 										<div class="text-primary mb-2">
 											<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
 										</div>
@@ -409,7 +477,7 @@
 										<p class="text-body-sm text-muted-foreground">Access any AI model without lock-in</p>
 									</div>
 									
-									<div class="border border-border bg-card p-4 text-left hover-lift">
+									<div class="border border-border bg-card mobile-value-prop text-left hover-lift">
 										<div class="text-primary mb-2">
 											<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
 										</div>
@@ -417,7 +485,7 @@
 										<p class="text-body-sm text-muted-foreground">Optimized token speed with streaming responses</p>
 									</div>
 									
-									<div class="border border-border bg-card p-4 text-left hover-lift">
+									<div class="border border-border bg-card mobile-value-prop text-left hover-lift">
 										<div class="text-primary mb-2">
 											<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
 										</div>
