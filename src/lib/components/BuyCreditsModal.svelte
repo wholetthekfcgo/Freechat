@@ -292,12 +292,7 @@
 				</div>
 			</div>
 
-			<!-- Close Button -->
-			<div class="mt-6 flex justify-end">
-				<Button variant="ghost" onclick={handleClose} disabled={isProcessing}>
-					Maybe Later
-				</Button>
-			</div>
+
 		</div>
 	</div>
 {/if}
