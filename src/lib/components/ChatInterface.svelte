@@ -272,6 +272,8 @@
 </script>
 
 <div class="flex flex-col h-screen bg-background overflow-hidden">
+	<!-- Grid Decoration Background -->
+	<div class="grid-decoration"></div>
 	<!-- Mobile Sidebar Overlay -->
 	{#if mobileMenuOpen}
 		<div 
@@ -282,8 +284,8 @@
 		></div>
 	{/if}
 	
-	<!-- Header - Mobile-Responsive -->
-	<header class="mobile-header border-b border-border animate-fade-in">
+	<!-- Header - Clean Single-Row Mobile -->
+	<header class="border-b border-border animate-fade-in px-4 py-3 md:px-6 md:py-4">
 		<div class="flex items-center justify-between w-full">
 			<!-- Mobile Menu Button -->
 			<button
@@ -300,70 +302,31 @@
 				{/if}
 			</button>
 			
-			<!-- Logo & Title -->
-			<div class="flex items-center gap-2 md:gap-4 flex-1">
-				<img src="/favicon.png" alt="Freechat Logo" class="w-8 h-8 md:w-12 md:h-12" />
+			<!-- Logo & Title - Centered on mobile, left on desktop -->
+			<div class="flex items-center gap-2 md:gap-4 flex-1 justify-center md:justify-start">
+				<img src="/favicon.png" alt="Freechat Logo" class="w-8 h-8 md:w-10 md:h-10" />
 				<div class="flex flex-col">
-					<h1 class="mobile-title text-display-sm md:text-display-lg text-foreground tracking-tight">
+					<h1 class="text-display-sm md:text-display-md text-foreground tracking-tight">
 						FREECHAT<span class="text-primary">.</span>CC
 					</h1>
-					<p class="text-body-xs md:text-body-sm text-muted-foreground font-accent">
-						// Free as in Freedom
-					</p>
-				</div>
-			</div>
-		</div>
-		
-		<!-- Second Row: Credits & Actions -->
-		<div class="flex items-center justify-between w-full md:hidden">
-			<!-- Title - Massive Typography -->
-			<div class="flex items-center gap-4">
-				<!-- Logo -->
-				<img src="/favicon.png" alt="Freechat Logo" class="w-12 h-12" />
-				<div class="flex flex-col">
-					<h1 class="text-display-lg text-foreground tracking-tight">
-						FREECHAT<span class="text-primary">.</span>CC
-					</h1>
-					<p class="text-body-sm text-muted-foreground mt-1 font-accent">
+					<p class="text-body-xs text-muted-foreground uppercase-label hidden md:block">
 						// Free as in Freedom
 					</p>
 				</div>
 			</div>
 			
-			<!-- Credits Left Display with Plus Button -->
-			<div class="flex items-center gap-2 mobile-credits bg-card border border-border rounded-lg shadow-sm">
+			<!-- Credits Display -->
+			<div class="flex items-center gap-2 bg-card border border-border rounded-lg shadow-sm px-3 py-1.5 md:px-4 md:py-2 hover-glow transition-all">
 				<TrendingUp class="w-4 h-4 text-primary" />
 				<div class="flex flex-col">
-					<span class="text-body-xs text-muted-foreground font-accent hidden sm:inline">CREDITS LEFT</span>
-					<span class="text-body-sm font-semibold text-foreground">
-						{remainingTokens} / {capacity}
+					<span class="text-body-xs text-muted-foreground uppercase-label hidden sm:inline">CREDITS</span>
+					<span class="text-body-sm font-semibold text-foreground font-mono">
+						{remainingTokens}<span class="text-muted-foreground">/{capacity}</span>
 					</span>
 				</div>
 				<button
 					onclick={() => (showBuyCreditsModal = true)}
-					class="h-8 w-8 touch-target flex items-center justify-center bg-primary hover:bg-primary/80 text-primary-foreground rounded click-shrink transition-colors"
-					title="Add more credits"
-					aria-label="Add more credits"
-				>
-					<Plus class="w-3.5 h-3.5" />
-				</button>
-			</div>
-		</div>
-
-		<!-- Desktop Actions -->
-		<div class="hidden md:flex items-center justify-end gap-4 w-full">
-			<!-- Credits Left Display with Plus Button -->
-			<div class="flex items-center gap-3 bg-card border border-border rounded-lg shadow-sm px-4 py-2">
-				<TrendingUp class="w-4 h-4 text-primary" />
-				<div class="flex flex-col">
-					<span class="text-body-xs text-muted-foreground font-accent">CREDITS LEFT</span>
-					<span class="text-body-sm font-semibold text-foreground">
-						{remainingTokens} / {capacity}
-					</span>
-				</div>
-				<button
-					onclick={() => (showBuyCreditsModal = true)}
-					class="h-8 w-8 flex items-center justify-center bg-primary hover:bg-primary/80 text-primary-foreground rounded click-shrink transition-colors"
+					class="h-7 w-7 md:h-8 md:w-8 touch-target flex items-center justify-center bg-primary hover:bg-primary/80 text-primary-foreground rounded click-shrink transition-colors"
 					title="Add more credits"
 					aria-label="Add more credits"
 				>
@@ -390,8 +353,8 @@
 				
 				<!-- Desktop Sidebar Header -->
 				<div class="hidden md:block p-6 border-b border-border">
-					<h2 class="text-display-sm text-foreground mb-1">History</h2>
-	<p class="text-body-sm text-muted-foreground font-accent">{chatHistory?.conversations?.length ?? 0} conversations</p>
+					<h2 class="text-display-sm text-foreground mb-1 uppercase-label">CONVERSATION HISTORY</h2>
+					<p class="text-body-sm text-muted-foreground font-mono">{chatHistory?.conversations?.length ?? 0} conversations</p>
 				</div>
 				
 				<!-- New Chat Button -->
@@ -401,13 +364,13 @@
 						class="w-full h-10 bg-primary text-primary-foreground hover:bg-primary/90 click-shrink shadow-medium touch-target"
 					>
 						<Plus class="w-4 h-4 mr-2" />
-						<span class="text-body-md">New Conversation</span>
+						<span class="text-body-md uppercase-label">NEW CONVERSATION</span>
 					</Button>
 				</div>
-				<div class="flex-1 overflow-y-auto p-4 md:p-4 space-y-2">
+				<div class="flex-1 overflow-y-auto p-4 md:p-4 space-y-3">
 					{#if !chatHistory?.conversations || chatHistory.conversations.length === 0}
 						<div class="text-center py-12">
-							<p class="text-body-sm text-muted-foreground">// No history</p>
+							<p class="font-mono text-body-sm text-muted-foreground">// No history yet</p>
 						</div>
 					{:else}
 						{#each chatHistory.conversations as conv}
@@ -418,10 +381,18 @@
 								onkeydown={(e) => e.key === 'Enter' && chatActions.loadConversation(conv.id)}
 								class="group relative w-full text-left p-4 border transition-all duration-200 hover-lift cursor-pointer {chatHistory?.currentConversationId === conv.id ? 'bg-primary/10 border-primary shadow-glow' : 'bg-card border-border hover:border-primary/50'}"
 							>
+								<!-- Decorative corner bracket for active -->
+								{#if chatHistory?.currentConversationId === conv.id}
+									<div class="absolute top-0 left-0 w-2 h-2 border-t-2 border-l-2 border-primary"></div>
+									<div class="absolute top-0 right-0 w-2 h-2 border-t-2 border-r-2 border-primary"></div>
+									<div class="absolute bottom-0 left-0 w-2 h-2 border-b-2 border-l-2 border-primary"></div>
+									<div class="absolute bottom-0 right-0 w-2 h-2 border-b-2 border-r-2 border-primary"></div>
+								{/if}
+								
 								<div class="flex items-start justify-between">
 									<div class="flex-1 min-w-0">
 										<h3 class="text-body-md font-medium text-foreground truncate mb-1">{conv.title}</h3>
-										<p class="text-body-sm text-muted-foreground">{conv.messages.length} messages</p>
+										<p class="font-mono text-body-xs text-muted-foreground">{conv.messages.length} messages</p>
 									</div>
 									<div class="flex items-center gap-1">
 										{#if onExport}
@@ -460,52 +431,74 @@
 		<!-- Chat Messages -->
 		<div class="flex-1 overflow-hidden relative">
 			<ScrollArea class="h-full">
-				<div bind:this={scrollAreaElement} class="responsive-max-width py-6 mx-auto">
+				<div bind:this={scrollAreaElement} class="responsive-max-width py-6 mx-auto relative z-10">
 					{#if messages.length === 0}
-						<div class="flex items-center justify-center h-full min-h-[400px]">
-							<div class="text-center space-y-6 max-w-lg">
-								<!-- Brand Mark -->
-								<div class="text-display-sm md:text-display-md text-muted-foreground/20">FREECHAT.CC</div>
-								
-								<!-- Value Propositions -->
-								<div class="responsive-grid pt-6">
-									<div class="border border-border bg-card mobile-value-prop text-left hover-lift">
-										<div class="text-primary mb-2">
-											<Shield class="w-5 h-5" />
-										</div>
-										<h3 class="text-body-sm font-medium text-foreground mb-1">Privacy First</h3>
-										<p class="text-body-sm text-muted-foreground">Local encrypted storage keeps your data yours</p>
+						<!-- BRUTALIST EDITORIAL EMPTY STATE -->
+						<div class="flex items-center justify-center min-h-[600px] px-4">
+							<div class="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16 max-w-6xl w-full items-center">
+								<!-- Left: Massive Brand Typography -->
+								<div class="space-y-6 text-left animate-stagger-entry">
+									<div class="overflow-hidden">
+										<h1 class="text-display-xl lg:text-[10rem] leading-[0.85] text-foreground tracking-tighter font-bold">
+											FREE<br>CHAT
+										</h1>
 									</div>
-									
-									<div class="border border-border bg-card mobile-value-prop text-left hover-lift">
-										<div class="text-primary mb-2">
-											<Info class="w-5 h-5" />
-										</div>
-										<h3 class="text-body-sm font-medium text-foreground mb-1">Freedom of Choice</h3>
-										<p class="text-body-sm text-muted-foreground">Access any AI model without lock-in</p>
-									</div>
-									
-									<div class="border border-border bg-card mobile-value-prop text-left hover-lift">
-										<div class="text-primary mb-2">
-											<Zap class="w-5 h-5" />
-										</div>
-										<h3 class="text-body-sm font-medium text-foreground mb-1">Lightning Fast</h3>
-										<p class="text-body-sm text-muted-foreground">Optimized token speed with streaming responses</p>
-									</div>
-									
-									<div class="border border-border bg-card mobile-value-prop text-left hover-lift">
-										<div class="text-primary mb-2">
-											<Layers class="w-5 h-5" />
-										</div>
-										<h3 class="text-body-sm font-medium text-foreground mb-1">Zero Data Retention</h3>
-										<p class="text-body-sm text-muted-foreground">Your conversations are never stored on servers</p>
+									<div class="overflow-hidden">
+										<p class="text-display-md text-muted-foreground uppercase-label tracking-widest">
+											// Free as in Freedom
+										</p>
 									</div>
 								</div>
-								
-								<!-- Call to Action -->
-								<p class="text-body-sm text-muted-foreground pt-4">
-									Start typing to begin your conversation
-								</p>
+
+								<!-- Right: Vertical Value Props as Annotations -->
+								<div class="space-y-4 animate-stagger-entry" style="animation-delay: 100ms;">
+									<div class="border-l-2 border-primary pl-4 py-2 hover-glow transition-all">
+										<div class="flex items-start gap-3">
+											<Shield class="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
+											<div>
+												<h3 class="uppercase-label text-foreground mb-1">Privacy First</h3>
+												<p class="text-body-sm text-muted-foreground">Local encrypted storage keeps your data yours</p>
+											</div>
+										</div>
+									</div>
+
+									<div class="border-l-2 border-border pl-4 py-2 hover-glow transition-all">
+										<div class="flex items-start gap-3">
+											<Info class="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
+											<div>
+												<h3 class="uppercase-label text-foreground mb-1">Freedom of Choice</h3>
+												<p class="text-body-sm text-muted-foreground">Access any AI model without lock-in</p>
+											</div>
+										</div>
+									</div>
+
+									<div class="border-l-2 border-border pl-4 py-2 hover-glow transition-all">
+										<div class="flex items-start gap-3">
+											<Zap class="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
+											<div>
+												<h3 class="uppercase-label text-foreground mb-1">Lightning Fast</h3>
+												<p class="text-body-sm text-muted-foreground">Optimized token speed with streaming responses</p>
+											</div>
+										</div>
+									</div>
+
+									<div class="border-l-2 border-border pl-4 py-2 hover-glow transition-all">
+										<div class="flex items-start gap-3">
+											<Layers class="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
+											<div>
+												<h3 class="uppercase-label text-foreground mb-1">Zero Data Retention</h3>
+												<p class="text-body-sm text-muted-foreground">Your conversations are never stored on servers</p>
+											</div>
+										</div>
+									</div>
+
+									<!-- Diagnostic-style call to action -->
+									<div class="pt-4">
+										<p class="font-mono text-body-xs text-primary animate-pulse">
+											▶ Start typing to begin your conversation
+										</p>
+									</div>
+								</div>
 							</div>
 						</div>
 					{:else if messages.length > 100}

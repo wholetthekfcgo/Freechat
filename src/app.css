@@ -79,10 +79,10 @@
   
   /* === CUSTOM NOIR VARIABLES === */
   
-  /* Typography - Enhanced system */
+  /* Typography - Brutalist Editorial System */
   --font-display: 'Space Grotesk', sans-serif;
-  --font-body: 'JetBrains Mono', monospace;
-  --font-accent: 'Instrument Serif', serif;
+  --font-body: 'Fraunces', serif;
+  --font-mono: 'JetBrains Mono', monospace;
   
   /* Brand Typography Scale */
   --text-xs: 0.75rem;
@@ -105,7 +105,7 @@
   --shadow-inset: inset 0 2px 8px rgba(0, 0, 0, 0.4);
   
   /* Atmospheric Effects */
-  --grain-opacity: 0.03;
+  --grain-opacity: 0.07; /* Doubled for more visible grain */
   --glass-bg: rgba(17, 17, 17, 0.85);
   --glass-border: rgba(255, 255, 255, 0.08);
   
@@ -158,6 +158,39 @@
     opacity: var(--grain-opacity);
     background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
   }
+
+  /* === LIGHT LEAK OVERLAY === */
+  body::after {
+    content: '';
+    position: fixed;
+    top: -50%;
+    right: -30%;
+    width: 80%;
+    height: 200%;
+    background: radial-gradient(
+      ellipse,
+      rgba(255, 138, 42, 0.04) 0%,
+      transparent 70%
+    );
+    pointer-events: none;
+    z-index: 1;
+  }
+  
+  /* === VISIBLE GRID DECORATION === */
+  .grid-decoration {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    pointer-events: none;
+    z-index: 0;
+    background-image: 
+      linear-gradient(hsla(var(--border), 0.03) 1px, transparent 1px),
+      linear-gradient(90deg, hsla(var(--border), 0.03) 1px, transparent 1px);
+    background-size: 80px 80px;
+    opacity: 0.5;
+  }
   
   /* === TYPOGRAPHY BASE === */
   h1, h2, h3, h4, h5, h6 {
@@ -166,20 +199,28 @@
     letter-spacing: -0.02em;
   }
   
-  /* Monospace body text */
+  /* Serif body text */
   p, span, div {
     font-family: var(--font-body);
   }
   
-  /* Serif accent for labels */
-  .font-accent, .label-accent {
-    font-family: var(--font-accent);
-    font-style: italic;
+  /* Monospace for technical elements */
+  .font-mono, .label-mono {
+    font-family: var(--font-mono);
+    font-size: 0.875em;
   }
   
   /* Display typography for headers */
   .font-display {
     font-family: var(--font-display);
+  }
+  
+  /* Uppercase labels for brutalist edge */
+  .uppercase-label {
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-size: 0.75em;
+    font-weight: 600;
   }
   
   /* Custom scrollbar - minimal noir style */
@@ -325,6 +366,37 @@
   }
 }
 
+@keyframes inputFocusPulse {
+  0%, 100% {
+    border-color: hsl(var(--border));
+  }
+  50% {
+    border-color: hsl(var(--primary));
+  }
+}
+
+@keyframes messageReveal {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes staggerEntry {
+  from {
+    opacity: 0;
+    transform: translateY(30px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
 .animate-slide-in {
   animation: slideInLeft 0.4s ease-out;
 }
@@ -337,12 +409,30 @@
   animation: pulse-glow 2s ease-in-out infinite;
 }
 
-/* Stagger children */
-.stagger-children > * {
-  animation-delay: calc(var(--stagger-delay, 0) * 50ms);
+.animate-message-reveal {
+  animation: messageReveal 0.4s ease-out;
 }
 
-/* Hover lift effect */
+.animate-stagger-entry {
+  animation: staggerEntry 0.5s ease-out;
+}
+
+/* Stagger children with delays */
+.stagger-children > *:nth-child(1) { animation-delay: 0ms; }
+.stagger-children > *:nth-child(2) { animation-delay: 50ms; }
+.stagger-children > *:nth-child(3) { animation-delay: 100ms; }
+.stagger-children > *:nth-child(4) { animation-delay: 150ms; }
+.stagger-children > *:nth-child(5) { animation-delay: 200ms; }
+.stagger-children > *:nth-child(6) { animation-delay: 250ms; }
+.stagger-children > *:nth-child(7) { animation-delay: 300ms; }
+.stagger-children > *:nth-child(8) { animation-delay: 350ms; }
+
+/* Input focus pulse */
+.input-focus-pulse:focus-within {
+  animation: inputFocusPulse 2s ease-in-out infinite;
+}
+
+/* Enhanced hover states */
 .hover-lift {
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
@@ -352,9 +442,31 @@
   box-shadow: var(--shadow-medium);
 }
 
+.hover-glow:hover {
+  box-shadow: var(--shadow-glow-strong);
+  transition: box-shadow 0.3s ease;
+}
+
 /* Click effect */
 .click-shrink:active {
   transform: scale(0.98);
+}
+
+/* === CUSTOM CURSOR (Crosshair) === */
+@media (pointer: fine) {
+  * {
+    cursor: crosshair !important;
+  }
+  
+  /* Interactive elements get pointer */
+  button, a, [role="button"], input, textarea, select {
+    cursor: pointer !important;
+  }
+  
+  /* Text inputs keep text cursor */
+  input[type="text"], input[type="email"], input[type="password"], textarea {
+    cursor: text !important;
+  }
 }
 
 /* Force primary color to work until Tailwind is fixed */
