@@ -352,16 +352,24 @@
 
 		<!-- Desktop Actions -->
 		<div class="hidden md:flex items-center justify-end gap-4 w-full">
-			<Button
-				variant="ghost"
-				onclick={() => (showSidebar = !showSidebar)}
-				class="touch-target text-muted-foreground hover:text-foreground hover:bg-muted click-shrink"
-				title="Toggle chat history"
-				aria-label="Toggle chat history sidebar"
-				aria-pressed={showSidebar}
-			>
-				<History class="w-4 h-4" />
-			</Button>
+			<!-- Credits Left Display with Plus Button -->
+			<div class="flex items-center gap-3 bg-card border border-border rounded-lg shadow-sm px-4 py-2">
+				<TrendingUp class="w-4 h-4 text-primary" />
+				<div class="flex flex-col">
+					<span class="text-body-xs text-muted-foreground font-accent">CREDITS LEFT</span>
+					<span class="text-body-sm font-semibold text-foreground">
+						{remainingTokens} / {capacity}
+					</span>
+				</div>
+				<button
+					onclick={() => (showBuyCreditsModal = true)}
+					class="h-8 w-8 flex items-center justify-center bg-primary hover:bg-primary/80 text-primary-foreground rounded click-shrink transition-colors"
+					title="Add more credits"
+					aria-label="Add more credits"
+				>
+					<Plus class="w-3.5 h-3.5" />
+				</button>
+			</div>
 		</div>
 	</header>
 
