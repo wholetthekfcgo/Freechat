@@ -643,6 +643,19 @@
   }
 }
 
+/* Compact touch targets for input bar buttons */
+.touch-target-compact {
+  min-height: 40px;
+  min-width: 40px;
+}
+
+@media (min-width: 640px) {
+  .touch-target-compact {
+    min-height: 36px;
+    min-width: 36px;
+  }
+}
+
 /* Mobile-friendly grid */
 .responsive-grid {
   display: grid;
