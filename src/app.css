@@ -452,22 +452,7 @@
   transform: scale(0.98);
 }
 
-/* === CUSTOM CURSOR (Crosshair) === */
-@media (pointer: fine) {
-  * {
-    cursor: crosshair !important;
-  }
-  
-  /* Interactive elements get pointer */
-  button, a, [role="button"], input, textarea, select {
-    cursor: pointer !important;
-  }
-  
-  /* Text inputs keep text cursor */
-  input[type="text"], input[type="email"], input[type="password"], textarea {
-    cursor: text !important;
-  }
-}
+
 
 /* Force primary color to work until Tailwind is fixed */
 .bg-primary {
