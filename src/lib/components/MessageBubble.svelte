@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { Message } from '$lib/types/chat';
-	import { Copy, Check, RotateCcw, Edit2, Save, X } from '@lucide/svelte';
+	import { Copy, Check, RotateCcw, Edit2, Save, X, User } from '@lucide/svelte';
 	import { renderMarkdown } from '$lib/utils';
 	import { sanitizeHTML, isSafePlainText } from '$lib/utils/sanitize';
 	import { chatActions } from '$lib/stores/chat';
@@ -115,7 +115,7 @@
 			: 'bg-card border-border text-foreground shadow-subtle overflow-hidden'}"
 	>
 		{#if message.role === 'user'}
-			<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+			<User class="w-3.5 h-3.5" />
 		{:else}
 			<img src="/favicon.png" alt="AI" class="w-full h-full object-cover" />
 		{/if}

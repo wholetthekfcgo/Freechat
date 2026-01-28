@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { browser } from '$app/environment';
-	import { X, Check } from '@lucide/svelte';
+	import { X, Check, Clock, Info } from '@lucide/svelte';
 	import Button from '$lib/components/ui/button/button.svelte';
 
 	interface Props {
@@ -224,10 +224,7 @@
 							>
 								<div class="text-center">
 									<div class="text-primary font-semibold mb-2">
-										<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6 mx-auto mb-2">
-											<circle cx="12" cy="12" r="10"/>
-											<polyline points="12 6 12 12 16 14"/>
-										</svg>
+										<Clock class="w-6 h-6 mx-auto mb-2" />
 									</div>
 									<p class="text-body-sm text-foreground font-semibold">Next free in:</p>
 									<p class="text-display-md text-primary">{timeRemaining}</p>
@@ -284,19 +281,7 @@
 			<div class="border-t border-border pt-6">
 				<div class="flex items-start gap-3">
 					<div class="flex-shrink-0 w-5 h-5 text-primary">
-						<svg
-							xmlns="http://www.w3.org/2000/svg"
-							viewBox="0 0 24 24"
-							fill="none"
-							stroke="currentColor"
-							stroke-width="2"
-							stroke-linecap="round"
-							stroke-linejoin="round"
-						>
-							<circle cx="12" cy="12" r="10" />
-							<path d="M12 16v-4" />
-							<path d="M12 8h.01" />
-						</svg>
+						<Info class="w-5 h-5" />
 					</div>
 					<div class="flex-1">
 						<p class="text-body-sm text-muted-foreground">

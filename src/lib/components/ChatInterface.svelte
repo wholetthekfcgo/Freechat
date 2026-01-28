@@ -4,7 +4,7 @@
 	import VirtualChatList from '$lib/components/VirtualChatList.svelte';
 	import FloatingInput from '$lib/components/FloatingInput.svelte';
 	import ScrollArea from '$lib/components/ui/scroll-area/scroll-area.svelte';
-	import { Trash2, Download, Upload, Plus, Square, RotateCcw, History, Undo, Redo, TrendingUp, Menu, X } from '@lucide/svelte';
+	import { Trash2, Download, Plus, Square, RotateCcw, TrendingUp, Menu, X, Shield, Info, Zap, Layers } from '@lucide/svelte';
 	import Button from '$lib/components/ui/button/button.svelte';
 	import { tick } from 'svelte';
 	import { chatState, chatActions, chatHistory } from '$lib/stores/chat';
@@ -471,7 +471,7 @@
 								<div class="responsive-grid pt-6">
 									<div class="border border-border bg-card mobile-value-prop text-left hover-lift">
 										<div class="text-primary mb-2">
-											<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+											<Shield class="w-5 h-5" />
 										</div>
 										<h3 class="text-body-sm font-medium text-foreground mb-1">Privacy First</h3>
 										<p class="text-body-sm text-muted-foreground">Local encrypted storage keeps your data yours</p>
@@ -479,7 +479,7 @@
 									
 									<div class="border border-border bg-card mobile-value-prop text-left hover-lift">
 										<div class="text-primary mb-2">
-											<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+											<Info class="w-5 h-5" />
 										</div>
 										<h3 class="text-body-sm font-medium text-foreground mb-1">Freedom of Choice</h3>
 										<p class="text-body-sm text-muted-foreground">Access any AI model without lock-in</p>
@@ -487,7 +487,7 @@
 									
 									<div class="border border-border bg-card mobile-value-prop text-left hover-lift">
 										<div class="text-primary mb-2">
-											<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+											<Zap class="w-5 h-5" />
 										</div>
 										<h3 class="text-body-sm font-medium text-foreground mb-1">Lightning Fast</h3>
 										<p class="text-body-sm text-muted-foreground">Optimized token speed with streaming responses</p>
@@ -495,7 +495,7 @@
 									
 									<div class="border border-border bg-card mobile-value-prop text-left hover-lift">
 										<div class="text-primary mb-2">
-											<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+											<Layers class="w-5 h-5" />
 										</div>
 										<h3 class="text-body-sm font-medium text-foreground mb-1">Zero Data Retention</h3>
 										<p class="text-body-sm text-muted-foreground">Your conversations are never stored on servers</p>
