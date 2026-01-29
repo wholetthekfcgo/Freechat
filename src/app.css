@@ -81,8 +81,8 @@
   
   /* Typography - Brutalist Editorial System */
   --font-display: 'Space Grotesk', sans-serif;
-  --font-body: 'Fraunces', serif;
-  --font-mono: 'JetBrains Mono', monospace;
+  --font-body: 'Space Grotesk', sans-serif;
+  --font-mono: 'Space Grotesk', monospace;
   
   /* Brand Typography Scale */
   --text-xs: 0.75rem;

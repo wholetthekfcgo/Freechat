@@ -67,27 +67,18 @@ async function getEncryptionKey(): Promise<CryptoKey> {
 
 /**
  * Create key material from app secret and browser-specific data
- * Enhanced with better entropy sources
+ * Uses stable entropy sources that persist across sessions
  */
 async function getKeyMaterial(): Promise<CryptoKey> {
 	// Use secure base secret from environment or fallback
 	const baseSecret = getEncryptionBaseSecret();
 	
-	// Add browser-specific data with better entropy
+	// Use ONLY stable entropy sources that don't change between sessions
+	// Avoid: screen dimensions, timezone, hardware info (can change)
 	const entropySources = [
-		// Screen dimensions (basic entropy)
-		screen.width.toString(),
-		screen.height.toString(),
-		screen.colorDepth.toString(),
-		// Timezone info
-		Intl.DateTimeFormat().resolvedOptions().timeZone,
-		// Language
+		// Language (stable)
 		navigator.language,
-		// Hardware concurrency (if available)
-		navigator.hardwareConcurrency?.toString() || '1',
-		// Device memory (if available)
-		(navigator as any).deviceMemory?.toString() || '1',
-		// User agent hash (not raw UA for privacy)
+		// User agent hash (stable for a given browser)
 		await sha256(navigator.userAgent)
 	];
 	

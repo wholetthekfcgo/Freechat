@@ -61,8 +61,13 @@ export async function load(): Promise<ChatHistory> {
 					};
 				}
 			} catch (decryptError) {
-				// Decryption failed - try unencrypted fallback
-				logger.warn('Failed to decrypt, trying unencrypted fallback', { error: decryptError });
+				// Decryption failed - data was encrypted with old key, clear it
+				logger.warn('Decryption failed - data encrypted with incompatible key, clearing old data', { error: decryptError });
+				
+				// Clear the corrupted encrypted data and the salt so new data can be encrypted
+				await idb.delete(STORES.CHAT_HISTORY, STORAGE_KEY);
+				await idb.delete(STORES.ENCRYPTION_SALT, 'encryption-salt');
+				logger.info('Cleared corrupted encrypted data, starting fresh');
 			}
 		}
 		
@@ -199,6 +204,39 @@ export async function clear(): Promise<void> {
 		logger.info('Cleared chat history from storage');
 	} catch (error) {
 		logger.error('Failed to clear chat history', error);
+	}
+}
+
+/**
+ * Clear the entire IndexedDB database (useful for encryption key changes)
+ * This will delete all data including chat history and encryption keys
+ */
+export async function clearDatabase(): Promise<void> {
+	if (!browser || typeof indexedDB === 'undefined') {
+		return;
+	}
+
+	try {
+		const DB_NAME = 'noir-chat-db';
+		const request = indexedDB.deleteDatabase(DB_NAME);
+		
+		await new Promise<void>((resolve, reject) => {
+			request.onsuccess = () => {
+				logger.info('IndexedDB database cleared successfully');
+				resolve();
+			};
+			request.onerror = () => {
+				logger.error('Failed to clear IndexedDB database', request.error);
+				reject(new Error('Failed to clear database: ' + request.error?.message));
+			};
+			request.onblocked = () => {
+				logger.warn('Database clear request blocked - close all tabs and try again');
+				reject(new Error('Database clear blocked - close all tabs and try again'));
+			};
+		});
+	} catch (error) {
+		logger.error('Failed to clear database', error);
+		throw error;
 	}
 }
 
