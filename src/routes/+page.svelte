@@ -4,13 +4,32 @@
 	import { chatState, chatActions, tokenUsage } from '$lib/stores/chat';
 	import { errorTracker, withErrorHandling } from '$lib/utils/error-tracker';
 	import { formatTokenCount, formatCost } from '$lib/utils/token-tracker';
+	import { persistence } from '$lib/stores/persistence.svelte.js';
 	import type { PageData } from './$types';
 	import ErrorBoundary from '$lib/components/ErrorBoundary.svelte';
 
 	let { data }: { data: PageData } = $props();
 
 	// Initialize state from server data - only on client side
+	let initialized = $state(false);
 	$effect(() => {
+		// Load chat history from IndexedDB on mount (only once)
+		if (browser && !initialized) {
+			persistence.load().then((history) => {
+				if (history.conversations.length > 0) {
+					// Restore the most recent conversation
+					const currentConv = history.conversations.find(
+						(c) => c.id === history.currentConversationId
+					) || history.conversations[history.conversations.length - 1];
+					
+					if (currentConv) {
+						chatState.messages = currentConv.messages;
+					}
+				}
+				initialized = true;
+			});
+		}
+		
 		if (browser && data.initialModel && !chatState.currentModel) {
 			chatState.currentModel = data.initialModel;
 		}
