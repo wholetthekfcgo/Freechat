@@ -19,7 +19,6 @@ import { json, type RequestEvent } from '@sveltejs/kit';
 import { logger } from '$lib/utils/logger';
 import { classifyError, type ClassifiedError } from '$lib/backend/utils/error-classifier';
 import { getCorrelationContext } from '$lib/backend/utils/correlation';
-import { generateUUID } from '../../utils/crypto';
 
 /**
  * Standard error response format
@@ -81,7 +80,7 @@ export function formatErrorResponse(
 		retryable: classification.retryable,
 		timestamp: new Date().toISOString(),
 		...(event && { path: event.url.pathname }),
-		requestId: generateUUID()
+		requestId: crypto.randomUUID()
 	};
 }
 
@@ -225,7 +224,7 @@ export function aggregateErrorResponse(errors: Array<Error | unknown>): ErrorRes
 		severity: 'MEDIUM',
 		retryable: false,
 		timestamp: new Date().toISOString(),
-		requestId: generateUUID()
+		requestId: crypto.randomUUID()
 	};
 
 	const classifications = errors.map(e => classifyError(e));

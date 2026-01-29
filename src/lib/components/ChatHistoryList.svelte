@@ -2,53 +2,102 @@
 /**
  * Chat History List Component
  * 
- * Demonstrates TanStack Query integration for managing chat history
- * with automatic caching, refetching, and optimistic updates.
+ * Displays chat history with direct persistence store integration.
+ * Simplified from TanStack Query to reduce complexity and dependencies.
  */
 
-import { chatApi, queryKeys } from '$lib/stores/query';
-import type { ChatConversation } from '$lib/types/chat';
-import { getQueryClient } from '$lib/stores/query';
+import { persistence } from '$lib/stores/persistence.svelte.js';
+import type { ChatConversation, ChatHistory } from '$lib/types/chat';
+import { browser } from '$app/environment';
 
-// Query hook for fetching chat history
-const historyQuery = chatApi.useChatHistory();
+// Reactive state
+let history = $state<ChatHistory>({ conversations: [], currentConversationId: null });
+let isLoading = $state(false);
+let error = $state<Error | null>(null);
+let isDeleting = $state(false);
+let isRenaming = $state(false);
 
-// Mutation hooks for operations
-const deleteMutation = chatApi.useDeleteConversation();
-const renameMutation = chatApi.useRenameConversation();
-
-// Access query client for manual cache updates
-const queryClient = getQueryClient();
-
-// Reactive derived state
-const conversations = $derived(
-	historyQuery.data?.conversations || []
-);
-
-const isLoading = $derived(
-	historyQuery.isPending
-);
-
-const error = $derived(
-	historyQuery.error
-);
+// Load history on mount
+$effect(() => {
+	if (browser) {
+		loadHistory();
+	}
+});
 
 // Actions
-function handleDelete(conversationId: string) {
-	if (confirm('Are you sure you want to delete this conversation?')) {
-		deleteMutation.mutate(conversationId);
+async function loadHistory() {
+	if (!browser) return;
+	
+	isLoading = true;
+	error = null;
+	
+	try {
+		const loaded = await persistence.load();
+		history = loaded;
+	} catch (err) {
+		error = err instanceof Error ? err : new Error('Failed to load history');
+	} finally {
+		isLoading = false;
 	}
 }
 
-function handleRename(conversationId: string, newTitle: string) {
-	renameMutation.mutate({
-		conversationId,
-		newTitle
-	});
+async function handleDelete(conversationId: string) {
+	if (!confirm('Are you sure you want to delete this conversation?')) {
+		return;
+	}
+	
+	isDeleting = true;
+	
+	try {
+		// Remove conversation from history
+		history.conversations = history.conversations.filter(c => c.id !== conversationId);
+		
+		// Update current conversation ID if needed
+		if (history.currentConversationId === conversationId) {
+			history.currentConversationId = history.conversations.length > 0 
+				? history.conversations[history.conversations.length - 1].id 
+				: null;
+		}
+		
+		// Save to persistence
+		await persistence.save(history);
+	} catch (err) {
+		error = err instanceof Error ? err : new Error('Failed to delete conversation');
+		// Reload history on error
+		await loadHistory();
+	} finally {
+		isDeleting = false;
+	}
+}
+
+async function handleRename(conversationId: string, newTitle: string) {
+	if (!newTitle || newTitle.trim() === '') {
+		return;
+	}
+	
+	isRenaming = true;
+	
+	try {
+		// Find and update conversation
+		const conversation = history.conversations.find(c => c.id === conversationId);
+		if (conversation) {
+			conversation.title = newTitle;
+			conversation.updatedAt = new Date();
+			
+			// Save to persistence
+			await persistence.save(history);
+		}
+	} catch (err) {
+		error = err instanceof Error ? err : new Error('Failed to rename conversation');
+		// Reload history on error
+		await loadHistory();
+	} finally {
+		isRenaming = false;
+	}
 }
 
 function handleRefresh() {
-	historyQuery.refetch();
+	loadHistory();
 }
 
 // Format date for display
@@ -75,7 +124,7 @@ function formatDate(date: Date): string {
 		<button 
 			class="refresh-btn"
 			onclick={handleRefresh}
-			disabled={isLoading || historyQuery.isPending}
+			disabled={isLoading}
 			aria-label="Refresh chat history"
 		>
 			{#if isLoading}
@@ -96,7 +145,7 @@ function formatDate(date: Date): string {
 	{/if}
 
 	<!-- Loading State -->
-	{#if isLoading && conversations.length === 0}
+	{#if isLoading && history.conversations.length === 0}
 		<div class="loading-state">
 			<span class="spinner"></span>
 			<p>Loading conversations...</p>
@@ -104,7 +153,7 @@ function formatDate(date: Date): string {
 	{/if}
 
 	<!-- Empty State -->
-	{#if !isLoading && conversations.length === 0}
+	{#if !isLoading && history.conversations.length === 0}
 		<div class="empty-state">
 			<p>No conversations yet</p>
 			<p class="empty-hint">Start a new chat to begin</p>
@@ -112,12 +161,12 @@ function formatDate(date: Date): string {
 	{/if}
 
 	<!-- Conversation List -->
-	{#if !isLoading && conversations.length > 0}
+	{#if !isLoading && history.conversations.length > 0}
 		<ul class="conversation-list">
-			{#each conversations as conversation (conversation.id)}
+			{#each history.conversations as conversation (conversation.id)}
 				<li 
 					class="conversation-item"
-					class:deleting={deleteMutation.isPending}
+					class:deleting={isDeleting}
 				>
 					<div class="conversation-header">
 						<h3 class="conversation-title">
@@ -132,7 +181,7 @@ function formatDate(date: Date): string {
 										handleRename(conversation.id, newTitle);
 									}
 								}}
-								disabled={renameMutation.isPending}
+								disabled={isRenaming}
 								aria-label="Rename conversation"
 							>
 								✏️
@@ -140,7 +189,7 @@ function formatDate(date: Date): string {
 							<button
 								class="action-btn delete"
 								onclick={() => handleDelete(conversation.id)}
-								disabled={deleteMutation.isPending}
+								disabled={isDeleting}
 								aria-label="Delete conversation"
 							>
 								🗑️
@@ -167,11 +216,11 @@ function formatDate(date: Date): string {
 		</ul>
 	{/if}
 
-	<!-- Auto-refresh indicator -->
-	{#if historyQuery.isSuccess && !historyQuery.isPending}
+	<!-- History info -->
+	{#if history.conversations.length > 0}
 		<div class="cache-info">
 			<small>
-				Data cached • Last updated: {formatDate(new Date())}
+				{history.conversations.length} conversation{history.conversations.length === 1 ? '' : 's'}
 			</small>
 		</div>
 	{/if}

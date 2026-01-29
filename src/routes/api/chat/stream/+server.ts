@@ -3,14 +3,16 @@ import { streamOpenRouter } from '$lib/utils/openrouter';
 import { getOpenRouterKey } from '$lib/env';
 import { logger } from '$lib/utils/logger';
 import { ChatRequestSchema } from '$lib/backend/schemas/validation';
-import { classifyError } from '$lib/backend/utils/error-classifier';
-import { getOrCreateCorrelationId, setCorrelationContext, clearCorrelationContext } from '$lib/backend/utils/correlation';
 import { withTimeout } from '$lib/backend/middleware/timeout';
+
+// Simple inline correlation ID helpers
+function getOrCreateCorrelationId(headers: Headers): string {
+	return headers.get('x-correlation-id') || crypto.randomUUID();
+}
 
 const baseHandler: RequestHandler = async ({ request }) => {
 	// Add correlation tracking
 	const correlationId = getOrCreateCorrelationId(request.headers);
-	setCorrelationContext(correlationId);
 	
 	try {
 		// Validate content length before parsing
@@ -49,8 +51,7 @@ const baseHandler: RequestHandler = async ({ request }) => {
 		try {
 			rawBody = await request.json();
 		} catch (parseError) {
-			const classification = classifyError(parseError);
-			logger[classification.logLevel]('Invalid request body JSON', {
+			logger.error('Invalid request body JSON', {
 				error: parseError instanceof Error ? parseError.message : String(parseError),
 				correlationId
 			});
@@ -83,8 +84,7 @@ const baseHandler: RequestHandler = async ({ request }) => {
 				messages: messagesWithIds
 			};
 		} catch (error) {
-			const classification = classifyError(error);
-			logger[classification.logLevel]('Invalid request body', {
+			logger.error('Invalid request body', {
 				error: error instanceof Error ? error.message : String(error),
 				correlationId
 			});
@@ -172,18 +172,15 @@ const baseHandler: RequestHandler = async ({ request }) => {
 					controller.enqueue(encoder.encode('data: [DONE]\n\n'));
 					controller.close();
 				} catch (error) {
-					const classification = classifyError(error);
-					
-					logger[classification.logLevel]('Stream error', {
+					logger.error('Stream error', {
 						error: error instanceof Error ? error.message : String(error),
-						correlationId,
-						category: classification.category
+						correlationId
 					});
 					
 					controller.enqueue(
 						encoder.encode(
 							`data: ${JSON.stringify({
-								error: classification.userMessage,
+								error: error instanceof Error ? error.message : 'Unknown error',
 								details: error instanceof Error ? error.message : 'Unknown error',
 								finishReason: 'error',
 								correlationId
@@ -205,17 +202,14 @@ const baseHandler: RequestHandler = async ({ request }) => {
 			}
 		});
 	} catch (error) {
-		const classification = classifyError(error);
-		
-		logger[classification.logLevel]('Stream API error', {
+		logger.error('Stream API error', {
 			error: error instanceof Error ? error.message : String(error),
-			correlationId,
-			category: classification.category
+			correlationId
 		});
 
 		return new Response(
 			JSON.stringify({
-				error: classification.userMessage,
+				error: error instanceof Error ? error.message : 'Unknown error',
 				details: error instanceof Error ? error.message : 'Unknown error',
 				correlationId
 			}),
@@ -224,8 +218,6 @@ const baseHandler: RequestHandler = async ({ request }) => {
 				headers: { 'Content-Type': 'application/json', 'x-correlation-id': correlationId } 
 			}
 		);
-	} finally {
-		clearCorrelationContext();
 	}
 };
 

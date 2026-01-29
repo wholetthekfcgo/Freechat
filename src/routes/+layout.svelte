@@ -1,7 +1,5 @@
 <script lang="ts">
 	import '../app.css';
-	import ErrorBoundary from '$lib/components/ErrorBoundary.svelte';
-	import { errorTracker } from '$lib/utils/error-tracker';
 	import { browser } from '$app/environment';
 	import { onMount } from 'svelte';
 
@@ -59,19 +57,17 @@
 	{announcer}
 </div>
 
-<ErrorBoundary>
-	<div class="bg-background text-foreground min-h-screen">
-		<!-- Main content region with proper semantics -->
-		<main 
-			bind:this={mainContentElement}
-			id="main-content" 
-			tabindex="-1"
-			aria-label="Chat interface"
-		>
-			{@render children()}
-		</main>
-	</div>
-</ErrorBoundary>
+<div class="bg-background text-foreground min-h-screen">
+	<!-- Main content region with proper semantics -->
+	<main 
+		bind:this={mainContentElement}
+		id="main-content" 
+		tabindex="-1"
+		aria-label="Chat interface"
+	>
+		{@render children()}
+	</main>
+</div>
 
 <style>
 	/* Screen reader only class */

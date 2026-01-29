@@ -6,7 +6,6 @@
 	import { formatTokenCount, formatCost } from '$lib/utils/token-tracker';
 	import { persistence } from '$lib/stores/persistence.svelte.js';
 	import type { PageData } from './$types';
-	import ErrorBoundary from '$lib/components/ErrorBoundary.svelte';
 
 	let { data }: { data: PageData } = $props();
 
@@ -111,7 +110,7 @@
 					
 					if (role === 'user' || role === 'assistant') {
 						importedMessages.push({
-							id: crypto.randomUUID(),
+							id: typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `msg-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`,
 							role,
 							content: content_text,
 							timestamp: new Date(),
@@ -176,22 +175,20 @@
 	});
 </script>
 
-<ErrorBoundary>
-	<ChatInterface
-		{messages}
-		{isLoading}
-		{error}
-		{currentModel}
-		onSendMessage={handleSendMessage}
-		onClear={handleClear}
-		onExport={handleExport}
-		onImport={handleImport}
-		onRegenerate={handleRegenerate}
-		onModelChange={handleModelChange}
-		{remainingTokens}
-		{capacity}
-		{totalTokens}
-		{totalCost}
-		{requestCount}
-	/>
-</ErrorBoundary>
+<ChatInterface
+	{messages}
+	{isLoading}
+	{error}
+	{currentModel}
+	onSendMessage={handleSendMessage}
+	onClear={handleClear}
+	onExport={handleExport}
+	onImport={handleImport}
+	onRegenerate={handleRegenerate}
+	onModelChange={handleModelChange}
+	{remainingTokens}
+	{capacity}
+	{totalTokens}
+	{totalCost}
+	{requestCount}
+/>

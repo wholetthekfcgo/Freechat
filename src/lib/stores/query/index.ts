@@ -1,16 +1,10 @@
 /**
- * TanStack Query Store Exports
+ * Query Store Exports
  * 
- * Central export point for all TanStack Query functionality
+ * Simplified to only export types.
+ * TanStack Query layer removed to reduce complexity.
  */
 
-export { getQueryClient, resetQueryClient, QueryClient } from './query-client.svelte.js';
-export { useQuery, useMutation, queryKeys } from './hooks.svelte.js';
-export {
-	chatApi,
-	useChatHistory,
-	useSendMessage,
-	useDeleteConversation,
-	useRenameConversation,
-	useSaveChatHistory
-} from './chat-api.svelte.js';
+// Re-export types for compatibility
+export type { ChatConversation, ChatHistory } from '$lib/types/chat';
+

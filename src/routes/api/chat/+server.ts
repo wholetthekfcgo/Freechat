@@ -5,14 +5,16 @@ import { getOpenRouterKey } from '$lib/env';
 import { logger } from '$lib/utils/logger';
 import { ChatRequestSchema } from '$lib/backend/schemas/validation';
 import { withTimeout } from '$lib/backend/middleware/timeout';
-import { classifyError, isRetryable } from '$lib/backend/utils/error-classifier';
-import { getOrCreateCorrelationId, addCorrelationHeader, setCorrelationContext, clearCorrelationContext } from '$lib/backend/utils/correlation';
+
+// Simple inline correlation ID helper
+function getOrCreateCorrelationId(headers: Headers): string {
+	return headers.get('x-correlation-id') || crypto.randomUUID();
+}
 
 // Wrap handler with timeout and enhanced error handling
 const baseHandler: RequestHandler = async ({ request }) => {
 	// Add correlation tracking
 	const correlationId = getOrCreateCorrelationId(request.headers);
-	setCorrelationContext(correlationId);
 	
 	try {
 		logger.info('Processing chat request', {
@@ -91,15 +93,10 @@ const baseHandler: RequestHandler = async ({ request }) => {
 		
 		return json(response, { headers: { 'x-correlation-id': correlationId } });
 	} catch (error) {
-		// Classify error for intelligent handling
-		const classification = classifyError(error);
-		
-		logger[classification.logLevel]('Chat API error', {
+		// Simple error handling without classification
+		logger.error('Chat API error', {
 			error: error instanceof Error ? error.message : String(error),
-			correlationId,
-			category: classification.category,
-			severity: classification.severity,
-			retryable: classification.retryable
+			correlationId
 		});
 
 		// Check if it's a Zod validation error
@@ -108,43 +105,21 @@ const baseHandler: RequestHandler = async ({ request }) => {
 				{ 
 					error: 'Invalid request', 
 					details: error.message,
-					correlationId,
-					category: 'PERMANENT'
+					correlationId
 				},
 				{ status: 400, headers: { 'x-correlation-id': correlationId } }
 			);
 		}
-
-		// Circuit breaker open error
-		if (error instanceof Error && error.name === 'CircuitBreakerOpenError') {
-			return json(
-				{
-					error: 'Service temporarily unavailable',
-					details: 'Too many recent failures. Please try again in a moment.',
-					correlationId,
-					category: 'SERVICE_UNAVAILABLE',
-					retryAfter: '60s'
-				},
-				{ status: 503, headers: { 'x-correlation-id': correlationId, 'retry-after': '60' } }
-			);
-		}
 		
-		// Return classified error response
+		// Return generic error response
 		return json(
 			{ 
-				error: classification.userMessage,
+				error: error instanceof Error ? error.message : 'Unknown error',
 				details: error instanceof Error ? error.message : 'Unknown error',
-				correlationId,
-				category: classification.category,
-				retryable: classification.retryable
+				correlationId
 			},
-			{ 
-				status: classification.category === 'SERVICE_UNAVAILABLE' ? 503 : 500,
-				headers: { 'x-correlation-id': correlationId } 
-			}
+			{ status: 500, headers: { 'x-correlation-id': correlationId } }
 		);
-	} finally {
-		clearCorrelationContext();
 	}
 };
 
