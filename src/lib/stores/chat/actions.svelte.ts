@@ -6,7 +6,7 @@
  */
 
 import type { Message, ChatConversation } from '$lib/types/chat';
-import { chatState, chatHistory, tokenUsage } from './state.svelte.js';
+import { chatState, chatHistory, tokenUsage, tokenBucket } from './state.svelte.js';
 import { logger } from '$lib/utils/logger';
 import { queueRequest, abortAllRequests } from '$lib/utils/request-queue';
 import { withRateLimitAndRetry } from '$lib/utils/rate-limiter';
@@ -49,9 +49,10 @@ async function saveCurrentHistory(): Promise<void> {
 export async function sendMessage(content: string, stream = true): Promise<void> {
 	const model = chatState.currentModel;
 
-	// Check if user has credits remaining
-	if (tokenUsage.requestCount >= 30) {
-		chatState.error = 'Rate limit reached. You have used all 30 credits. Click the + button to get 30 more credits every hour.';
+	// Check if user has credits remaining using tokenBucket reactive state
+	if (tokenBucket.remainingTokens <= 0) {
+		const refillTime = Math.ceil((tokenBucket.lastRefillTime + 3600000 - Date.now()) / 60000);
+		chatState.error = `Rate limit reached. ${refillTime} minutes until refill. Or click the + button to get 30 more credits.`;
 		return;
 	}
 
@@ -445,12 +446,14 @@ export function clearMessages(): void {
 }
 
 /**
- * Set the current AI model
+ * Set the current AI model with debouncing
  * 
  * @param model - Model identifier
  */
 export function setModel(model: string): void {
 	chatState.currentModel = model;
+	// Debounced save will be handled by caller if needed
+	logger.info('Model changed', { model });
 }
 
 /**

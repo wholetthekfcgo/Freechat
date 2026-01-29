@@ -25,15 +25,9 @@
 			// Prevent body scroll
 			document.body.style.overflow = 'hidden';
 
-			// Add focus trap listener
-			dialogRef?.addEventListener('keydown', handleFocusTrap);
-
 			// Announce to screen readers
 			announce('Keyboard shortcuts dialog opened');
 		} else {
-			// Remove focus trap listener
-			dialogRef?.removeEventListener('keydown', handleFocusTrap);
-
 			// Restore focus
 			if (previousFocus) {
 				previousFocus.focus();
@@ -47,32 +41,6 @@
 
 	function handleClose() {
 		onClose?.();
-	}
-
-	// Focus trap within dialog
-	function handleFocusTrap(event: KeyboardEvent) {
-		if (event.key !== 'Tab') return;
-
-		const focusableElements = dialogRef?.querySelectorAll(
-			'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-		);
-
-		if (!focusableElements || focusableElements.length === 0) return;
-
-		const firstElement = focusableElements[0] as HTMLElement;
-		const lastElement = focusableElements[focusableElements.length - 1] as HTMLElement;
-
-		if (event.shiftKey) {
-			if (document.activeElement === firstElement) {
-				event.preventDefault();
-				lastElement.focus();
-			}
-		} else {
-			if (document.activeElement === lastElement) {
-				event.preventDefault();
-				firstElement.focus();
-			}
-		}
 	}
 
 	function handleKeydown(event: KeyboardEvent) {
@@ -142,7 +110,6 @@
 			tabindex="-1"
 			aria-modal="true"
 			aria-labelledby="dialog-title"
-			onclick={(e) => e.stopPropagation()}
 		>
 			<!-- Header -->
 			<div class="flex items-start justify-between mb-6">

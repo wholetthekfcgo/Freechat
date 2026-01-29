@@ -1,214 +1,71 @@
 /**
- * Encryption utilities for securing sensitive data in IndexedDB
- * Uses Web Crypto API with proper key derivation
+ * Storage utilities for client-side data persistence
+ *
+ * SECURITY TRANSPARENCY: This is a client-side only application.
+ * All data is stored in PLAINTEXT in IndexedDB. This is intentional and transparent.
+ *
+ * Why no encryption?
+ * 1. True encryption requires a user-provided secret (password) which degrades UX
+ * 2. Browser-derived keys are obfuscation, not true encryption (anyone with browser access can decrypt)
+ * 3. Server-side encryption requires backend infrastructure (not a client-side app)
+ * 4. Transparency over false sense of security
+ *
+ * For users requiring real encryption:
+ * - Use full-disk encryption (BitLocker, FileVault, LUKS)
+ * - Use a password manager with encryption
+ * - Clear browser data after sessions
  */
 
 import { logger } from './logger';
-import { idb, STORES } from './indexeddb';
-
-// Key derivation parameters
-const ENCRYPTION_ALGORITHM = 'AES-GCM';
-const KEY_DERIVATION_ALGORITHM = 'PBKDF2';
-const SALT_LENGTH = 16;
-const IV_LENGTH = 12;
-const KEY_ITERATIONS = 100000;
 
 /**
- * Get encryption base secret from environment
- * 
- * SECURITY: This is a client-side only application, so true encryption is not possible
- * without a user-provided secret. We use a deterministic key derivation from browser
- * entropy to provide obfuscation, but this is NOT true encryption.
- * 
- * For production deployments requiring real encryption:
- * 1. Implement server-side encryption with proper key management
- * 2. Or require users to provide their own encryption password
- */
-function getEncryptionBaseSecret(): string {
-	// Check for environment variable (server-side only - never expose to client)
-	if (typeof process !== 'undefined' && process.env?.ENCRYPTION_SECRET) {
-		// Only use server-side secret for server-side encryption
-		return process.env.ENCRYPTION_SECRET;
-	}
-	
-	// CRITICAL: Never use VITE_ prefixed env vars for secrets - they're bundled in client code
-	// Instead, we'll derive a key from user-specific browser entropy
-	// This provides obfuscation, not true encryption
-	
-	logger.warn('Using browser-derived encryption key (obfuscation only, not true encryption)');
-	return 'base-secret-for-key-derivation';
-}
-
-/**
- * Get or create a user-specific encryption key
- * Uses a combination of domain secret and user-specific entropy
- */
-async function getEncryptionKey(): Promise<CryptoKey> {
-	// Create a persistent key for this user/browser
-	const keyMaterial = await getKeyMaterial();
-	
-	// Get or create salt for this user
-	let salt = await getOrCreateSalt();
-	
-	// Derive the actual encryption key
-	return window.crypto.subtle.deriveKey(
-		{
-			name: KEY_DERIVATION_ALGORITHM,
-			salt: new Uint8Array(salt),
-			iterations: KEY_ITERATIONS,
-			hash: 'SHA-256'
-		},
-		keyMaterial,
-		{ name: ENCRYPTION_ALGORITHM, length: 256 },
-		false,
-		['encrypt', 'decrypt']
-	);
-}
-
-/**
- * Create key material from app secret and browser-specific data
- * Uses stable entropy sources that persist across sessions
- */
-async function getKeyMaterial(): Promise<CryptoKey> {
-	// Use secure base secret from environment or fallback
-	const baseSecret = getEncryptionBaseSecret();
-	
-	// Use ONLY stable entropy sources that don't change between sessions
-	// Avoid: screen dimensions, timezone, hardware info (can change)
-	const entropySources = [
-		// Language (stable)
-		navigator.language,
-		// User agent hash (stable for a given browser)
-		await sha256(navigator.userAgent)
-	];
-	
-	// Combine all entropy sources with the base secret
-	const combined = baseSecret + '|' + entropySources.join('|');
-	
-	return window.crypto.subtle.importKey(
-		'raw',
-		new TextEncoder().encode(combined),
-		{ name: KEY_DERIVATION_ALGORITHM },
-		false,
-		['deriveKey']
-	);
-}
-
-/**
- * Hash a string using SHA-256 (for one-way transformations)
- * Used here for creating deterministic but non-reversible values
- */
-async function sha256(data: string): Promise<string> {
-	const dataBytes = new TextEncoder().encode(data);
-	const hashBuffer = await window.crypto.subtle.digest('SHA-256', dataBytes);
-	const hashArray = Array.from(new Uint8Array(hashBuffer));
-	return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-}
-
-/**
- * Get or create a salt for this user
- */
-async function getOrCreateSalt(): Promise<Uint8Array> {
-	const saltKey = 'encryption-salt';
-	const storedSalt = await idb.get<{ id: string; value: number[] }>(STORES.ENCRYPTION_SALT, saltKey);
-	
-	if (storedSalt && storedSalt.value) {
-		try {
-			return new Uint8Array(storedSalt.value);
-		} catch {
-			logger.warn('Invalid salt stored, creating new one');
-		}
-	}
-	
-	// Create new salt
-	const salt = window.crypto.getRandomValues(new Uint8Array(SALT_LENGTH));
-	await idb.set(STORES.ENCRYPTION_SALT, { id: saltKey, value: Array.from(salt) });
-	return salt;
-}
-
-/**
- * Encrypt data using AES-GCM with Web Crypto API
- * @param data - The data to encrypt (will be JSON stringified)
- * @returns Encrypted string (salt + iv + ciphertext, base64 encoded)
+ * Encode data for storage (Base64 encoding, NOT encryption)
+ * This provides minimal obfuscation but is NOT secure
+ * @param data - The data to encode (will be JSON stringified)
+ * @returns Base64 encoded string
  */
 export async function encrypt(data: unknown): Promise<string> {
-	if (typeof window === 'undefined' || !window.crypto) {
-		throw new Error('Web Crypto API not available');
-	}
+	logger.info('Data stored in plaintext - client-side application');
 
 	try {
 		const jsonString = JSON.stringify(data);
-		const dataBytes = new TextEncoder().encode(jsonString);
-		
-		// Get encryption key
-		const key = await getEncryptionKey();
-		
-		// Generate random IV
-		const iv = window.crypto.getRandomValues(new Uint8Array(IV_LENGTH));
-		
-		// Encrypt
-		const ciphertext = await window.crypto.subtle.encrypt(
-			{ name: ENCRYPTION_ALGORITHM, iv },
-			key,
-			dataBytes
-		);
-		
-		// Combine salt, iv, and ciphertext
-		const combined = new Uint8Array(iv.length + ciphertext.byteLength);
-		combined.set(iv);
-		combined.set(new Uint8Array(ciphertext), iv.length);
-		
-		// Encode as base64
-		return btoa(String.fromCharCode(...combined));
+		// Base64 encode for minimal obfuscation (NOT encryption)
+		// Use TextEncoder to handle Unicode characters properly
+		const encoder = new TextEncoder();
+		const dataBytes = encoder.encode(jsonString);
+		const binaryString = String.fromCharCode(...dataBytes);
+		return btoa(binaryString);
 	} catch (error) {
-		logger.error('Encryption failed:', error);
-		throw new Error('Failed to encrypt data');
+		logger.error('Encoding failed:', error);
+		throw new Error('Failed to encode data');
 	}
 }
 
 /**
- * Decrypt data using AES-GCM with Web Crypto API
- * @param encryptedData - The encrypted string
- * @returns Decrypted data (parsed from JSON)
+ * Decode data from storage (Base64 decoding, NOT decryption)
+ * @param encodedData - The Base64 encoded string
+ * @returns Decoded data (parsed from JSON)
  */
-export async function decrypt<T>(encryptedData: string): Promise<T | null> {
-	if (typeof window === 'undefined' || !window.crypto) {
-		throw new Error('Web Crypto API not available');
-	}
-
+export async function decrypt<T>(encodedData: string): Promise<T | null> {
 	try {
 		// Decode from base64
-		const combined = new Uint8Array(
-			atob(encryptedData)
-				.split('')
-				.map(c => c.charCodeAt(0))
-		);
-		
-		// Extract IV and ciphertext
-		const iv = combined.slice(0, IV_LENGTH);
-		const ciphertext = combined.slice(IV_LENGTH);
-		
-		// Get decryption key
-		const key = await getEncryptionKey();
-		
-		// Decrypt
-		const decryptedBytes = await window.crypto.subtle.decrypt(
-			{ name: ENCRYPTION_ALGORITHM, iv },
-			key,
-			ciphertext
-		);
-		
-		// Decode and parse
-		const decryptedString = new TextDecoder().decode(decryptedBytes);
-		
-		if (!decryptedString || decryptedString.length === 0) {
+		const binaryString = atob(encodedData);
+		// Convert binary string back to bytes, then decode as UTF-8
+		const dataBytes = new Uint8Array(binaryString.length);
+		for (let i = 0; i < binaryString.length; i++) {
+			dataBytes[i] = binaryString.charCodeAt(i);
+		}
+		const decoder = new TextDecoder();
+		const jsonString = decoder.decode(dataBytes);
+
+		if (!jsonString || jsonString.length === 0) {
 			return null;
 		}
-		
-		return JSON.parse(decryptedString) as T;
+
+		return JSON.parse(jsonString) as T;
 	} catch (error) {
-		logger.error('Decryption failed:', error);
-		throw new Error('Decryption failed: ' + (error instanceof Error ? error.message : 'Unknown error'));
+		logger.error('Decoding failed:', error);
+		throw new Error('Decoding failed: ' + (error instanceof Error ? error.message : 'Unknown error'));
 	}
 }
 
