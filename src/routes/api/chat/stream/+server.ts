@@ -13,11 +13,6 @@ const baseHandler: RequestHandler = async ({ request }) => {
 	setCorrelationContext(correlationId);
 	
 	try {
-		logger.info('Processing stream request', {
-			correlationId,
-			url: request.url
-		});
-
 		// Validate content length before parsing
 		const contentLength = request.headers.get('content-length');
 		if (contentLength && parseInt(contentLength) > 1_000_000) { // 1MB limit
@@ -74,12 +69,6 @@ const baseHandler: RequestHandler = async ({ request }) => {
 		let body;
 		try {
 			body = ChatRequestSchema.parse(rawBody);
-			
-			logger.info('Stream request validated', { 
-				correlationId,
-				model: body.model, 
-				messageCount: body.messages.length 
-			});
 			
 			// Transform messages to include required id field
 			const messagesWithIds = body.messages.map(msg => ({
