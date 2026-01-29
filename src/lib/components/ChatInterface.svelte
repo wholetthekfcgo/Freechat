@@ -11,7 +11,7 @@
 	import { browser } from '$app/environment';
 	import { announce, announceError, initAnnouncer } from '$lib/utils/announcer';
 	import { onMount } from 'svelte';
-	import { ConfirmDialog } from '$lib/components/ui/dialog';
+	import { ConfirmDialog, KeyboardShortcutsDialog } from '$lib/components/ui/dialog';
 	import BuyCreditsModal from '$lib/components/BuyCreditsModal.svelte';
 
 	import { formatTokenCount, formatCost } from '$lib/utils/token-tracker';
@@ -57,6 +57,7 @@
 	let showClearDialog = $state(false);
 	let showDeleteDialog = $state(false);
 	let showBuyCreditsModal = $state(false);
+	let showKeyboardShortcuts = $state(false);
 	let conversationToDelete: string | null = null;
 
 	// Initialize screen reader announcer on mount
@@ -193,7 +194,7 @@
 		// Ctrl/Cmd + /: Show keyboard shortcuts
 		if ((event.ctrlKey || event.metaKey) && event.key === '/') {
 			event.preventDefault();
-			announce('Keyboard shortcuts: Ctrl+K focus input, Ctrl+Enter send, Escape stop generation');
+			showKeyboardShortcuts = true;
 		}
 	}
 
@@ -440,7 +441,7 @@
 								<div class="space-y-6 text-left animate-stagger-entry">
 									<div class="overflow-hidden">
 										<h1 class="text-display-xl lg:text-[10rem] leading-[0.85] text-foreground tracking-tighter font-bold">
-											FREE<br>CHAT
+											FREECHAT
 										</h1>
 									</div>
 									<div class="overflow-hidden">
@@ -490,6 +491,22 @@
 												<p class="text-body-sm text-muted-foreground">Your conversations are never stored on servers</p>
 											</div>
 										</div>
+									</div>
+
+									<!-- Keyboard shortcuts hint -->
+									<div class="pt-4 border-l-2 border-muted pl-4">
+										<button
+											onclick={() => (showKeyboardShortcuts = true)}
+											class="flex items-center gap-3 text-body-sm text-muted-foreground hover:text-foreground transition-colors group"
+											aria-label="View keyboard shortcuts"
+										>
+											<div class="flex items-center gap-1">
+												<kbd class="px-1.5 py-0.5 text-xs font-mono bg-background border border-border rounded group-hover:border-primary/50 transition-colors">Ctrl</kbd>
+												<span class="text-xs">+</span>
+												<kbd class="px-1.5 py-0.5 text-xs font-mono bg-background border border-border rounded group-hover:border-primary/50 transition-colors">/</kbd>
+											</div>
+											<span>for keyboard shortcuts</span>
+										</button>
 									</div>
 
 									<!-- Diagnostic-style call to action -->
@@ -588,5 +605,10 @@
 		open={showBuyCreditsModal}
 		onClose={() => (showBuyCreditsModal = false)}
 		onPurchase={handlePurchaseCredits}
+	/>
+
+	<KeyboardShortcutsDialog
+		open={showKeyboardShortcuts}
+		onClose={() => (showKeyboardShortcuts = false)}
 	/>
 </div>
