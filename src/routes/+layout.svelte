@@ -1,7 +1,6 @@
 <script lang="ts">
 	import '../app.css';
 	import { browser } from '$app/environment';
-	import { onMount } from 'svelte';
 
 	// In Svelte 5, layout components receive children as a prop
 	let { children } = $props();
@@ -40,7 +39,6 @@
 <svelte:head>
 	<title>Freechat - Free as in Freedom</title>
 	<meta name="description" content="Freechat.cc - Free AI Chatbot powered by OpenRouter. Free as in Freedom." />
-	<meta http-equiv="content-security-policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob: https:; connect-src 'self' https://openrouter.ai https://*.openrouter.ai; font-src 'self' data: https://fonts.gstatic.com;">
 </svelte:head>
 
 <!-- Skip to content link (visible on keyboard focus) -->
