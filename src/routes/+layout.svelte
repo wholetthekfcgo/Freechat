@@ -1,6 +1,7 @@
 <script lang="ts">
 	import '../app.css';
 	import { browser } from '$app/environment';
+	import AlphaDevBanner from '$lib/components/AlphaDevBanner.svelte';
 
 	// In Svelte 5, layout components receive children as a prop
 	let { children } = $props();
@@ -56,6 +57,9 @@
 </div>
 
 <div class="bg-background text-foreground min-h-screen">
+	<!-- Alpha Dev Banner -->
+	<AlphaDevBanner />
+	
 	<!-- Main content region with proper semantics -->
 	<main 
 		bind:this={mainContentElement}
