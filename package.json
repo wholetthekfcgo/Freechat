@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "vite dev",
-    "build": "vite build",
+    "build": "npm run build:sveltekit",
+    "build:sveltekit": "vite build",
     "preview": "node build/index.js",
     "check": "svelte-kit sync && svelte-check --workspace .",
     "check:watch": "svelte-kit sync && svelte-check --workspace . --watch",
