@@ -12,3 +12,6 @@ build
 
 # OS
 Thumbs.db
+
+# Goose AI
+.goose/
