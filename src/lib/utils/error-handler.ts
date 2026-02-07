@@ -17,6 +17,7 @@ import {
 	getUserErrorMessage 
 } from '$lib/utils/errors';
 import { browser } from '$app/environment';
+import { generateUUID } from './uuid';
 
 /**
  * Error severity levels
@@ -75,7 +76,7 @@ class ErrorHandler {
 	 * Handle an error with comprehensive logging and user feedback
 	 */
 	handle(error: unknown, context: ErrorContext = {}): ErrorHandlingResult {
-		const errorId = crypto.randomUUID();
+		const errorId = generateUUID();
 		
 		// Convert to AppError if needed
 		const appError = toAppError(error);

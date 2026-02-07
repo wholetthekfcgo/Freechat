@@ -14,6 +14,7 @@
 
 import { AsyncQueuer } from '@tanstack/pacer';
 import { logger } from './logger';
+import { generateUUID } from './uuid';
 
 /**
  * Queued request interface
@@ -98,7 +99,7 @@ export async function queueRequest<T>(
 	abort: () => void,
 	priority = 0
 ): Promise<T> {
-	const requestId = `req-${Date.now()}-${crypto.randomUUID().slice(0, 8)}`;
+	const requestId = `req-${Date.now()}-${generateUUID().slice(0, 8)}`;
 	
 	return new Promise((resolve, reject) => {
 		const queuedItem: QueuedRequest<T> = {
