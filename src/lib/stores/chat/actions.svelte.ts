@@ -15,6 +15,7 @@ import { calculateTokenUsage, formatTokenCount, formatCost } from '$lib/utils/to
 import { prependSystemPrompt } from '$lib/utils/system-prompt';
 import { generateUUID } from '$lib/utils/uuid';
 import { handleStreamResponse } from '$lib/utils/stream-handler';
+import { createDebouncedFunction } from '$lib/utils/debounce';
 
 /**
  * Generate a title for the conversation based on first message
@@ -35,6 +36,22 @@ function generateTitle(messages: Message[]): string {
  */
 async function saveCurrentHistory(): Promise<void> {
 	await saveChatHistory(chatHistory);
+}
+
+/**
+ * Debounced version of saveCurrentHistory
+ * Delays saving to prevent excessive IndexedDB writes
+ * Flushed immediately on page unload
+ */
+const debouncedSaveHistory = createDebouncedFunction(saveCurrentHistory, 2000);
+
+/**
+ * Setup beforeunload handler to flush pending saves
+ */
+if (typeof window !== 'undefined') {
+	window.addEventListener('beforeunload', () => {
+		debouncedSaveHistory.flush();
+	});
 }
 
 /**
@@ -310,8 +327,9 @@ export async function saveCurrentConversation(): Promise<void> {
 		messageCount: conversation.messages.length,
 		totalConversations: conversations.length 
 	});
-	
-	await saveCurrentHistory();
+
+	// Use debounced save to prevent excessive writes
+	await debouncedSaveHistory();
 }
 
 /**
@@ -326,7 +344,8 @@ export async function loadConversation(conversationId: string): Promise<void> {
 		chatState.currentModel = conversation.model;
 		chatState.enableThinking = conversation.enableThinking || false;
 		chatHistory.currentConversationId = conversationId;
-		await saveCurrentHistory();
+		// Use debounced save
+		await debouncedSaveHistory();
 	}
 }
 
@@ -339,7 +358,8 @@ export async function startNewChat(): Promise<void> {
 	if (chatHistory) {
 		chatHistory.currentConversationId = null;
 	}
-	await saveCurrentHistory();
+	// Use debounced save
+	await debouncedSaveHistory();
 }
 
 /**
@@ -349,15 +369,16 @@ export async function startNewChat(): Promise<void> {
  */
 export async function deleteConversation(conversationId: string): Promise<void> {
 	if (!chatHistory?.conversations) return;
-	
+
 	chatHistory.conversations = chatHistory.conversations.filter(
 		c => c.id !== conversationId
 	);
-	
+
 	if (chatHistory.currentConversationId === conversationId) {
 		await startNewChat();
 	} else {
-		await saveCurrentHistory();
+		// Use debounced save
+		await debouncedSaveHistory();
 	}
 }
 
@@ -372,7 +393,8 @@ export async function renameConversation(conversationId: string, newTitle: strin
 	if (conversation) {
 		conversation.title = newTitle;
 		conversation.updatedAt = new Date();
-		await saveCurrentHistory();
+		// Use debounced save
+		await debouncedSaveHistory();
 	}
 }
 

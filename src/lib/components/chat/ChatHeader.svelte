@@ -1,21 +1,21 @@
 <script lang="ts">
 	import { TrendingUp, Plus, Menu, X } from '@lucide/svelte';
+	import { tokenUsage, tokenBucket } from '$lib/stores/chat';
 
 	let {
 		showBuyCreditsModal = $bindable(false),
-		remainingTokens = 60,
-		capacity = 60,
 		onMobileMenuToggle = () => {},
 		onBuyCredits = () => {},
-		mobileMenuOpen = false
+		showSidebar = false
 	}: {
 		showBuyCreditsModal: boolean;
-		remainingTokens: number;
-		capacity: number;
 		onMobileMenuToggle: () => void;
 		onBuyCredits: () => void;
-		mobileMenuOpen: boolean;
+		showSidebar: boolean;
 	} = $props();
+
+	const capacity = 60;
+	const remainingTokens = $derived(capacity - tokenUsage.requestCount);
 </script>
 
 <header class="border-b border-border animate-fade-in px-4 py-3 md:px-6 md:py-4">
@@ -26,9 +26,9 @@
 			class="mobile-icon-btn md:hidden touch-target"
 			title="Toggle menu"
 			aria-label="Toggle menu"
-			aria-pressed={mobileMenuOpen}
+			aria-pressed={showSidebar}
 		>
-			{#if mobileMenuOpen}
+			{#if showSidebar}
 				<X class="w-6 h-6" />
 			{:else}
 				<Menu class="w-6 h-6" />

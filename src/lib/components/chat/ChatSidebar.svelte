@@ -5,7 +5,6 @@
 
 	let {
 		showSidebar = $bindable(false),
-		mobileMenuOpen = $bindable(false),
 		conversations = [],
 		currentConversationId = null,
 		onLoadConversation,
@@ -15,7 +14,6 @@
 		onClose = () => {}
 	}: {
 		showSidebar: boolean;
-		mobileMenuOpen: boolean;
 		conversations: ChatConversation[];
 		currentConversationId: string | null;
 		onLoadConversation: (id: string) => void;
@@ -27,7 +25,7 @@
 </script>
 
 {#if showSidebar}
-	<aside class="mobile-sidebar glass flex flex-col {mobileMenuOpen ? 'open' : ''}">
+	<aside class="mobile-sidebar glass flex flex-col {showSidebar ? 'open' : ''}">
 		<!-- Mobile Sidebar Header -->
 		<div class="flex items-center justify-between p-4 border-b border-border md:hidden">
 			<h2 class="text-display-sm text-foreground">History</h2>

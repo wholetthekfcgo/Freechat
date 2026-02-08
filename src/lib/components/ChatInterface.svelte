@@ -24,9 +24,7 @@
 		onExport,
 		onRegenerate,
 		onModelChange,
-		onThinkingChange,
-		remainingTokens = 60,
-		capacity = 60
+		onThinkingChange
 	}: {
 		messages: Message[];
 		isLoading: boolean;
@@ -39,8 +37,6 @@
 		onExport?: (format: 'markdown' | 'json') => void;
 		onModelChange?: (model: string) => void;
 		onThinkingChange?: (enabled: boolean) => void;
-		remainingTokens?: number;
-		capacity?: number;
 	} = $props();
 
 	let inputMessage = $state('');
@@ -246,18 +242,15 @@
 	<!-- Header -->
 	<ChatHeader
 		bind:showBuyCreditsModal
-		{remainingTokens}
-		{capacity}
 		onMobileMenuToggle={toggleSidebar}
 		onBuyCredits={() => (showBuyCreditsModal = true)}
-		mobileMenuOpen={showSidebar}
+		showSidebar={showSidebar}
 	/>
 
 	<div class="flex-1 flex overflow-hidden relative">
 		<!-- Sidebar -->
 		<ChatSidebar
 			bind:showSidebar
-			bind:mobileMenuOpen={showSidebar}
 			conversations={chatHistory?.conversations ?? []}
 			currentConversationId={chatHistory?.currentConversationId ?? null}
 			onLoadConversation={chatActions.loadConversation}
