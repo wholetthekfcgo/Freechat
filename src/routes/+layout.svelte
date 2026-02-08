@@ -20,10 +20,10 @@
 	// Announce messages to screen readers
 	let announcer = $state('');
 	
-	function announceToScreenReader(message: string, priority: 'polite' | 'assertive' = 'polite') {
-		if (!browser) return;
-		
-		announcer = message;
+ 	function announceToScreenReader(message: string) {
+ 		if (!browser) return;
+
+ 		announcer = message;
 		
 		// Clear after announcement to allow re-announcing same message
 		setTimeout(() => {
@@ -38,8 +38,8 @@
 </script>
 
 <svelte:head>
-	<title>Freechat - Free as in Freedom</title>
-	<meta name="description" content="Freechat.cc - Free AI Chatbot powered by OpenRouter. Free as in Freedom." />
+ <title>Freechat - Free as in Freedom</title>
+ <meta name="description" content="Freechat.cc - Free AI Chatbot powered by Z.AI GLM models. Free as in Freedom." />
 </svelte:head>
 
 <!-- Skip to content link (visible on keyboard focus) -->

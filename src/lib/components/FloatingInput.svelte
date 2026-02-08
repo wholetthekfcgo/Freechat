@@ -1,6 +1,7 @@
 <script lang="ts">
 	import Textarea from '$lib/components/ui/textarea/textarea.svelte';
 	import Button from '$lib/components/ui/button/button.svelte';
+	import ThinkingToggle from '$lib/components/ThinkingToggle.svelte';
 	import { ChevronsUp, X, ChevronUp, Square } from '@lucide/svelte';
 	import { draftManager } from '$lib/utils/draft';
 	import { onMount } from 'svelte';
@@ -13,11 +14,13 @@
 		onStopGeneration,
 		isLoading = false,
 		placeholder = 'Type your message... (Press Enter to send, Shift+Enter for new line)',
-		currentModel = 'openai/gpt-oss-20b:free',
+		currentModel = 'glm-4.7-flash',
 		onModelChange,
+		thinkingEnabled,
+		onThinkingChange,
 		models = [
-			{ id: 'openai/gpt-oss-20b:free', name: 'GPT-OSS 20B' },
-			{ id: 'openai/gpt-oss-120b:free', name: 'GPT-OSS 120B' }
+			{ id: 'glm-4.7-flash', name: 'GLM-4.7-Flash (Default)' },
+			{ id: 'glm-4.5-flash', name: 'GLM-4.5-Flash (Fast)' }
 		]
 	}: {
 		value: string;
@@ -27,6 +30,8 @@
 		placeholder?: string;
 		currentModel?: string;
 		onModelChange?: (model: string) => void;
+		thinkingEnabled?: boolean;
+		onThinkingChange?: (enabled: boolean) => void;
 		models?: Array<{ id: string; name: string }>;
 	} = $props();
 	let isModelOpen = $state(false);
@@ -204,6 +209,12 @@
 							</div>
 						{/if}
 					</div>
+
+					<!-- Thinking Toggle -->
+					<ThinkingToggle
+						bind:enabled={thinkingEnabled}
+						onToggle={(enabled) => onThinkingChange?.(enabled)}
+					/>
 
 					<!-- Action buttons and token counter -->
 					<div class="flex items-center justify-end gap-1.5 sm:gap-2 flex-shrink-0">

@@ -1,6 +1,5 @@
 import type { RequestHandler } from './$types';
-import { streamOpenRouter } from '$lib/utils/openrouter';
-import { getOpenRouterKey } from '$lib/env';
+import { streamProvider } from '$lib/utils/provider-router';
 import { logger } from '$lib/utils/logger';
 import { ChatRequestSchema } from '$lib/backend/schemas/validation';
 import { withTimeout } from '$lib/backend/middleware/timeout';
@@ -13,7 +12,7 @@ function getOrCreateCorrelationId(headers: Headers): string {
 const baseHandler: RequestHandler = async ({ request }) => {
 	// Add correlation tracking
 	const correlationId = getOrCreateCorrelationId(request.headers);
-	
+
 	try {
 		// Validate content length before parsing
 		const contentLength = request.headers.get('content-length');
@@ -43,9 +42,6 @@ const baseHandler: RequestHandler = async ({ request }) => {
 			);
 		}
 
-		// Get API key using validated env accessor
-		const apiKey = getOpenRouterKey();
-
 		// Validate request body with try-catch for JSON parsing
 		let rawBody: unknown;
 		try {
@@ -55,7 +51,7 @@ const baseHandler: RequestHandler = async ({ request }) => {
 				error: parseError instanceof Error ? parseError.message : String(parseError),
 				correlationId
 			});
-			
+
 			return new Response(
 				JSON.stringify({
 					error: 'Invalid JSON',
@@ -65,12 +61,13 @@ const baseHandler: RequestHandler = async ({ request }) => {
 				{ status: 400, headers: { 'Content-Type': 'application/json', 'x-correlation-id': correlationId } }
 			);
 		}
-		
+
 		// Validate with Zod schema
 		let body;
 		try {
 			body = ChatRequestSchema.parse(rawBody);
-			
+			const enableThinking = body.enableThinking || false;
+
 			// Transform messages to include required id field
 			const messagesWithIds = body.messages.map(msg => ({
 				id: crypto.randomUUID(),
@@ -78,17 +75,18 @@ const baseHandler: RequestHandler = async ({ request }) => {
 				content: msg.content,
 				timestamp: new Date()
 			}));
-			
+
 			body = {
 				...body,
-				messages: messagesWithIds
+				messages: messagesWithIds,
+				enableThinking
 			};
 		} catch (error) {
 			logger.error('Invalid request body', {
 				error: error instanceof Error ? error.message : String(error),
 				correlationId
 			});
-			
+
 			return new Response(
 				JSON.stringify({
 					error: 'Invalid request',
@@ -104,11 +102,11 @@ const baseHandler: RequestHandler = async ({ request }) => {
 		let firstTokenTime: number | null = null;
 		let chunkCount = 0;
 		let totalContentLength = 0;
-		
+
 		const stream = new ReadableStream({
 			async start(controller) {
 				try {
-					await streamOpenRouter(apiKey, body, (content, metadata) => {
+					await streamProvider(body.model, body, (content, metadata) => {
 						// Handle error chunks
 						if (metadata?.error) {
 							const errorData = {
@@ -116,12 +114,12 @@ const baseHandler: RequestHandler = async ({ request }) => {
 								finishReason: metadata.finishReason || 'error',
 								correlationId
 							};
-							
+
 							logger.error('Stream error', {
 								error: String(metadata.error),
 								correlationId
 							});
-							
+
 							controller.enqueue(
 								encoder.encode(`data: ${JSON.stringify(errorData)}\n\n`)
 							);
@@ -132,12 +130,12 @@ const baseHandler: RequestHandler = async ({ request }) => {
 						if (content) {
 							chunkCount++;
 							totalContentLength += content.length;
-							
+
 							// Track time to first token
 							if (!firstTokenTime) {
 								firstTokenTime = Date.now() - startTime;
 							}
-							
+
 							controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content, correlationId })}\n\n`));
 						}
 
@@ -154,9 +152,9 @@ const baseHandler: RequestHandler = async ({ request }) => {
 							);
 						}
 					});
-					
+
 					const totalDuration = Date.now() - startTime;
-					
+
 					// Single comprehensive log entry
 					logger.info('Stream complete', {
 						correlationId,
@@ -168,7 +166,7 @@ const baseHandler: RequestHandler = async ({ request }) => {
 						timeToFirstToken: firstTokenTime,
 						usage: null // will be populated if available from metadata
 					});
-					
+
 					controller.enqueue(encoder.encode('data: [DONE]\n\n'));
 					controller.close();
 				} catch (error) {
@@ -176,7 +174,7 @@ const baseHandler: RequestHandler = async ({ request }) => {
 						error: error instanceof Error ? error.message : String(error),
 						correlationId
 					});
-					
+
 					controller.enqueue(
 						encoder.encode(
 							`data: ${JSON.stringify({
@@ -213,9 +211,9 @@ const baseHandler: RequestHandler = async ({ request }) => {
 				details: error instanceof Error ? error.message : 'Unknown error',
 				correlationId
 			}),
-			{ 
+			{
 				status: 500,
-				headers: { 'Content-Type': 'application/json', 'x-correlation-id': correlationId } 
+				headers: { 'Content-Type': 'application/json', 'x-correlation-id': correlationId }
 			}
 		);
 	}

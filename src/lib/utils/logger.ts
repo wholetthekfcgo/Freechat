@@ -9,6 +9,19 @@
 
 export type LogLevel = 'trace' | 'debug' | 'info' | 'warn' | 'error' | 'fatal';
 
+export type Logger = {
+	trace(message: string, context?: LogContext): void;
+	debug(message: string, context?: LogContext): void;
+	info(message: string, context?: LogContext): void;
+	warn(message: string, context?: LogContext): void;
+	error(message: string, error?: Error, context?: LogContext): void;
+	fatal(message: string, error?: Error, context?: LogContext): void;
+	startTimer(name: string): { stop: () => void };
+	streamStart(): void;
+	streamComplete(duration: number): void;
+	streamChunk(chunkCount: number, content: string, totalLength: number): void;
+};
+
 export interface LogContext {
 	[key: string]: unknown;
 }
@@ -98,7 +111,7 @@ function formatLogEntry(
 function logToConsole(entry: LogEntry): void {
 	const color = LOG_LEVEL_COLORS[entry.level];
 	const prefix = `${color}[${entry.level.toUpperCase()}]${RESET_COLOR}`;
-	const timestamp = `${entry.timestamp.split('T')[1].split('.')[0]}`;
+	const timestamp = `${entry.timestamp?.split('T')?.[1]?.split('.')[0] || ''}`;
 	
 	let message = `${prefix} ${timestamp} ${entry.message}`;
 	
@@ -248,6 +261,8 @@ export function createLogger(defaultContext: LogContext): typeof logger {
 			logger.fatal(message, error, { ...defaultContext, ...context }),
 		startTimer: (name: string) => logger.startTimer(name),
 		streamStart: () => logger.streamStart(),
-		streamComplete: (duration: number) => logger.streamComplete(duration)
+		streamComplete: (duration: number) => logger.streamComplete(duration),
+		streamChunk: (chunkCount: number, content: string, totalLength: number) => 
+			logger.streamChunk(chunkCount, content, totalLength)
 	};
 }

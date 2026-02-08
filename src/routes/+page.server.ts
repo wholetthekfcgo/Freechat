@@ -3,9 +3,10 @@ import type { PageServerLoad } from './$types';
 export const load: PageServerLoad = async ({ cookies }) => {
 	// Load user preferences from cookies
 	const savedModel = cookies.get('preferred-model');
+	const savedThinking = cookies.get('thinking-mode') === 'true';
 
 	return {
-		initialModel: savedModel || 'openai/gpt-oss-20b:free',
-		// Add any other server-side initialization data here
+		initialModel: savedModel || 'glm-4.7-flash',
+		initialThinking: savedThinking
 	};
 };

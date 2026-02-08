@@ -1,12 +1,12 @@
 # FREECHAT.CC
 
-**Free as in Freedom** - A modern, production-hardened AI chatbot built with SvelteKit, powered by OpenRouter API.
+**Free as in Freedom** - A modern, production-hardened AI chatbot built with SvelteKit, powered by Z.AI GLM models and OpenRouter API.
 
 ## 🎯 Why FREECHAT.CC?
 
 In a world of walled gardens and locked-down AI platforms, FREECHAT.CC stands for something different:
 
-- **Freedom of Choice** - Access any AI model through OpenRouter without lock-in
+ - **Freedom of Choice** - Access Z.AI GLM models or any AI model through OpenRouter without lock-in
 - **Privacy First** - Local encrypted storage, your data never leaves your device unprotected
 - **Zero Data Retention** - Your conversations are never stored on servers
 - **Lightning Fast** - Optimized token speed with streaming responses
@@ -43,9 +43,10 @@ We believe AI tools should empower you, not restrict you. That's what "free as i
 
 ## 🚀 Quick Start
 
-### Prerequisites
-- Bun
-- OpenRouter API key ([Get one here](https://openrouter.ai/))
+ ### Prerequisites
+ - Bun
+ - Z.AI API key ([Get one here](https://z.ai))
+ - OpenRouter API key (optional, for future use) ([Get one here](https://openrouter.ai/))
 
 ### Installation
 
@@ -61,14 +62,15 @@ bun install
 cp .env.example .env
 ```
 
-### Configure Environment
+ ### Configure Environment
 
-Edit `.env` and add your OpenRouter API key:
+ Edit `.env` and add your API keys:
 
-```env
-OPENROUTER_API_KEY=your_actual_api_key_here
-OPENROUTER_API_URL=https://openrouter.ai/api/v1/chat/completions
-```
+ ```env
+ ZAI_API_KEY=your_actual_zai_api_key_here
+ OPENROUTER_API_KEY=your_actual_openrouter_api_key_here
+ OPENROUTER_API_URL=https://openrouter.ai/api/v1/chat/completions
+ ```
 
 ### Development
 
@@ -112,20 +114,22 @@ ai-chatbot/
 │   │   │   ├── integration/  # Integration tests
 │   │   │   ├── utils/        # Error classification, retry, SSE
 │   │   │   └── index.ts      # Central exports
-│   │   ├── utils/            # Utility functions
-│   │   │   ├── sanitize.ts           # XSS protection
-│   │   │   ├── indexeddb.ts          # IndexedDB wrapper
-│   │   │   ├── storage-quota.ts      # Storage quota management
-│   │   │   ├── request-queue.ts      # API concurrency control
-│   │   │   ├── rate-limiter.ts       # Rate limiting
-│   │   │   ├── stream-recovery.ts    # Partial stream recovery
-│   │   │   ├── beforeunload.ts       # Data loss prevention
-│   │   │   ├── encryption.ts         # Data encryption
-│   │   │   ├── logger.ts             # Structured logging
-│   │   │   ├── draft.ts              # Draft message management
-│   │   │   ├── error-tracker.ts      # Error tracking
-│   │   │   ├── announcer.ts          # ARIA announcements
-│   │   │   └── openrouter.ts         # OpenRouter API client
+ │   │   ├── utils/            # Utility functions
+ │   │   │   ├── sanitize.ts           # XSS protection
+ │   │   │   ├── indexeddb.ts          # IndexedDB wrapper
+ │   │   │   ├── storage-quota.ts      # Storage quota management
+ │   │   │   ├── request-queue.ts      # API concurrency control
+ │   │   │   ├── rate-limiter.ts       # Rate limiting
+ │   │   │   ├── stream-recovery.ts    # Partial stream recovery
+ │   │   │   ├── beforeunload.ts       # Data loss prevention
+ │   │   │   ├── encryption.ts         # Data encryption
+ │   │   │   ├── logger.ts             # Structured logging
+ │   │   │   ├── draft.ts              # Draft message management
+ │   │   │   ├── error-tracker.ts      # Error tracking
+ │   │   │   ├── announcer.ts          # ARIA announcements
+ │   │   │   ├── zai.ts               # Z.AI API client
+ │   │   │   ├── provider-router.ts    # Provider routing logic
+ │   │   │   └── openrouter.ts         # OpenRouter API client
 │   │   ├── schemas/          # Zod validation schemas (NOT in README before)
 │   │   │   └── validation.ts         # Request/response validation
 │   │   ├── test/             # Test utilities and mocks
@@ -232,9 +236,38 @@ bun run test:coverage
 | Initial render (100 msgs) | ~2000ms | ~200ms | 10x faster |
 | Scroll FPS (1000 msgs) | ~15 FPS | 60 FPS | 4x smoother |
 
-## 🔧 Configuration
+ ## 🔧 Configuration
 
-### Available Models
+ ## 🤖 Available Models
+
+ FREECHAT.CC supports the following models:
+
+ ### Z.AI Models (Default)
+ - **GLM-4.7-Flash** - High quality, fast response (default)
+ - **GLM-4.5-Flash** - Lightweight, ultra-fast
+
+ ### OpenRouter Models (Optional)
+ - Any model from [OpenRouter](https://openrouter.ai/models) (requires OPENROUTER_API_KEY)
+   - `openai/gpt-4o`
+   - `openai/gpt-4o-mini`
+   - `anthropic/claude-3.5-sonnet`
+   - `anthropic/claude-3-haiku`
+   - `google/gemini-pro`
+   - `meta-llama/llama-3.1-405b`
+   - And many more...
+
+ ## 🧠 Thinking Mode
+
+ Toggle the "THINK" button to enable enhanced reasoning:
+ - **Off by default** - Standard responses
+ - **On** - Deeper reasoning, slightly slower
+ - Preference saved in cookies for persistence
+ - Ideal for complex problems requiring more analysis
+ - Works with both Z.AI and OpenRouter models
+
+ ## 🔧 Configuration
+
+ ### Available Models
 
 Use any model from [OpenRouter](https://openrouter.ai/models):
 
@@ -298,11 +331,12 @@ MIT License - feel free to use this project for your own purposes.
 
 ## 🙏 Acknowledgments
 
-- [SvelteKit](https://kit.svelte.dev/) - Web framework
-- [OpenRouter](https://openrouter.ai/) - AI model access
-- [TailwindCSS](https://tailwindcss.com/) - Styling
-- [DOMPurify](https://github.com/cure53/DOMPurify) - XSS protection
-- [shadcn-svelte](https://www.shadcn-svelte.com/) - UI components
+ - [SvelteKit](https://kit.svelte.dev/) - Web framework
+ - [Z.AI](https://z.ai/) - GLM model provider
+ - [OpenRouter](https://openrouter.ai/) - AI model access
+ - [TailwindCSS](https://tailwindcss.com/) - Styling
+ - [DOMPurify](https://github.com/cure53/DOMPurify) - XSS protection
+ - [shadcn-svelte](https://www.shadcn-svelte.com/) - UI components
 
 ## 📧 Support
 

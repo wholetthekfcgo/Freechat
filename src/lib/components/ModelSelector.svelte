@@ -3,10 +3,10 @@
 
 	let {
 		class: className = '',
-		model = $bindable('openai/gpt-oss-20b:free'),
+		model = $bindable('glm-4.7-flash'),
 		models = [
-			{ id: 'openai/gpt-oss-20b:free', name: 'GPT-OSS 20B (Free)' },
-			{ id: 'openai/gpt-oss-120b:free', name: 'GPT-OSS 120B (Free)' }
+			{ id: 'glm-4.7-flash', name: 'GLM-4.7-Flash (Default)' },
+			{ id: 'glm-4.5-flash', name: 'GLM-4.5-Flash (Fast)' }
 		],
 		onModelChange
 	}: {

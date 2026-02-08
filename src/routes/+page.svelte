@@ -11,6 +11,8 @@
 
 	// Initialize state from server data - only on client side
 	let initialized = $state(false);
+	let thinkingEnabled = $state(data.initialThinking || false);
+
 	$effect(() => {
 		// Load chat history from IndexedDB on mount (only once)
 		if (browser && !initialized) {
@@ -20,7 +22,7 @@
 					const currentConv = history.conversations.find(
 						(c) => c.id === history.currentConversationId
 					) || history.conversations[history.conversations.length - 1];
-					
+
 					if (currentConv) {
 						chatState.messages = currentConv.messages;
 					}
@@ -28,7 +30,7 @@
 				initialized = true;
 			});
 		}
-		
+
 		if (browser && data.initialModel && !chatState.currentModel) {
 			chatState.currentModel = data.initialModel;
 		}
@@ -143,6 +145,13 @@
 		chatActions.setModel(model);
 	}
 
+	function handleThinkingChange(enabled: boolean) {
+		thinkingEnabled = enabled;
+		chatState.enableThinking = enabled;
+		// Save to cookie for persistence
+		document.cookie = `thinking-mode=${enabled}; path=/; max-age=31536000`;
+	}
+
 	// Keyboard shortcuts
 	$effect(() => {
 		if (!browser) return;
@@ -175,20 +184,22 @@
 	});
 </script>
 
-<ChatInterface
-	{messages}
-	{isLoading}
-	{error}
-	{currentModel}
-	onSendMessage={handleSendMessage}
-	onClear={handleClear}
-	onExport={handleExport}
-	onImport={handleImport}
-	onRegenerate={handleRegenerate}
-	onModelChange={handleModelChange}
-	{remainingTokens}
-	{capacity}
-	{totalTokens}
-	{totalCost}
-	{requestCount}
-/>
+	<ChatInterface
+		{messages}
+		{isLoading}
+		{error}
+		{currentModel}
+		onSendMessage={handleSendMessage}
+		onClear={handleClear}
+		onExport={handleExport}
+		onImport={handleImport}
+		onRegenerate={handleRegenerate}
+		onModelChange={handleModelChange}
+		{thinkingEnabled}
+		onThinkingChange={handleThinkingChange}
+		{remainingTokens}
+		{capacity}
+		{totalTokens}
+		{totalCost}
+		{requestCount}
+	/>

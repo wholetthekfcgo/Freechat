@@ -11,7 +11,7 @@ FREECHAT.CC is a modern AI chatbot built with:
 - **Styling**: TailwindCSS 4.x with noir aesthetic
 - **State**: Svelte 5 reactive primitives (`$state`, `$derived`, `$effect`)
 - **Data Fetching**: TanStack libraries (@tanstack/query-core, @tanstack/pacer) for caching, deduplication, and async state management
-- **AI Integration**: OpenRouter API for multi-model access
+ - **AI Integration**: Z.AI and OpenRouter APIs for multi-model access
 - **Security**: DOMPurify for XSS, IndexedDB with encryption
 - **Testing**: Vitest with jsdom, Playwright for E2E
 - **GitHub**: GitHub CLI for PR creation and issue management
@@ -92,9 +92,13 @@ bun test -- --grep "should create log entries"
 - `src/lib/utils/` - Pure functions by domain
 - `src/lib/types/` - TypeScript definitions
 - `src/routes/` - SvelteKit pages and API routes
-- Tests co-located with source: `__tests__/` or `*.test.ts`
+ - Tests co-located with source: `__tests__/` or `*.test.ts`
 
-### TanStack Integration
+ ### Environment Variables
+ - `ZAI_API_KEY` (required) - Z.AI API key for GLM models
+ - `OPENROUTER_API_KEY` (optional) - OpenRouter API key for additional models
+
+ ### TanStack Integration
 - TanStack ecosystem for data fetching, caching, and async state management
 - Currently using @tanstack/pacer and @tanstack/query-core
 - Leverage request deduplication for API calls
@@ -108,9 +112,26 @@ bun test -- --grep "should create log entries"
 - Descriptive test names: `should do X when Y happens`
 - Test happy path and error cases
 - Use `vi` for mocking functions
-- Include accessibility tests (keyboard, ARIA)
+ - Include accessibility tests (keyboard, ARIA)
 
-### Security & Performance
+ ### Available Models
+ - **Z.AI Models**: GLM-4.5-Flash, GLM-4.7-Flash (default, free)
+ - **OpenRouter Models**: Any model via OpenRouter API (requires OPENROUTER_API_KEY)
+
+ ### Thinking Mode
+ - Enable/disable via `enableThinking` boolean parameter
+ - Default: `false`
+ - Routes to provider with `thinking: { type: 'enabled' }` parameter
+ - Stored in chat state and persisted to conversation history
+ - User preference saved in cookies (`thinking-mode`)
+
+ ### Multi-Provider Architecture
+ - Provider router (`$lib/utils/provider-router.ts`) routes requests based on model ID
+ - GLM models (glm-*) → Z.AI API
+ - All other models → OpenRouter API
+ - Future providers can be added by extending the provider router
+
+ ### Security & Performance
 - Sanitize user HTML with `sanitizeHTML()` from `$lib/utils/sanitize`
 - DOMPurify for all HTML content rendering
 - Never log sensitive data (passwords, tokens, keys)

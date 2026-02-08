@@ -16,7 +16,8 @@ export const chatState = $state<ChatState>({
 	messages: [],
 	isLoading: false,
 	error: null,
-	currentModel: 'openai/gpt-oss-20b:free',
+	currentModel: 'glm-4.7-flash',
+	enableThinking: false,
 	abortController: null,
 	canStopGeneration: false
 });

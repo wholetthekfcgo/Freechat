@@ -49,6 +49,7 @@ async function saveCurrentHistory(): Promise<void> {
  */
 export async function sendMessage(content: string, stream = true): Promise<void> {
 	const model = chatState.currentModel;
+	const enableThinking = chatState.enableThinking;
 
 	// Check if user has credits remaining using tokenBucket reactive state
 	if (tokenBucket.remainingTokens <= 0) {
@@ -83,14 +84,15 @@ export async function sendMessage(content: string, stream = true): Promise<void>
 				logger.streamStart();
 				// Prepend system prompt to messages for API call
 				const messagesWithSystem = prependSystemPrompt(chatState.messages);
-				
+
 				const response = await queueRequest(
 					() => fetch('/api/chat/stream', {
 						method: 'POST',
 						headers: { 'Content-Type': 'application/json' },
 						body: JSON.stringify({
 							model,
-							messages: messagesWithSystem
+							messages: messagesWithSystem,
+							enableThinking
 						}),
 						signal: abortController.signal
 					}),
@@ -214,14 +216,15 @@ export async function sendMessage(content: string, stream = true): Promise<void>
 				// Handle non-streaming
 				// Prepend system prompt to messages for API call
 				const messagesWithSystem = prependSystemPrompt(chatState.messages);
-				
+
 				const response = await queueRequest(
 					() => fetch('/api/chat', {
 						method: 'POST',
 						headers: { 'Content-Type': 'application/json' },
 						body: JSON.stringify({
 							model,
-							messages: messagesWithSystem
+							messages: messagesWithSystem,
+							enableThinking
 						}),
 						signal: abortController.signal
 					}),
@@ -349,6 +352,7 @@ export async function saveCurrentConversation(): Promise<void> {
 		title: generateTitle(chatState.messages),
 		messages: chatState.messages,
 		model: chatState.currentModel,
+		enableThinking: chatState.enableThinking,
 		updatedAt: new Date(),
 		createdAt: new Date() // Add createdAt field
 	};
@@ -387,6 +391,7 @@ export async function loadConversation(conversationId: string): Promise<void> {
 	if (conversation && chatHistory) {
 		chatState.messages = conversation.messages;
 		chatState.currentModel = conversation.model;
+		chatState.enableThinking = conversation.enableThinking || false;
 		chatHistory.currentConversationId = conversationId;
 		await saveCurrentHistory();
 	}
@@ -466,32 +471,32 @@ export function setModel(model: string): void {
 export async function editAndRegenerate(messageId: string, newContent: string): Promise<void> {
 	const messages = [...chatState.messages];
 	const messageIndex = messages.findIndex(m => m.id === messageId);
-	
+
 	if (messageIndex === -1) {
 		logger.warn('Message not found for editing', { messageId });
 		return;
 	}
-	
+
 	const message = messages[messageIndex];
-	
+
 	// Only allow editing user messages
 	if (message.role !== 'user') {
 		logger.warn('Only user messages can be edited', { messageId, role: message.role });
 		return;
 	}
-	
+
 	// Update the message content and timestamp in place
 	messages[messageIndex] = {
 		...message,
 		content: newContent,
 		timestamp: new Date()
 	};
-	
+
 	// Remove all messages after the edited message (assistant responses)
 	chatState.messages = messages.slice(0, messageIndex + 1);
-	
+
 	logger.info('Message edited and regenerating', { messageId, contentLength: newContent.length });
-	
+
 	// Create abort controller for this request
 	const abortController = new AbortController();
 	chatState.abortController = abortController;
@@ -506,10 +511,10 @@ export async function editAndRegenerate(messageId: string, newContent: string): 
 			if (abortController.signal.aborted) {
 				throw new DOMException('Request was aborted', 'AbortError');
 			}
-			
+
 			// Prepend system prompt to messages for API call
 			const messagesWithSystem = prependSystemPrompt(chatState.messages);
-			
+
 			logger.streamStart();
 			const response = await queueRequest(
 				() => fetch('/api/chat/stream', {
@@ -517,7 +522,8 @@ export async function editAndRegenerate(messageId: string, newContent: string): 
 					headers: { 'Content-Type': 'application/json' },
 					body: JSON.stringify({
 						model: chatState.currentModel,
-						messages: messagesWithSystem
+						messages: messagesWithSystem,
+						enableThinking: chatState.enableThinking
 					}),
 					signal: abortController.signal
 				}),

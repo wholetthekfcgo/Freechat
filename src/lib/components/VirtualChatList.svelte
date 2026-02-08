@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { Message } from '$lib/types/chat';
 	import MessageBubble from './MessageBubble.svelte';
-	import { onMount } from 'svelte';
+	import { onMount, tick } from 'svelte';
 
 	let {
 		messages = [],

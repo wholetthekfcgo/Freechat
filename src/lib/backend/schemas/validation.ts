@@ -35,7 +35,8 @@ export const ChatRequestSchema = z.object({
 		),
 	model: z.string().min(1).max(255),
 	temperature: z.number().min(0).max(2).optional(),
-	maxTokens: z.number().min(1).max(32000).optional()
+	maxTokens: z.number().min(1).max(32000).optional(),
+	enableThinking: z.boolean().optional()
 });
 
 /**
@@ -54,7 +55,8 @@ export const StreamRequestSchema = z.object({
 		),
 	model: z.string().min(1).max(255),
 	temperature: z.number().min(0).max(2).optional(),
-	maxTokens: z.number().min(1).max(32000).optional()
+	maxTokens: z.number().min(1).max(32000).optional(),
+	enableThinking: z.boolean().optional()
 });
 
 /**

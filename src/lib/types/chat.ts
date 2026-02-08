@@ -12,6 +12,7 @@ export interface ChatRequest {
 	stream?: boolean;
 	temperature?: number;
 	max_tokens?: number;
+	enableThinking?: boolean;
 }
 
 export interface ChatResponse {
@@ -36,6 +37,7 @@ export interface ChatState {
 	isLoading: boolean;
 	error: string | null;
 	currentModel: string;
+	enableThinking: boolean;
 	abortController: AbortController | null;
 	canStopGeneration: boolean;
 }
@@ -45,6 +47,7 @@ export interface ChatConversation {
 	title: string;
 	messages: Message[];
 	model: string;
+	enableThinking?: boolean;
 	createdAt: Date;
 	updatedAt: Date;
 }

@@ -20,13 +20,15 @@
 		messages = [],
 		isLoading = false,
 		error = null,
-		currentModel = 'openai/gpt-oss-20b:free',
+		currentModel = 'glm-4.7-flash',
+		thinkingEnabled = false,
 		onSendMessage,
 		onClear,
 		onExport,
 		onImport,
 		onRegenerate,
 		onModelChange,
+		onThinkingChange,
 		totalTokens = 0,
 		totalCost = 0,
 		requestCount = 0,
@@ -37,12 +39,14 @@
 		isLoading: boolean;
 		error: string | null;
 		currentModel?: string;
+		thinkingEnabled?: boolean;
 		onSendMessage: (message: string) => void;
 		onClear?: () => void;
 		onRegenerate?: () => Promise<void>;
 		onExport?: (format: 'markdown' | 'json') => void;
 		onImport?: (file: File) => Promise<boolean>;
 		onModelChange?: (model: string) => void;
+		onThinkingChange?: (enabled: boolean) => void;
 		totalTokens?: number;
 		totalCost?: number;
 		requestCount?: number;
@@ -569,13 +573,15 @@
 	</div>
 
 	<!-- Input Area -->
-	<FloatingInput 
-		bind:value={inputMessage} 
-		onSubmit={handleSubmit} 
+	<FloatingInput
+		bind:value={inputMessage}
+		onSubmit={handleSubmit}
 		onStopGeneration={handleStopGeneration}
-		{isLoading} 
+		{isLoading}
 		{currentModel}
 		onModelChange={onModelChange}
+		{thinkingEnabled}
+		onThinkingChange={onThinkingChange}
 	/>
 
 	<!-- NEW: Confirmation Dialogs -->

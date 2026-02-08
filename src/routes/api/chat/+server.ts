@@ -1,7 +1,6 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { callOpenRouter } from '$lib/utils/openrouter';
-import { getOpenRouterKey } from '$lib/env';
+import { callProvider } from '$lib/utils/provider-router';
 import { logger } from '$lib/utils/logger';
 import { ChatRequestSchema } from '$lib/backend/schemas/validation';
 import { withTimeout } from '$lib/backend/middleware/timeout';
@@ -15,7 +14,7 @@ function getOrCreateCorrelationId(headers: Headers): string {
 const baseHandler: RequestHandler = async ({ request }) => {
 	// Add correlation tracking
 	const correlationId = getOrCreateCorrelationId(request.headers);
-	
+
 	try {
 		logger.info('Processing chat request', {
 			correlationId,
@@ -42,38 +41,37 @@ const baseHandler: RequestHandler = async ({ request }) => {
 			);
 		}
 
-		// Get API key using validated env accessor
-		const apiKey = getOpenRouterKey();
-
 		// Validate request body with try-catch for JSON parsing
 		let rawBody: unknown;
 		try {
 			rawBody = await request.json();
 		} catch (parseError) {
-			logger.error('Failed to parse request body as JSON', { 
+			logger.error('Failed to parse request body as JSON', {
 				correlationId,
 				error: parseError instanceof Error ? parseError.message : 'Unknown error'
 			});
-			
+
 			return json(
-				{ 
-					error: 'Invalid JSON', 
+				{
+					error: 'Invalid JSON',
 					details: 'Request body must be valid JSON',
-					correlationId 
+					correlationId
 				},
 				{ status: 400, headers: { 'x-correlation-id': correlationId } }
 			);
 		}
-		
+
 		// Validate with Zod schema
 		const body = ChatRequestSchema.parse(rawBody);
-		
-		logger.info('Request validated, calling OpenRouter', { 
+		const enableThinking = body.enableThinking || false;
+
+		logger.info('Request validated, calling provider', {
 			correlationId,
-			model: body.model, 
-			messageCount: body.messages.length 
+			model: body.model,
+			messageCount: body.messages.length,
+			enableThinking
 		});
-		
+
 		// Transform messages to include required id field
 		const messagesWithIds = body.messages.map(msg => ({
 			id: crypto.randomUUID(),
@@ -81,16 +79,16 @@ const baseHandler: RequestHandler = async ({ request }) => {
 			content: msg.content,
 			timestamp: new Date()
 		}));
-		
+
 		const requestWithIds = {
 			...body,
 			messages: messagesWithIds
 		};
-		
-		const response = await callOpenRouter(apiKey, requestWithIds);
-		
-		logger.info('OpenRouter request successful', { correlationId });
-		
+
+		const response = await callProvider(body.model, requestWithIds, enableThinking);
+
+		logger.info('Provider request successful', { correlationId });
+
 		return json(response, { headers: { 'x-correlation-id': correlationId } });
 	} catch (error) {
 		// Simple error handling without classification
@@ -102,18 +100,18 @@ const baseHandler: RequestHandler = async ({ request }) => {
 		// Check if it's a Zod validation error
 		if (error instanceof Error && error.name === 'ZodError') {
 			return json(
-				{ 
-					error: 'Invalid request', 
+				{
+					error: 'Invalid request',
 					details: error.message,
 					correlationId
 				},
 				{ status: 400, headers: { 'x-correlation-id': correlationId } }
 			);
 		}
-		
+
 		// Return generic error response
 		return json(
-			{ 
+			{
 				error: error instanceof Error ? error.message : 'Unknown error',
 				details: error instanceof Error ? error.message : 'Unknown error',
 				correlationId

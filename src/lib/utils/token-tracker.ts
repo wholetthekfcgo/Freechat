@@ -15,6 +15,8 @@ import type { Message } from '$lib/types/chat';
 export const PRICING = {
 	// Input (prompt) tokens
 	input: {
+		'glm-4.7-flash': 0,
+		'glm-4.5-flash': 0,
 		'openai/gpt-4o': 2.50,
 		'openai/gpt-4o-mini': 0.15,
 		'openai/gpt-3.5-turbo': 0.50,
@@ -26,6 +28,8 @@ export const PRICING = {
 	},
 	// Output (completion) tokens
 	output: {
+		'glm-4.7-flash': 0,
+		'glm-4.5-flash': 0,
 		'openai/gpt-4o': 10.00,
 		'openai/gpt-4o-mini': 0.60,
 		'openai/gpt-3.5-turbo': 1.50,
