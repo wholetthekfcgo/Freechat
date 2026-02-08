@@ -1,0 +1,94 @@
+<script lang="ts">
+	import { Shield, Info, Zap, Layers } from '@lucide/svelte';
+
+	let {
+		onShowShortcuts = () => {}
+	}: {
+		onShowShortcuts: () => void;
+	} = $props();
+</script>
+
+<!-- BRUTALIST EDITORIAL EMPTY STATE -->
+<div class="flex items-center justify-center min-h-[600px] px-4">
+	<div class="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16 max-w-6xl w-full items-center">
+		<!-- Left: Massive Brand Typography -->
+		<div class="space-y-6 text-left animate-stagger-entry">
+			<div class="overflow-hidden">
+				<h1 class="text-display-xl lg:text-[10rem] leading-[0.85] text-foreground tracking-tighter font-bold">
+					FREECHAT
+				</h1>
+			</div>
+			<div class="overflow-hidden">
+				<p class="text-display-md text-muted-foreground uppercase-label tracking-widest">
+					// Free as in Freedom
+				</p>
+			</div>
+		</div>
+
+		<!-- Right: Vertical Value Props as Annotations -->
+		<div class="space-y-4 animate-stagger-entry" style="animation-delay: 100ms;">
+			<div class="border-l-2 border-primary pl-4 py-2 hover-glow transition-all">
+				<div class="flex items-start gap-3">
+					<Shield class="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
+					<div>
+						<h3 class="uppercase-label text-foreground mb-1">Privacy First</h3>
+						<p class="text-body-sm text-muted-foreground">Local encrypted storage keeps your data yours</p>
+					</div>
+				</div>
+			</div>
+
+			<div class="border-l-2 border-border pl-4 py-2 hover-glow transition-all">
+				<div class="flex items-start gap-3">
+					<Info class="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
+					<div>
+						<h3 class="uppercase-label text-foreground mb-1">Freedom of Choice</h3>
+						<p class="text-body-sm text-muted-foreground">Access any AI model without lock-in</p>
+					</div>
+				</div>
+			</div>
+
+			<div class="border-l-2 border-border pl-4 py-2 hover-glow transition-all">
+				<div class="flex items-start gap-3">
+					<Zap class="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
+					<div>
+						<h3 class="uppercase-label text-foreground mb-1">Lightning Fast</h3>
+						<p class="text-body-sm text-muted-foreground">Optimized token speed with streaming responses</p>
+					</div>
+				</div>
+			</div>
+
+			<div class="border-l-2 border-border pl-4 py-2 hover-glow transition-all">
+				<div class="flex items-start gap-3">
+					<Layers class="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
+					<div>
+						<h3 class="uppercase-label text-foreground mb-1">Zero Data Retention</h3>
+						<p class="text-body-sm text-muted-foreground">Your conversations are never stored on servers</p>
+					</div>
+				</div>
+			</div>
+
+			<!-- Keyboard shortcuts hint -->
+			<div class="pt-4 border-l-2 border-muted pl-4">
+				<button
+					onclick={onShowShortcuts}
+					class="flex items-center gap-3 text-body-sm text-muted-foreground hover:text-foreground transition-colors group"
+					aria-label="View keyboard shortcuts"
+				>
+					<div class="flex items-center gap-1">
+						<kbd class="px-1.5 py-0.5 text-xs font-mono bg-background border border-border rounded group-hover:border-primary/50 transition-colors">Ctrl</kbd>
+						<span class="text-xs">+</span>
+						<kbd class="px-1.5 py-0.5 text-xs font-mono bg-background border border-border rounded group-hover:border-primary/50 transition-colors">/</kbd>
+					</div>
+					<span>for keyboard shortcuts</span>
+				</button>
+			</div>
+
+			<!-- Diagnostic-style call to action -->
+			<div class="pt-4">
+				<p class="font-mono text-body-xs text-primary animate-pulse">
+					▶ Start typing to begin your conversation
+				</p>
+			</div>
+		</div>
+	</div>
+</div>

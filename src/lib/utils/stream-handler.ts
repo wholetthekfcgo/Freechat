@@ -7,6 +7,7 @@
 
 import type { Message } from '$lib/types/chat';
 import { logger } from './logger';
+import { generateUUID } from './uuid';
 
 export interface StreamHandlerOptions {
 	/** The abort controller for this request */
@@ -112,7 +113,7 @@ export async function handleStreamResponse(
 							};
 						} else {
 							messages.push({
-								id: crypto.randomUUID(),
+								id: generateUUID(),
 								role: 'assistant',
 								content: assistantContent,
 								timestamp: new Date(),

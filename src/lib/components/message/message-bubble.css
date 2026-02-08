@@ -1,0 +1,169 @@
+/* Message Bubble Styles */
+
+/* Highlight.js noir theme */
+:global(.hljs) {
+	background: hsl(var(--card)) !important;
+	padding: 1.25rem;
+	font-size: 0.875rem;
+	border: 1px solid hsl(var(--border));
+	font-family: var(--font-body) !important;
+}
+
+/* Markdown content styling - noir aesthetic */
+:global(.prose) {
+	--tw-prose-body: hsl(var(--foreground));
+	--tw-prose-headings: hsl(var(--foreground));
+	--tw-prose-links: hsl(var(--primary));
+	--tw-prose-bold: hsl(var(--foreground));
+	--tw-prose-code: hsl(var(--foreground));
+	--tw-prose-pre-code: hsl(var(--foreground));
+	--tw-prose-pre-bg: hsl(var(--card));
+	font-family: var(--font-body);
+	font-size: 0.875rem;
+}
+
+/* Mobile responsive prose */
+@media (max-width: 640px) {
+	:global(.prose) {
+		font-size: 0.813rem;
+	}
+	
+	:global(.prose h1) {
+		font-size: 1.5rem;
+	}
+	
+	:global(.prose h2) {
+		font-size: 1.25rem;
+	}
+	
+	:global(.prose h3) {
+		font-size: 1.125rem;
+	}
+	
+	:global(.prose pre) {
+		padding: 1rem;
+		overflow-x: scroll;
+		-webkit-overflow-scrolling: touch;
+	}
+	
+	:global(.prose code) {
+		font-size: 0.85em;
+		word-break: break-word;
+	}
+	
+	:global(.prose table) {
+		font-size: 0.813rem;
+		display: block;
+		overflow-x: auto;
+		-webkit-overflow-scrolling: touch;
+	}
+}
+
+:global(.prose h1),
+:global(.prose h2),
+:global(.prose h3),
+:global(.prose h4),
+:global(.prose h5),
+:global(.prose h6) {
+	color: hsl(var(--foreground));
+	font-family: var(--font-display);
+	font-weight: 600;
+	letter-spacing: -0.02em;
+	margin-top: 1.5em;
+	margin-bottom: 0.75em;
+}
+
+:global(.prose h1) {
+	font-size: 1.75rem;
+}
+
+:global(.prose h2) {
+	font-size: 1.5rem;
+}
+
+:global(.prose h3) {
+	font-size: 1.25rem;
+}
+
+:global(.prose p) {
+	margin-bottom: 1em;
+	line-height: 1.7;
+}
+
+:global(.prose code) {
+	background: hsl(var(--card));
+	padding: 0.2em 0.5em;
+	border: 1px solid hsl(var(--border));
+	font-size: 0.9em;
+	color: hsl(var(--primary));
+}
+
+:global(.prose pre) {
+	background: hsl(var(--card));
+	padding: 1.25rem;
+	border: 1px solid hsl(var(--border));
+	overflow-x: auto;
+	margin: 1.5em 0;
+	box-shadow: var(--shadow-subtle);
+}
+
+:global(.prose pre code) {
+	background: transparent;
+	padding: 0;
+	border: none;
+	color: hsl(var(--foreground));
+}
+
+:global(.prose ul),
+:global(.prose ol) {
+	padding-left: 1.75em;
+	margin-bottom: 1em;
+}
+
+:global(.prose li) {
+	margin-bottom: 0.5em;
+}
+
+:global(.prose a) {
+	color: hsl(var(--primary));
+	text-decoration: underline;
+	text-underline-offset: 2px;
+	transition: opacity 0.2s;
+}
+
+:global(.prose a:hover) {
+	opacity: 0.7;
+}
+
+:global(.prose blockquote) {
+	border-left: 2px solid hsl(var(--primary));
+	padding-left: 1.25em;
+	font-family: var(--font-accent);
+	font-style: italic;
+	margin: 1.5em 0;
+	color: hsl(var(--muted-foreground));
+}
+
+:global(.prose table) {
+	width: 100%;
+	border-collapse: collapse;
+	margin: 1.5em 0;
+	font-size: 0.875rem;
+}
+
+:global(.prose th),
+:global(.prose td) {
+	border: 1px solid hsl(var(--border));
+	padding: 0.75em;
+	text-align: left;
+}
+
+:global(.prose th) {
+	background: hsl(var(--card));
+	font-family: var(--font-display);
+	font-weight: 600;
+}
+
+:global(.prose tr:hover) {
+	background: hsl(var(--card));
+}

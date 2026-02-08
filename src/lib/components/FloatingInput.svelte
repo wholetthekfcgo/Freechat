@@ -1,19 +1,17 @@
 <script lang="ts">
 	import Textarea from '$lib/components/ui/textarea/textarea.svelte';
-	import Button from '$lib/components/ui/button/button.svelte';
 	import ThinkingToggle from '$lib/components/ThinkingToggle.svelte';
-	import { ChevronsUp, X, ChevronUp, Square } from '@lucide/svelte';
+	import InputActions from './input/InputActions.svelte';
+	import { ChevronUp } from '@lucide/svelte';
 	import { draftManager } from '$lib/utils/draft';
 	import { onMount } from 'svelte';
 	import { encode } from 'gpt-tokenizer';
-	import { cn } from '$lib/utils';
 
 	let {
 		value = $bindable(),
 		onSubmit,
 		onStopGeneration,
 		isLoading = false,
-		placeholder = 'Type your message... (Press Enter to send, Shift+Enter for new line)',
 		currentModel = 'glm-4.7-flash',
 		onModelChange,
 		thinkingEnabled,
@@ -27,7 +25,6 @@
 		onSubmit: () => void;
 		onStopGeneration?: () => void;
 		isLoading?: boolean;
-		placeholder?: string;
 		currentModel?: string;
 		onModelChange?: (model: string) => void;
 		thinkingEnabled?: boolean;
@@ -46,7 +43,7 @@
 		onModelChange?.(modelId);
 	}
 
-	const selectedModelName = $derived(models.find((m) => m.id === currentModel)?.name || models[0].name);
+	const selectedModelName = $derived(models.find((m) => m.id === currentModel)?.name || models[0]?.name || currentModel);
 
 	// Close dropdown when clicking outside
 	function handleClickOutside(event: MouseEvent) {
@@ -57,17 +54,11 @@
 	}
 
 	let textareaRef: any = $state(null);
-	let showDraftRestored = $state(false);
-
-	// Load draft on mount
+	
 	onMount(() => {
 		const draft = draftManager.load();
 		if (draft) {
 			value = draft;
-			showDraftRestored = true;
-			setTimeout(() => {
-				showDraftRestored = false;
-			}, 3000);
 		}
 	});
 
@@ -111,30 +102,18 @@
 		});
 	}
 
-	const charCount = $derived(value.length);
-	const maxChars = 4000;
-	const charPercent = $derived((charCount / maxChars) * 100);
-	const showCharCounter = $derived(charPercent >= 95);
-	
-	// Token counting using GPT tokenizer
 	const tokens = $derived(encode(value));
 	const tokenCount = $derived(tokens.length);
-	const maxTokens = 16000; // Extended context limit for newer models
+	const maxTokens = 16000;
 	const tokenPercent = $derived((tokenCount / maxTokens) * 100);
 	const showTokenCounter = $derived(tokenPercent >= 95);
-	// Token counter color - FIXED: Use warning color with proper contrast
 	const tokenCounterColor = $derived(tokenCount >= maxTokens ? 'text-destructive' : 'text-warning');
-
-	// FIXED: Add proper focus management for accessibility
-	let dropdownClosedByEscape = $state(false);
 
 	function handleModelKeydown(event: KeyboardEvent) {
 		if (event.key === 'Escape') {
 			event.preventDefault();
 			event.stopPropagation();
 			isModelOpen = false;
-			dropdownClosedByEscape = true;
-			// Return focus to trigger button
 			requestAnimationFrame(() => {
 				const trigger = document.querySelector('[aria-haspopup="true"]') as HTMLElement;
 				trigger?.focus();
@@ -217,50 +196,17 @@
 					/>
 
 					<!-- Action buttons and token counter -->
-					<div class="flex items-center justify-end gap-1.5 sm:gap-2 flex-shrink-0">
-						<!-- Token counter - minimalist -->
-						{#if showTokenCounter}
-							<div class="text-body-xs sm:text-body-sm font-mono {tokenCounterColor} opacity-80">
-								{tokenCount}
-							</div>
-						{/if}
-
-						<!-- Action Buttons -->
-						<div class="flex gap-1.5 sm:gap-2">
-							<!-- Clear Button -->
-							<button
-								onclick={() => { value = ''; draftManager.clear(); resetTextareaHeight(); }}
-								class="touch-target-compact p-2 rounded-md bg-muted/50 hover:bg-muted text-muted-foreground hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center transition-colors"
-								disabled={isLoading || !value.trim()}
-								title="Clear input"
-								aria-label="Clear input"
-							>
-								<X class="w-4 h-4" />
-							</button>
-
-							<!-- Send/Abort Button -->
-							{#if isLoading}
-								<button
-									onclick={onStopGeneration}
-									class="touch-target-compact p-2 bg-red-600 hover:bg-red-700 text-white border-0 shadow-medium hover-lift click-shrink flex items-center justify-center"
-									title="Stop generation"
-									aria-label="Stop generation"
-								>
-									<Square class="w-4 h-4 sm:w-5 sm:h-5" />
-								</button>
-							{:else}
-								<button
-									onclick={() => value.trim() && tokenCount < maxTokens && onSubmit()}
-									disabled={!value.trim() || tokenCount >= maxTokens}
-									class="touch-target-compact p-2 bg-primary hover:bg-primary/90 disabled:bg-muted disabled:text-muted-foreground border-0 shadow-medium hover-lift click-shrink flex items-center justify-center text-white"
-									title="Send message"
-									aria-label="Send message"
-								>
-									<ChevronsUp class="w-4 h-4 sm:w-5 sm:h-5" />
-								</button>
-							{/if}
-						</div>
-					</div>
+					<InputActions
+						{tokenCount}
+						{maxTokens}
+						showTokenCounter={showTokenCounter}
+						tokenCounterColor={tokenCounterColor}
+						value={value}
+						onClear={() => { value = ''; draftManager.clear(); resetTextareaHeight(); }}
+						onSubmit={() => value.trim() && tokenCount < maxTokens && onSubmit()}
+						onStop={onStopGeneration || (() => {})}
+						{isLoading}
+					/>
 				</div>
 			</div>
 		</div>
