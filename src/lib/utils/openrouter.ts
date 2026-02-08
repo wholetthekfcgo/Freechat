@@ -1,10 +1,9 @@
 import type { ChatRequest, ChatResponse } from '$lib/types/chat';
-import { logger } from '$lib/utils/logger';
-import OpenAI from 'openai';
+import { createOpenAICompatibleClient, handleProviderError } from './provider-client';
+import type OpenAI from 'openai';
 
-// Initialize OpenRouter client using OpenAI SDK
 export function createOpenRouterClient(apiKey: string) {
-  return new OpenAI({
+  return createOpenAICompatibleClient({
     apiKey,
     baseURL: 'https://openrouter.ai/api/v1',
     defaultHeaders: {
@@ -38,18 +37,7 @@ export async function callOpenRouter(
 
     return response as ChatResponse;
   } catch (error) {
-    logger.error('OpenRouter request failed', error);
-
-    // Handle OpenAI SDK errors
-    if (error instanceof OpenAI.APIError) {
-      throw new Error(`OpenRouter API error: ${error.status} - ${error.message}`);
-    }
-
-    if (error instanceof OpenAI.APITimeoutError) {
-      throw new Error('Request timeout - server took too long to respond');
-    }
-
-    throw error;
+    handleProviderError(error, 'OpenRouter');
   }
 }
 
@@ -80,11 +68,10 @@ export async function streamOpenRouter(
 
     // Process the stream
     for await (const chunk of stream) {
-      // Check for errors in the chunk
       if (chunk.usage) {
-        onChunk('', { 
-          usage: chunk.usage, 
-          finishReason: chunk.choices[0]?.finish_reason 
+        onChunk('', {
+          usage: chunk.usage,
+          finishReason: chunk.choices[0]?.finish_reason || undefined
         });
       }
 
@@ -92,33 +79,17 @@ export async function streamOpenRouter(
       const finishReason = chunk.choices[0]?.finish_reason;
 
       if (content) {
-        onChunk(content, { finishReason });
+        onChunk(content, { finishReason: finishReason || undefined });
       } else if (finishReason) {
-        onChunk('', { finishReason });
+        onChunk('', { finishReason: finishReason || undefined });
       }
     }
   } catch (error) {
-    logger.error('OpenRouter stream failed', error);
-
-    // Handle OpenAI SDK errors
-    if (error instanceof OpenAI.APIError) {
-      const errorMetadata = {
-        error: { code: error.code || 'api_error', message: error.message },
-        finishReason: 'error'
-      };
-      onChunk('', errorMetadata);
-      throw new Error(`OpenRouter API error: ${error.status} - ${error.message}`);
-    }
-
-    if (error instanceof OpenAI.APITimeoutError) {
-      const errorMetadata = {
-        error: { code: 'timeout', message: 'Stream timeout - server took too long to respond' },
-        finishReason: 'error'
-      };
-      onChunk('', errorMetadata);
-      throw new Error('Stream timeout - server took too long to respond');
-    }
-
-    throw error;
+    const errorMetadata = {
+      error: { code: 'stream_error', message: error instanceof Error ? error.message : 'Unknown stream error' },
+      finishReason: 'error'
+    };
+    onChunk('', errorMetadata);
+    handleProviderError(error, 'OpenRouter');
   }
 }

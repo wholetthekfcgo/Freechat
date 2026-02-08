@@ -7,13 +7,12 @@
 
 import type { Message } from '$lib/types/chat';
 import { logger } from './logger';
-import { calculateTokenUsage } from './token-tracker';
 
 export interface StreamHandlerOptions {
 	/** The abort controller for this request */
 	abortController: AbortController;
-	/** Callback when a content chunk is received */
-	onChunk: (content: string, fullContent: string, chunkCount: number) => void;
+	/** Callback when message content is updated */
+	onMessageUpdate: (messages: Message[]) => void;
 	/** Callback when usage statistics are received */
 	onUsage: (usage: any) => void;
 	/** Callback when stream completes successfully */
@@ -44,9 +43,10 @@ export interface StreamHandlerOptions {
  */
 export async function handleStreamResponse(
 	response: Response,
-	options: StreamHandlerOptions
+	options: StreamHandlerOptions,
+	initialMessages: Message[]
 ): Promise<void> {
-	const { abortController, onChunk, onUsage, onComplete, onError } = options;
+	const { abortController, onMessageUpdate, onUsage, onComplete, onError } = options;
 
 	if (!response.ok) {
 		throw new Error('Failed to get response');
@@ -58,6 +58,7 @@ export async function handleStreamResponse(
 	}
 
 	const decoder = new TextDecoder();
+	let assistantContent = '';
 	let buffer = '';
 	let chunkCount = 0;
 
@@ -96,7 +97,30 @@ export async function handleStreamResponse(
 
 					// Handle content chunks
 					if (data.content) {
-						onChunk(data.content, data.content, chunkCount);
+						assistantContent += data.content;
+						logger.streamChunk(chunkCount, data.content, assistantContent.length);
+
+						// Update messages reactively with immutable update
+						const messages = [...initialMessages];
+						const lastMessage = messages[messages.length - 1];
+
+						if (lastMessage?.role === 'assistant') {
+							// Immutable update - create new object
+							messages[messages.length - 1] = {
+								...lastMessage,
+								content: assistantContent
+							};
+						} else {
+							messages.push({
+								id: crypto.randomUUID(),
+								role: 'assistant',
+								content: assistantContent,
+								timestamp: new Date(),
+								isPartial: false
+							});
+						}
+
+						onMessageUpdate(messages);
 					}
 
 					// Handle usage statistics (final chunk)
@@ -115,7 +139,7 @@ export async function handleStreamResponse(
 						onError(e);
 						return;
 					}
-					logger.error('Error parsing SSE', e);
+					logger.error('Error parsing SSE', e instanceof Error ? e : undefined);
 				}
 			}
 		}
@@ -124,7 +148,7 @@ export async function handleStreamResponse(
 			logger.info('Stream aborted by user');
 			onComplete(); // Abort is not an error
 		} else {
-			logger.error('Stream error:', error);
+			logger.error('Stream error:', error instanceof Error ? error : undefined);
 			onError(error instanceof Error ? error : new Error('Unknown stream error'));
 		}
 	}

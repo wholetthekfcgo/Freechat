@@ -14,6 +14,7 @@ import { save as saveChatHistory, load as loadChatHistory, clear as clearChatHis
 import { calculateTokenUsage, formatTokenCount, formatCost } from '$lib/utils/token-tracker';
 import { prependSystemPrompt } from '$lib/utils/system-prompt';
 import { generateUUID } from '$lib/utils/uuid';
+import { handleStreamResponse } from '$lib/utils/stream-handler';
 
 /**
  * Generate a title for the conversation based on first message
@@ -82,7 +83,6 @@ export async function sendMessage(content: string, stream = true): Promise<void>
 			
 			if (stream) {
 				logger.streamStart();
-				// Prepend system prompt to messages for API call
 				const messagesWithSystem = prependSystemPrompt(chatState.messages);
 
 				const response = await queueRequest(
@@ -97,121 +97,54 @@ export async function sendMessage(content: string, stream = true): Promise<void>
 						signal: abortController.signal
 					}),
 					() => abortController.abort(),
-					0 // Normal priority
+					0
 				);
 
-				if (!response.ok) {
-					throw new Error('Failed to get response');
-				}
+				await handleStreamResponse(
+					response,
+					{
+						abortController,
+						onMessageUpdate: (messages) => {
+							chatState.messages = messages;
+						},
+						onUsage: (usage) => {
+							logger.info('Usage statistics received', usage);
 
-				const reader = response.body?.getReader();
-				if (!reader) {
-					throw new Error('No response body');
-				}
-				
-				const decoder = new TextDecoder();
-				let assistantContent = '';
-				let buffer = '';
-				let chunkCount = 0;
+							const promptMessages = chatState.messages.slice(0, -1);
+							const assistantMessage = chatState.messages[chatState.messages.length - 1];
 
-				while (true) {
-					const { done, value } = await reader.read();
-					if (done) {
-						logger.streamComplete(chunkCount);
-						break;
-					}
+							if (assistantMessage) {
+								const usageData = calculateTokenUsage(
+									promptMessages,
+									assistantMessage,
+									model
+								);
 
-					buffer += decoder.decode(value, { stream: true });
-					const lines = buffer.split('\n');
-					buffer = lines.pop() || '';
+								tokenUsage.totalPromptTokens += usageData.promptTokens;
+								tokenUsage.totalCompletionTokens += usageData.completionTokens;
+								tokenUsage.totalTokens += usageData.totalTokens;
+								tokenUsage.totalCost += usageData.estimatedCost;
+								tokenUsage.requestCount += 1;
+								tokenUsage.lastUpdated = new Date();
 
-					for (const line of lines) {
-						const trimmed = line.trim();
-						if (!trimmed.startsWith('data: ') || trimmed === 'data: [DONE]') continue;
-
-						try {
-							const data = JSON.parse(trimmed.slice(6));
-							chunkCount++;
-
-							// Handle error chunks
-							if (data.error) {
-								logger.error('Error chunk received', data.error);
-								throw new Error(data.error.message || 'Stream error occurred');
+								logger.info('Token usage updated', {
+									promptTokens: usageData.promptTokens,
+									completionTokens: usageData.completionTokens,
+									totalTokens: usageData.totalTokens,
+									cost: usageData.estimatedCost,
+									cumulativeCost: tokenUsage.totalCost
+								});
 							}
-
-							// Handle content chunks
-							if (data.content) {
-								assistantContent += data.content;
-								logger.streamChunk(chunkCount, data.content, assistantContent.length);
-
-								// Update messages reactively with immutable update
-								const messages = [...chatState.messages];
-								const lastMessage = messages[messages.length - 1];
-
-								if (lastMessage?.role === 'assistant') {
-									// Immutable update - create new object
-									messages[messages.length - 1] = {
-										...lastMessage,
-										content: assistantContent
-									};
-								} else {
-									messages.push({
-										id: generateUUID(),
-										role: 'assistant',
-										content: assistantContent,
-										timestamp: new Date(),
-										isPartial: false
-									});
-								}
-
-								chatState.messages = messages;
-							}
-
-							// Handle usage statistics (final chunk)
-							if (data.usage) {
-								logger.info('Usage statistics received', data.usage);
-								
-								// Update token usage tracking
-								const promptMessages = chatState.messages.slice(0, -1);
-								const assistantMessage = chatState.messages[chatState.messages.length - 1];
-								
-								if (assistantMessage) {
-									const usage = calculateTokenUsage(
-										promptMessages,
-										assistantMessage,
-										model
-									);
-									
-									tokenUsage.totalPromptTokens += usage.promptTokens;
-									tokenUsage.totalCompletionTokens += usage.completionTokens;
-									tokenUsage.totalTokens += usage.totalTokens;
-									tokenUsage.totalCost += usage.estimatedCost;
-									tokenUsage.requestCount += 1;
-									tokenUsage.lastUpdated = new Date();
-									
-									logger.info('Token usage updated', {
-										promptTokens: usage.promptTokens,
-										completionTokens: usage.completionTokens,
-										totalTokens: usage.totalTokens,
-										cost: usage.estimatedCost,
-										cumulativeCost: tokenUsage.totalCost
-									});
-								}
-							}
-
-							// Check for completion
-							if (data.finishReason && data.finishReason !== 'stop') {
-								logger.warn(`Stream finished with reason: ${data.finishReason}`, { finishReason: data.finishReason });
-							}
-						} catch (e) {
-							// Re-throw intentional errors
-							if (e instanceof Error && e.message.includes('Stream error')) {
-								throw e;
-							}
-							logger.error('Error parsing SSE', e);
+						},
+						onComplete: () => {
+							logger.info('Stream completed successfully');
+						},
+						onError: (error) => {
+							throw error;
 						}
-					}
-				}
+					},
+					chatState.messages
+				);
 			} else {
 				// Handle non-streaming
 				// Prepend system prompt to messages for API call
@@ -512,10 +445,8 @@ export async function editAndRegenerate(messageId: string, newContent: string): 
 				throw new DOMException('Request was aborted', 'AbortError');
 			}
 
-			// Prepend system prompt to messages for API call
 			const messagesWithSystem = prependSystemPrompt(chatState.messages);
 
-			logger.streamStart();
 			const response = await queueRequest(
 				() => fetch('/api/chat/stream', {
 					method: 'POST',
@@ -528,90 +459,28 @@ export async function editAndRegenerate(messageId: string, newContent: string): 
 					signal: abortController.signal
 				}),
 				() => abortController.abort(),
-				0 // Normal priority
+				0
 			);
 
-			if (!response.ok) {
-				throw new Error('Failed to get response');
-			}
-
-			const reader = response.body?.getReader();
-			if (!reader) {
-				throw new Error('No response body');
-			}
-			
-			const decoder = new TextDecoder();
-			let assistantContent = '';
-			let buffer = '';
-			let chunkCount = 0;
-
-			while (true) {
-				const { done, value } = await reader.read();
-				if (done) {
-					logger.streamComplete(chunkCount);
-					break;
-				}
-
-				buffer += decoder.decode(value, { stream: true });
-				const lines = buffer.split('\n');
-				buffer = lines.pop() || '';
-
-				for (const line of lines) {
-					const trimmed = line.trim();
-					if (!trimmed.startsWith('data: ') || trimmed === 'data: [DONE]') continue;
-
-					try {
-						const data = JSON.parse(trimmed.slice(6));
-						chunkCount++;
-
-						// Handle error chunks
-						if (data.error) {
-							logger.error('Error chunk received', data.error);
-							throw new Error(data.error.message || 'Stream error occurred');
-						}
-
-						// Handle content chunks
-						if (data.content) {
-							assistantContent += data.content;
-							logger.streamChunk(chunkCount, data.content, assistantContent.length);
-
-							// Update messages reactively
-							const currentMessages = [...chatState.messages];
-							const lastMessage = currentMessages[currentMessages.length - 1];
-
-							if (lastMessage?.role === 'assistant') {
-								lastMessage.content = assistantContent;
-							} else {
-								currentMessages.push({
-									id: generateUUID(),
-									role: 'assistant',
-									content: assistantContent,
-									timestamp: new Date(),
-									isPartial: false
-								});
-							}
-
-							chatState.messages = currentMessages;
-						}
-
-						// Handle usage statistics (final chunk)
-						if (data.usage) {
-							logger.info('Usage statistics received', data.usage);
-						}
-
-						// Check for completion
-						if (data.finishReason && data.finishReason !== 'stop') {
-							logger.warn(`Stream finished with reason: ${data.finishReason}`, { finishReason: data.finishReason });
-						}
-					} catch (e) {
-						// Re-throw intentional errors
-						if (e instanceof Error && e.message.includes('Stream error')) {
-							throw e;
-						}
-						logger.error('Error parsing SSE', e);
+			await handleStreamResponse(
+				response,
+				{
+					abortController,
+					onMessageUpdate: (messages) => {
+						chatState.messages = messages;
+					},
+					onUsage: (usage) => {
+						logger.info('Usage statistics received', usage);
+					},
+					onComplete: () => {
+						logger.info('Stream completed successfully');
+					},
+					onError: (error) => {
+						throw error;
 					}
-				}
-			}
+				},
+				chatState.messages
+			);
 		}, 3); // Max 3 retries
 	} catch (error) {
 		if (error instanceof Error && error.name === 'AbortError') {

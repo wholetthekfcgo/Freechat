@@ -2,23 +2,23 @@
 	import { browser } from '$app/environment';
 	import ChatInterface from '$lib/components/ChatInterface.svelte';
 	import { chatState, chatActions, tokenUsage } from '$lib/stores/chat';
-	import { errorTracker, withErrorHandling } from '$lib/utils/error-tracker';
-	import { formatTokenCount, formatCost } from '$lib/utils/token-tracker';
+	import { errorTracker } from '$lib/utils/error-tracker';
 	import { persistence } from '$lib/stores/persistence.svelte.js';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
 
-	// Initialize state from server data - only on client side
 	let initialized = $state(false);
-	let thinkingEnabled = $state(data.initialThinking || false);
+	let thinkingEnabled = $state(false);
 
 	$effect(() => {
-		// Load chat history from IndexedDB on mount (only once)
+		thinkingEnabled = data.initialThinking || false;
+	});
+
+	$effect(() => {
 		if (browser && !initialized) {
 			persistence.load().then((history) => {
 				if (history.conversations.length > 0) {
-					// Restore the most recent conversation
 					const currentConv = history.conversations.find(
 						(c) => c.id === history.currentConversationId
 					) || history.conversations[history.conversations.length - 1];
@@ -101,13 +101,12 @@
 			if (file.name.endsWith('.json')) {
 				importedMessages = JSON.parse(content);
 			} else if (file.name.endsWith('.md')) {
-				// Parse markdown format
 				const sections = content.split('## ');
 				for (const section of sections) {
 					const lines = section.trim().split('\n');
 					if (lines.length < 2) continue;
-					
-					const role = lines[0].toLowerCase().replace(':', '').trim();
+
+					const role = (lines[0] || '').toLowerCase().replace(':', '').trim();
 					const content_text = lines.slice(1).join('\n').trim();
 					
 					if (role === 'user' || role === 'assistant') {
@@ -168,7 +167,7 @@
 			// Escape - Stop generation
 			if (e.key === 'Escape' && chatState.canStopGeneration) {
 				e.preventDefault();
-				onRegenerate?.();
+				handleRegenerate();
 				chatActions.stopGeneration();
 			}
 

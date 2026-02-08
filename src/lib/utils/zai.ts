@@ -1,12 +1,12 @@
 import type { ChatRequest, ChatResponse } from '$lib/types/chat';
-import { logger } from '$lib/utils/logger';
-import OpenAI from 'openai';
+import { createOpenAICompatibleClient, handleProviderError } from './provider-client';
+import type OpenAI from 'openai';
 
 /**
  * Create Z.AI API client using OpenAI SDK
  */
 export function createZaiClient(apiKey: string) {
-  return new OpenAI({
+  return createOpenAICompatibleClient({
     apiKey,
     baseURL: 'https://api.z.ai/api/paas/v4/'
   });
@@ -41,18 +41,7 @@ export async function callZai(
 
     return response as ChatResponse;
   } catch (error) {
-    logger.error('Z.AI request failed', error instanceof Error ? error : new Error(String(error)));
-
-    // Handle OpenAI SDK errors
-    if (error instanceof OpenAI.APIError) {
-      throw new Error(`Z.AI API error: ${error.status} - ${error.message}`);
-    }
-
-    if (error instanceof Error && error.name === 'TimeoutError') {
-      throw new Error('Request timeout - server took too long to respond');
-    }
-
-    throw error;
+    handleProviderError(error, 'Z.AI');
   }
 }
 
@@ -86,9 +75,7 @@ export async function streamZai(
       timeout: timeoutMs
     });
 
-    // Process the stream
     for await (const chunk of stream) {
-      // Check for errors in the chunk
       if (chunk.usage) {
         onChunk('', {
           usage: chunk.usage,
@@ -106,27 +93,11 @@ export async function streamZai(
       }
     }
   } catch (error) {
-    logger.error('Z.AI stream failed', error instanceof Error ? error : new Error(String(error)));
-
-    // Handle OpenAI SDK errors
-    if (error instanceof OpenAI.APIError) {
-      const errorMetadata = {
-        error: { code: error.code || 'api_error', message: error.message },
-        finishReason: 'error'
-      };
-      onChunk('', errorMetadata);
-      throw new Error(`Z.AI API error: ${error.status} - ${error.message}`);
-    }
-
-    if (error instanceof Error && error.name === 'TimeoutError') {
-      const errorMetadata = {
-        error: { code: 'timeout', message: 'Stream timeout - server took too long to respond' },
-        finishReason: 'error'
-      };
-      onChunk('', errorMetadata);
-      throw new Error('Stream timeout - server took too long to respond');
-    }
-
-    throw error;
+    const errorMetadata = {
+      error: { code: 'stream_error', message: error instanceof Error ? error.message : 'Unknown stream error' },
+      finishReason: 'error'
+    };
+    onChunk('', errorMetadata);
+    handleProviderError(error, 'Z.AI');
   }
 }
