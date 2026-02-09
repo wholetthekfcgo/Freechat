@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { ChatMessageSchema, ChatRequestSchema, StreamRequestSchema } from '../validation';
+import { ChatMessageSchema, ChatRequestSchema } from '../validation';
 
 describe('Validation Schemas', () => {
 	describe('ChatMessageSchema', () => {
@@ -139,43 +139,6 @@ describe('Validation Schemas', () => {
 
 			const result = ChatRequestSchema.safeParse(invalidRequest);
 			expect(result.success).toBe(false);
-		});
-	});
-
-	describe('StreamRequestSchema', () => {
-		it('should validate a valid stream request', () => {
-			const validRequest = {
-				messages: [
-					{
-						role: 'user',
-						content: 'Hello',
-						id: '550e8400-e29b-41d4-a716-446655440000'
-					}
-				],
-				model: 'openai/gpt-4',
-				temperature: 0.5
-			};
-
-			const result = StreamRequestSchema.safeParse(validRequest);
-			expect(result.success).toBe(true);
-		});
-
-		it('should have same validation rules as ChatRequestSchema', () => {
-			const request = {
-				messages: [
-					{
-						role: 'user',
-						content: 'Test',
-						id: '550e8400-e29b-41d4-a716-446655440000'
-					}
-				],
-				model: 'openai/gpt-4'
-			};
-
-			const chatResult = ChatRequestSchema.safeParse(request);
-			const streamResult = StreamRequestSchema.safeParse(request);
-
-			expect(chatResult.success).toBe(streamResult.success);
 		});
 	});
 });

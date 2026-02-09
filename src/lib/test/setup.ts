@@ -1,5 +1,5 @@
 import '@testing-library/jest-dom';
-import { vi, beforeEach } from 'vitest';
+import { beforeEach } from 'vitest';
 
 // Mock IndexedDB for test environment
 class IndexedDBMock {

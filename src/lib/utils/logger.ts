@@ -5,20 +5,18 @@
  * - Multiple log levels
  * - Context-aware logging
  * - Error tracking integration
+ * - Stream-specific helpers
  */
 
-export type LogLevel = 'trace' | 'debug' | 'info' | 'warn' | 'error' | 'fatal';
+export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 
 export type Logger = {
-	trace(message: string, context?: LogContext): void;
 	debug(message: string, context?: LogContext): void;
 	info(message: string, context?: LogContext): void;
 	warn(message: string, context?: LogContext): void;
 	error(message: string, error?: Error, context?: LogContext): void;
-	fatal(message: string, error?: Error, context?: LogContext): void;
-	startTimer(name: string): { stop: () => void };
 	streamStart(): void;
-	streamComplete(duration: number): void;
+	streamComplete(duration?: number): void;
 	streamChunk(chunkCount: number, content: string, totalLength: number): void;
 };
 
@@ -39,49 +37,37 @@ export interface LogEntry {
 	};
 }
 
-// Configuration
 const CONFIG = {
 	minLevel: import.meta.env.DEV ? 'debug' : 'info',
 	includeStackTrace: import.meta.env.DEV
 };
 
 const LOG_LEVELS: Record<LogLevel, number> = {
-	trace: 10,
 	debug: 20,
 	info: 30,
 	warn: 40,
-	error: 50,
-	fatal: 60
+	error: 50
 };
 
 const LOG_LEVEL_COLORS: Record<LogLevel, string> = {
-	trace: '\x1b[90m',
 	debug: '\x1b[36m',
 	info: '\x1b[34m',
 	warn: '\x1b[33m',
-	error: '\x1b[31m',
-	fatal: '\x1b[35m'
+	error: '\x1b[31m'
 };
 
 const RESET_COLOR = '\x1b[0m';
 
-/**
- * Check if log level should be logged
- */
 function shouldLog(level: LogLevel): boolean {
 	return LOG_LEVELS[level] >= LOG_LEVELS[CONFIG.minLevel as LogLevel];
 }
 
-/**
- * Format log entry
- */
 function formatLogEntry(
 	level: LogLevel,
 	message: string,
 	error?: Error,
 	context?: LogContext
 ): LogEntry {
-	// SSR-safe ID generation
 	const generateId = () => {
 		if (typeof crypto !== 'undefined' && crypto.randomUUID) {
 			return crypto.randomUUID();
@@ -105,9 +91,6 @@ function formatLogEntry(
 	};
 }
 
-/**
- * Log to console with colors
- */
 function logToConsole(entry: LogEntry): void {
 	const color = LOG_LEVEL_COLORS[entry.level];
 	const prefix = `${color}[${entry.level.toUpperCase()}]${RESET_COLOR}`;
@@ -126,9 +109,7 @@ function logToConsole(entry: LogEntry): void {
 		}
 	}
 	
-	// Route to appropriate console method
 	switch (entry.level) {
-		case 'trace':
 		case 'debug':
 			console.debug(message);
 			break;
@@ -139,29 +120,12 @@ function logToConsole(entry: LogEntry): void {
 			console.warn(message);
 			break;
 		case 'error':
-		case 'fatal':
 			console.error(message);
 			break;
 	}
 }
 
-/**
- * Main logger instance
- */
 export const logger = {
-	/**
-	 * Log trace message
-	 */
-	trace(message: string, context?: LogContext): void {
-		if (shouldLog('trace')) {
-			const entry = formatLogEntry('trace', message, undefined, context);
-			logToConsole(entry);
-		}
-	},
-
-	/**
-	 * Log debug message
-	 */
 	debug(message: string, context?: LogContext): void {
 		if (shouldLog('debug')) {
 			const entry = formatLogEntry('debug', message, undefined, context);
@@ -169,9 +133,6 @@ export const logger = {
 		}
 	},
 
-	/**
-	 * Log info message
-	 */
 	info(message: string, context?: LogContext): void {
 		if (shouldLog('info')) {
 			const entry = formatLogEntry('info', message, undefined, context);
@@ -179,9 +140,6 @@ export const logger = {
 		}
 	},
 
-	/**
-	 * Log warning message
-	 */
 	warn(message: string, context?: LogContext): void {
 		if (shouldLog('warn')) {
 			const entry = formatLogEntry('warn', message, undefined, context);
@@ -189,9 +147,6 @@ export const logger = {
 		}
 	},
 
-	/**
-	 * Log error message
-	 */
 	error(message: string, error?: Error, context?: LogContext): void {
 		if (shouldLog('error')) {
 			const entry = formatLogEntry('error', message, error, context);
@@ -199,39 +154,12 @@ export const logger = {
 		}
 	},
 
-	/**
-	 * Log fatal error message
-	 */
-	fatal(message: string, error?: Error, context?: LogContext): void {
-		if (shouldLog('fatal')) {
-			const entry = formatLogEntry('fatal', message, error, context);
-			logToConsole(entry);
-		}
-	},
-
-	/**
-	 * Start a performance timer
-	 */
-	startTimer(name: string): { stop: () => void } {
-		const startTime = Date.now();
-		
-		return {
-			stop: () => {
-				const duration = Date.now() - startTime;
-				logger.debug(`${name} completed`, { duration: `${duration}ms` });
-			}
-		};
-	},
-
-	/**
-	 * Stream logging helpers
-	 */
 	streamStart(): void {
 		logger.debug('Stream started');
 	},
 
-	streamComplete(duration: number): void {
-		logger.info('Stream completed', { duration: `${duration}ms` });
+	streamComplete(duration?: number): void {
+		logger.info('Stream completed', { duration: duration ? `${duration}ms` : undefined });
 	},
 
 	streamChunk(chunkCount: number, content: string, totalLength: number): void {

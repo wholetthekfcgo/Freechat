@@ -31,9 +31,7 @@ export {
 // Schemas
 export {
 	ChatRequestSchema,
-	StreamRequestSchema,
 	ChatMessageSchema,
 	type ChatMessage,
-	type ChatRequest,
-	type StreamRequest
+	type ChatRequest
 } from './schemas/validation.js';
