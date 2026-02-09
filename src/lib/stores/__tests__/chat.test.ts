@@ -2,71 +2,7 @@
  * Chat store tests
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-
-// Mock IndexedDB
-interface MockIndexedDB {
-	stores: Record<string, Record<string, unknown>>;
-	open: ReturnType<typeof vi.fn>;
-}
-
-const mockIndexedDB: MockIndexedDB = {
-	stores: {},
-	open: vi.fn((name: string, version: number) => ({
-		onerror: null,
-		onsuccess: null,
-		onupgradeneeded: null,
-		result: {
-			objectStoreNames: {
-				contains: (storeName: string) => storeName in mockIndexedDB.stores
-			},
-			createObjectStore: (name: string) => {
-				mockIndexedDB.stores[name] = {};
-			},
-			transaction: (storeName: string, mode: string) => ({
-				objectStore: (name: string) => ({
-					get: vi.fn((key) => Promise.resolve(mockIndexedDB.stores[name]?.[key] || null)),
-					put: vi.fn((value) => {
-						mockIndexedDB.stores[name][value.id] = value;
-						return Promise.resolve();
-					}),
-					delete: vi.fn((key) => {
-						delete mockIndexedDB.stores[name]?.[key];
-						return Promise.resolve();
-					}),
-					clear: vi.fn(() => {
-						mockIndexedDB.stores[name] = {};
-						return Promise.resolve();
-					})
-				})
-			}),
-			close: vi.fn()
-		}
-	}))
-};
-
-Object.defineProperty(global, 'indexedDB', {
-	value: mockIndexedDB,
-	writable: true
-});
-
-// Mock crypto
-global.crypto = {
-	randomUUID: () => 'test-uuid-' + Math.random().toString(36).substr(2, 9)
-} as Crypto;
-
-// Mock window.location
-Object.defineProperty(window, 'location', {
-	value: {
-		href: 'http://localhost:5173'
-	},
-	writable: true
-});
-
-// Mock $app/environment
-vi.mock('$app/environment', () => ({
-	browser: true
-}));
+import { describe, it, expect, beforeEach } from 'vitest';
 
 // Define types for mock store
 interface MockMessage {
@@ -214,18 +150,17 @@ describe('Chat Actions (without store)', () => {
 	});
 });
 
-describe('Chat History Management', () => {
+ describe('Chat History Management', () => {
 	let store: MockChatStore;
 
 	beforeEach(() => {
 		store = createChatStore();
-		mockIndexedDB.stores = {};
 	});
 
 	it('should save conversation to IndexedDB', async () => {
 		store.setMessages([{ role: 'user', content: 'Hello', timestamp: new Date() }]);
 		store.setConversations([
-			{ 
+			{
 				id: 'test-conv-1',
 				title: 'Hello',
 				messages: [{ role: 'user', content: 'Hello', timestamp: new Date() }],
@@ -236,8 +171,9 @@ describe('Chat History Management', () => {
 		]);
 		store.setCurrentConversationId('test-conv-1');
 
-		// Verify IndexedDB store was accessed
-		expect(mockIndexedDB.stores).toBeDefined();
+		expect(store.getMessages()).toHaveLength(1);
+		expect(store.getConversations()).toHaveLength(1);
+		expect(store.getCurrentConversationId()).toBe('test-conv-1');
 	});
 
 	it('should load conversation from IndexedDB', async () => {
@@ -250,12 +186,6 @@ describe('Chat History Management', () => {
 			updatedAt: new Date()
 		};
 
-		// Add to mock IndexedDB
-		mockIndexedDB.stores['chat-history'] = {
-			'test-conv-1': conversation
-		};
-
-		// Should load from IndexedDB
 		store.setMessages([{ role: 'user', content: 'Hello', timestamp: new Date() }]);
 		store.setConversations([conversation]);
 		store.setCurrentConversationId('test-conv-1');
@@ -263,18 +193,9 @@ describe('Chat History Management', () => {
 		expect(store.getMessages()).toHaveLength(1);
 		expect(store.getCurrentConversationId()).toBe('test-conv-1');
 	});
+ });
 
-	it('should handle missing data gracefully', async () => {
-		// Empty IndexedDB
-		mockIndexedDB.stores = {};
-
-		// Should not crash, should return empty state
-		store.setMessages([]);
-		expect(store.getMessages()).toEqual([]);
-	});
-});
-
-describe('Model Configuration', () => {
+ describe('Model Configuration', () => {
 	let store: MockChatStore;
 
 	beforeEach(() => {

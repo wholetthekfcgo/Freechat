@@ -30,9 +30,7 @@ export default defineConfig({
 	resolve: {
 		alias: {
 			'$lib': resolve(__dirname, './src/lib'),
-			'$app': resolve(__dirname, './.svelte-kit/types'),
-			'$app/environment': resolve(__dirname, './src/lib/test/mocks/environment.ts'),
-			'$env/dynamic/private': resolve(__dirname, './src/lib/test/mocks/env.ts')
+			'$app': resolve(__dirname, './.svelte-kit/types')
 		}
 	}
 });

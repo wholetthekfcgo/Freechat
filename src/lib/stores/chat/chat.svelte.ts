@@ -50,16 +50,10 @@ export const tokenUsage = $state({
 });
 
 // ============================================================================
-// PACER STATE ACCESSORS
+// EXPORT PACER STATE
 // ============================================================================
 
-export function getApiRetryerStatus() {
-	return apiRetryerState;
-}
-
-export function getStreamingRetryerStatus() {
-	return streamingRetryerState;
-}
+export { apiRetryerState, streamingRetryerState };
 
 // ============================================================================
 // UTILITIES

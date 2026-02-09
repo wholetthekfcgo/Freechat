@@ -34,6 +34,6 @@ export {
 	setModel,
 	editMessage,
 	editAndRegenerate,
-	getApiRetryerStatus,
-	getStreamingRetryerStatus
+	apiRetryerState,
+	streamingRetryerState
 } from './chat.svelte.js';

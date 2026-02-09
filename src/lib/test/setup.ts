@@ -1,5 +1,5 @@
 import '@testing-library/jest-dom';
-import { beforeEach } from 'vitest';
+import { beforeEach, vi } from 'vitest';
 
 // Mock IndexedDB for test environment
 class IndexedDBMock {
@@ -128,19 +128,20 @@ Object.defineProperty(window, 'location', {
 	writable: true
 });
 
+// Mock $app/environment for SvelteKit environment checks
+vi.mock('$app/environment', () => ({
+	browser: true
+}));
+
+// Mock $env/dynamic/private for API keys
+vi.mock('$env/dynamic/private', () => ({
+	env: {
+		ZAI_API_KEY: 'test-zai-api-key-12345',
+		OPENROUTER_API_KEY: 'test-openrouter-api-key-12345'
+	}
+}));
+
 // Reset IndexedDB before each test
 beforeEach(() => {
 	IndexedDBMock.reset();
 });
-
-export { IndexedDBMock };
-
-export const initializeSchema = async (storeName?: string) => {
-	if (storeName) {
-		IndexedDBMock.initializeSchema(storeName);
-	} else {
-		// Initialize default stores
-		IndexedDBMock.initializeSchema('chat-history');
-		IndexedDBMock.initializeSchema('chat-state');
-	}
-};

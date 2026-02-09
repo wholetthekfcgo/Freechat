@@ -35,9 +35,3 @@ export async function withRateLimitAndRetry<T>(
 ): Promise<T> {
 	return (useStreamingLimiter ? streamingRetryer : apiRetryer).execute(fn);
 }
-
-export function resetRateLimiters(): void {
-	apiRetryer.reset();
-	streamingRetryer.reset();
-	logger.info('All rate limiters reset');
-}
