@@ -41,6 +41,12 @@ export interface ChatState {
 	enableThinking: boolean;
 	abortController: AbortController | null;
 	canStopGeneration: boolean;
+	tokenBucket: {
+		remainingTokens: number;
+		capacity: number;
+		maxCreditsPerPeriod: number;
+		lastRefillTime: number;
+	};
 }
 
 export interface ChatConversation {

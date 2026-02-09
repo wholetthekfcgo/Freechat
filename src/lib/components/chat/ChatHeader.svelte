@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { TrendingUp, Plus, Menu, X } from '@lucide/svelte';
-	import { tokenUsage, tokenBucket } from '$lib/stores/chat';
+	import { tokenUsage } from '$lib/stores/chat';
 
 	let {
 		showBuyCreditsModal = $bindable(false),

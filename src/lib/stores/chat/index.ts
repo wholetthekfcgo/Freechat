@@ -16,24 +16,11 @@
  * ```
  */
 
-// Export state
-export { chatState, chatHistory, tokenUsage, tokenBucket } from './state.svelte.js';
+export { chatState, chatHistory, tokenUsage } from './chat.svelte';
 export type { ChatState, ChatHistory } from '$lib/types/chat';
 
-// Export state utilities
-export {
-	resetChatState,
-	resetChatHistory,
-	hasMessages,
-	isLoading,
-	getCurrentConversation,
-	canStopGeneration
-} from './state.svelte.js';
+export { chatActions } from './chat.svelte';
 
-// Export actions
-export { chatActions } from './actions.svelte.js';
-
-// Export individual actions for tree-shaking
 export {
 	sendMessage,
 	stopGeneration,
@@ -44,5 +31,9 @@ export {
 	deleteConversation,
 	renameConversation,
 	clearMessages,
-	setModel
-} from './actions.svelte.js';
+	setModel,
+	editMessage,
+	editAndRegenerate,
+	getApiRetryerStatus,
+	getStreamingRetryerStatus
+} from './chat.svelte.js';

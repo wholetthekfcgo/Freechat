@@ -1,10 +1,10 @@
   <script lang="ts">
   	import { browser } from '$app/environment';
   	import ChatInterface from '$lib/components/ChatInterface.svelte';
-  	import { chatState, chatActions, tokenUsage } from '$lib/stores/chat';
-  	import { errorTracker } from '$lib/utils/error-tracker';
-  	import { persistence } from '$lib/stores/persistence.svelte.js';
-  	import type { PageData } from './$types';
+	import { chatState, chatActions, tokenUsage } from '$lib/stores/chat';
+	import { errorTracker } from '$lib/utils/error-tracker';
+	import { persistence } from '$lib/stores/persistence.svelte';
+	import type { PageData } from './$types';
 
   	const generateUUID = (): string => {
   		if (typeof crypto !== 'undefined' && crypto.randomUUID) {

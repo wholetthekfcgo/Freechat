@@ -1,20 +1,69 @@
 /**
- * Chat Actions - Business Logic for Chat Operations
+ * Chat Store - Consolidated State and Actions
  * 
- * This file contains all action methods that manipulate chat state.
- * Separated from state management for better testability and organization.
+ * Core reactive state and business logic for the chat application.
+ * Merged from state.svelte.ts and actions.svelte.ts for simplification.
  */
 
 import type { Message, ChatConversation } from '$lib/types/chat';
-import { chatState, chatHistory, tokenUsage, tokenBucket } from './state.svelte.js';
+import { apiRetryerState, streamingRetryerState } from '$lib/utils/rate-limiter';
 import { logger } from '$lib/utils/logger';
-import { AsyncQueuer } from '@tanstack/pacer';
 import { withRateLimitAndRetry } from '$lib/utils/rate-limiter';
-import { save as saveChatHistory } from '../persistence.svelte.js';
+import { save as saveChatHistory } from '../persistence.svelte';
 import { calculateTokenUsage } from '$lib/utils/token-tracker';
 import { prependSystemPrompt } from '$lib/utils/system-prompt';
 import { handleStreamResponse } from '$lib/utils/stream-handler';
 import { errorTracker } from '$lib/utils/error-tracker';
+
+// ============================================================================
+// STATE
+// ============================================================================
+
+export const chatState = $state({
+	messages: [],
+	isLoading: false,
+	error: null,
+	currentModel: 'glm-4.7-flash',
+	enableThinking: false,
+	abortController: null,
+	canStopGeneration: false,
+	tokenBucket: {
+		remainingTokens: 30,
+		capacity: 60,
+		maxCreditsPerPeriod: 60,
+		lastRefillTime: Date.now()
+	}
+});
+
+export const chatHistory = $state({
+	conversations: [],
+	currentConversationId: null
+});
+
+export const tokenUsage = $state({
+	totalPromptTokens: 0,
+	totalCompletionTokens: 0,
+	totalTokens: 0,
+	totalCost: 0,
+	requestCount: 0,
+	lastUpdated: new Date()
+});
+
+// ============================================================================
+// PACER STATE ACCESSORS
+// ============================================================================
+
+export function getApiRetryerStatus() {
+	return apiRetryerState;
+}
+
+export function getStreamingRetryerStatus() {
+	return streamingRetryerState;
+}
+
+// ============================================================================
+// UTILITIES
+// ============================================================================
 
 const generateUUID = (): string => {
 	if (typeof crypto !== 'undefined' && crypto.randomUUID) {
@@ -72,74 +121,10 @@ function createDebouncedFunction<T extends (...args: any[]) => any>(
 	return debounced;
 }
 
-interface QueuedRequest<T = unknown> {
-	id: string;
-	execute: () => Promise<T>;
-	abort: () => void;
-	priority: number;
-}
+// ============================================================================
+// ACTIONS
+// ============================================================================
 
-const requestQueuer = new AsyncQueuer<QueuedRequest>(
-	async (item) => {
-		logger.info('Processing request', { id: item.id, priority: item.priority });
-		const signal = requestQueuer.getAbortSignal();
-		
-		if (signal?.aborted) {
-			item.abort();
-			throw new DOMException('Request was aborted', 'AbortError');
-		}
-		
-		return await item.execute();
-	},
-	{
-		concurrency: 1,
-		started: true,
-		onError: (error, item) => {
-			logger.error('Request failed', { id: item.id, error });
-		},
-		onSuccess: (result, item) => {
-			logger.debug('Request succeeded', { id: item.id });
-		}
-	}
-);
-
-async function queueRequest<T>(
-	execute: () => Promise<T>,
-	abort: () => void,
-	priority = 0
-): Promise<T> {
-	const requestId = `req-${Date.now()}-${generateUUID().slice(0, 8)}`;
-	
-		return new Promise((resolve, reject) => {
-		const queuedItem: QueuedRequest<T> = {
-			id: requestId,
-			execute: async () => {
-				try {
-					const result = await execute();
-					resolve(result);
-					return result;
-				} catch (error) {
-					if (error instanceof Error) {
-						errorTracker.captureError(error, 'chat-actions-queue');
-					}
-					reject(error);
-					throw error;
-				}
-			},
-			abort,
-			priority
-		};
-		
-		requestQueuer.addItem(queuedItem);
-	});
-}
-
-/**
- * Generate a title for the conversation based on first message
- * 
- * @param messages - Array of messages to generate title from
- * @returns Generated title (max 40 chars)
- */
 function generateTitle(messages: Message[]): string {
 	if (messages.length === 0) return 'New Chat';
 	
@@ -147,13 +132,6 @@ function generateTitle(messages: Message[]): string {
 	return firstUserMessage.slice(0, 40) + (firstUserMessage.length > 40 ? '...' : '');
 }
 
-/**
- * Update token usage statistics from a message
- * 
- * @param promptMessages - Messages in the prompt (excluding the assistant response)
- * @param assistantMessage - The assistant response message
- * @param model - Model identifier for pricing
- */
 function updateTokenUsage(promptMessages: Message[], assistantMessage: Message, model: string): void {
 	const usageData = calculateTokenUsage(promptMessages, assistantMessage, model);
 
@@ -173,12 +151,6 @@ function updateTokenUsage(promptMessages: Message[], assistantMessage: Message, 
 	});
 }
 
-/**
- * Handle network errors with stream recovery
- * 
- * @param error - The error that occurred
- * @returns Error message to display
- */
 function handleNetworkError(error: unknown): string {
 	if (error instanceof Error && error.name === 'AbortError') {
 		return 'Generation stopped by user';
@@ -211,13 +183,6 @@ function handleNetworkError(error: unknown): string {
 	return error instanceof Error ? error.message : 'Unknown error occurred';
 }
 
-/**
- * Handle streaming response from AI model
- * 
- * @param model - Model identifier
- * @param enableThinking - Whether thinking mode is enabled
- * @param abortController - Abort controller for the request
- */
 async function handleStreamingResponse(
 	model: string,
 	enableThinking: boolean,
@@ -226,8 +191,8 @@ async function handleStreamingResponse(
 	logger.streamStart();
 	const messagesWithSystem = prependSystemPrompt(chatState.messages);
 
-	const response = await queueRequest(
-		() => fetch('/api/chat/stream', {
+	const response = await withRateLimitAndRetry(async () => {
+		return await fetch('/api/chat/stream', {
 			method: 'POST',
 			headers: { 'Content-Type': 'application/json' },
 			body: JSON.stringify({
@@ -236,10 +201,8 @@ async function handleStreamingResponse(
 				enableThinking
 			}),
 			signal: abortController.signal
-		}),
-		() => abortController.abort(),
-		0
-	);
+		});
+	});
 
 	await handleStreamResponse(
 		response,
@@ -269,13 +232,6 @@ async function handleStreamingResponse(
 	);
 }
 
-/**
- * Handle non-streaming response from AI model
- * 
- * @param model - Model identifier
- * @param enableThinking - Whether thinking mode is enabled
- * @param abortController - Abort controller for the request
- */
 async function handleNonStreamingResponse(
 	model: string,
 	enableThinking: boolean,
@@ -283,8 +239,8 @@ async function handleNonStreamingResponse(
 ): Promise<void> {
 	const messagesWithSystem = prependSystemPrompt(chatState.messages);
 
-	const response = await queueRequest(
-		() => fetch('/api/chat', {
+	const response = await withRateLimitAndRetry(async () => {
+		return await fetch('/api/chat', {
 			method: 'POST',
 			headers: { 'Content-Type': 'application/json' },
 			body: JSON.stringify({
@@ -293,10 +249,8 @@ async function handleNonStreamingResponse(
 				enableThinking
 			}),
 			signal: abortController.signal
-		}),
-		() => abortController.abort(),
-		0
-	);
+		});
+	});
 
 	if (!response.ok) {
 		throw new Error('Failed to get response');
@@ -317,58 +271,32 @@ async function handleNonStreamingResponse(
 	}
 }
 
-/**
- * Save chat history to IndexedDB with encryption
- * Implements fallback mechanism for encryption failures
- */
 async function saveCurrentHistory(): Promise<void> {
 	await saveChatHistory(chatHistory);
 }
 
-/**
- * Debounced version of saveCurrentHistory
- * Delays saving to prevent excessive IndexedDB writes
- * Flushed immediately on page unload
- */
 const debouncedSaveHistory = createDebouncedFunction(saveCurrentHistory, 2000);
 
-/**
- * Setup beforeunload handler to flush pending saves
- */
 if (typeof window !== 'undefined') {
 	window.addEventListener('beforeunload', () => {
 		debouncedSaveHistory.flush();
 	});
 }
 
-/**
- * Send a message to the AI model
- * 
- * @param content - Message content to send
- * @param stream - Whether to use streaming (default: true)
- * 
- * @example
- * ```typescript
- * await chatActions.sendMessage("Hello, world!", true);
- * ```
- */
 export async function sendMessage(content: string, stream = true): Promise<void> {
 	const model = chatState.currentModel;
 	const enableThinking = chatState.enableThinking;
 
-	// Check if user has credits remaining using tokenBucket reactive state
-	if (tokenBucket.remainingTokens <= 0) {
-		const refillTime = Math.ceil((tokenBucket.lastRefillTime + 3600000 - Date.now()) / 60000);
+	if (chatState.tokenBucket.remainingTokens <= 0) {
+		const refillTime = Math.ceil((chatState.tokenBucket.lastRefillTime + 3600000 - Date.now()) / 60000);
 		chatState.error = `Rate limit reached. ${refillTime} minutes until refill. Or click the + button to get 30 more credits.`;
 		return;
 	}
 
-	// Create abort controller for this request
 	const abortController = new AbortController();
 	chatState.abortController = abortController;
 	chatState.canStopGeneration = true;
 
-	// Add user message with timestamp and unique ID
 	chatState.messages = [
 		...chatState.messages,
 		{ id: generateUUID(), role: 'user', content, timestamp: new Date(), isPartial: false }
@@ -377,10 +305,7 @@ export async function sendMessage(content: string, stream = true): Promise<void>
 	chatState.error = null;
 
 	try {
-		// Wrap API call with rate limiting and retry logic
-		// Use streaming rate limiter for stream requests to allow higher throughput
 		await withRateLimitAndRetry(async () => {
-			// Check if user aborted before starting the request
 			if (abortController.signal.aborted) {
 				throw new DOMException('Request was aborted', 'AbortError');
 			}
@@ -390,7 +315,7 @@ export async function sendMessage(content: string, stream = true): Promise<void>
 			} else {
 				await handleNonStreamingResponse(model, enableThinking, abortController);
 			}
-		}, 3); // Max 3 retries
+		}, 3);
 	} catch (error) {
 		if (error instanceof Error) {
 			errorTracker.captureError(error, 'chat-actions-send-message');
@@ -405,13 +330,9 @@ export async function sendMessage(content: string, stream = true): Promise<void>
 	chatState.canStopGeneration = false;
 	chatState.abortController = null;
 	
-	// Save current conversation to history with quota check
 	await saveCurrentConversation();
 }
 
-/**
- * Stop the current AI generation
- */
 export function stopGeneration(): void {
 	if (chatState.abortController) {
 		chatState.abortController.abort();
@@ -420,19 +341,14 @@ export function stopGeneration(): void {
 	}
 }
 
-/**
- * Regenerate the last AI response
- */
 export async function regenerateLastResponse(): Promise<void> {
 	if (chatState.messages.length < 2) return;
 	
-	// Remove the last assistant message
 	const messages = [...chatState.messages];
 	if (messages[messages.length - 1].role === 'assistant') {
 		messages.pop();
 		chatState.messages = messages;
 		
-		// Find the last user message and resend it
 		const lastUserMessage = [...messages].reverse().find(m => m.role === 'user');
 		if (lastUserMessage) {
 			await sendMessage(lastUserMessage.content, true);
@@ -440,13 +356,9 @@ export async function regenerateLastResponse(): Promise<void> {
 	}
 }
 
-/**
- * Save current conversation to history
- */
 export async function saveCurrentConversation(): Promise<void> {
 	if (chatState.messages.length === 0) return;
 
-	// Ensure conversations array exists
 	if (!chatHistory.conversations) {
 		chatHistory.conversations = [];
 	}
@@ -458,13 +370,11 @@ export async function saveCurrentConversation(): Promise<void> {
 		model: chatState.currentModel,
 		enableThinking: chatState.enableThinking,
 		updatedAt: new Date(),
-		createdAt: new Date() // Add createdAt field
+		createdAt: new Date()
 	};
 
 	const conversations = chatHistory.conversations;
-	const existingIndex = conversations.findIndex(
-		c => c.id === conversation.id
-	);
+	const existingIndex = conversations.findIndex(c => c.id === conversation.id);
 
 	if (existingIndex >= 0) {
 		conversations[existingIndex] = conversation;
@@ -472,7 +382,6 @@ export async function saveCurrentConversation(): Promise<void> {
 		conversations.unshift(conversation);
 	}
 
-	// Update the reactive state
 	chatHistory.conversations = conversations;
 	chatHistory.currentConversationId = conversation.id;
 	
@@ -482,15 +391,9 @@ export async function saveCurrentConversation(): Promise<void> {
 		totalConversations: conversations.length 
 	});
 
-	// Use debounced save to prevent excessive writes
 	await debouncedSaveHistory();
 }
 
-/**
- * Load a conversation from history
- * 
- * @param conversationId - ID of conversation to load
- */
 export async function loadConversation(conversationId: string): Promise<void> {
 	const conversation = chatHistory?.conversations?.find(c => c.id === conversationId);
 	if (conversation && chatHistory) {
@@ -498,85 +401,50 @@ export async function loadConversation(conversationId: string): Promise<void> {
 		chatState.currentModel = conversation.model;
 		chatState.enableThinking = conversation.enableThinking || false;
 		chatHistory.currentConversationId = conversationId;
-		// Use debounced save
 		await debouncedSaveHistory();
 	}
 }
 
-/**
- * Start a new chat session
- */
 export async function startNewChat(): Promise<void> {
 	chatState.messages = [];
 	chatState.error = null;
 	if (chatHistory) {
 		chatHistory.currentConversationId = null;
 	}
-	// Use debounced save
 	await debouncedSaveHistory();
 }
 
-/**
- * Delete a conversation from history
- * 
- * @param conversationId - ID of conversation to delete
- */
 export async function deleteConversation(conversationId: string): Promise<void> {
 	if (!chatHistory?.conversations) return;
 
-	chatHistory.conversations = chatHistory.conversations.filter(
-		c => c.id !== conversationId
-	);
+	chatHistory.conversations = chatHistory.conversations.filter(c => c.id !== conversationId);
 
 	if (chatHistory.currentConversationId === conversationId) {
 		await startNewChat();
 	} else {
-		// Use debounced save
 		await debouncedSaveHistory();
 	}
 }
 
-/**
- * Rename a conversation
- * 
- * @param conversationId - ID of conversation to rename
- * @param newTitle - New title for conversation
- */
 export async function renameConversation(conversationId: string, newTitle: string): Promise<void> {
 	const conversation = chatHistory?.conversations?.find(c => c.id === conversationId);
 	if (conversation) {
 		conversation.title = newTitle;
 		conversation.updatedAt = new Date();
-		// Use debounced save
 		await debouncedSaveHistory();
 	}
 }
 
-/**
- * Clear all messages from current session
- */
 export function clearMessages(): void {
 	chatState.messages = [];
 	chatState.error = null;
 }
 
-/**
- * Set the current AI model with debouncing
- * 
- * @param model - Model identifier
- */
 export function setModel(model: string): void {
 	chatState.currentModel = model;
-	// Debounced save will be handled by caller if needed
 	logger.info('Model changed', { model });
 }
 
-/**
- * Edit a user message and regenerate response
- * 
- * @param messageId - ID of the message to edit
- * @param newContent - New content for the message
- */
 export async function editAndRegenerate(messageId: string, newContent: string): Promise<void> {
 	const messages = [...chatState.messages];
 	const messageIndex = messages.findIndex(m => m.id === messageId);
@@ -588,25 +456,21 @@ export async function editAndRegenerate(messageId: string, newContent: string): 
 
 	const message = messages[messageIndex];
 
-	// Only allow editing user messages
 	if (message.role !== 'user') {
 		logger.warn('Only user messages can be edited', { messageId, role: message.role });
 		return;
 	}
 
-	// Update the message content and timestamp in place
 	messages[messageIndex] = {
 		...message,
 		content: newContent,
 		timestamp: new Date()
 	};
 
-	// Remove all messages after the edited message (assistant responses)
 	chatState.messages = messages.slice(0, messageIndex + 1);
 
 	logger.info('Message edited and regenerating', { messageId, contentLength: newContent.length });
 
-	// Create abort controller for this request
 	const abortController = new AbortController();
 	chatState.abortController = abortController;
 	chatState.canStopGeneration = true;
@@ -635,16 +499,9 @@ export async function editAndRegenerate(messageId: string, newContent: string): 
 	chatState.canStopGeneration = false;
 	chatState.abortController = null;
 	
-	// Save current conversation to history with quota check
 	await saveCurrentConversation();
 }
 
-/**
- * Edit a user message without regenerating
- * 
- * @param messageId - ID of the message to edit
- * @param newContent - New content for the message
- */
 export function editMessage(messageId: string, newContent: string): void {
 	const messages = [...chatState.messages];
 	const messageIndex = messages.findIndex(m => m.id === messageId);
@@ -656,28 +513,22 @@ export function editMessage(messageId: string, newContent: string): void {
 	
 	const message = messages[messageIndex];
 	
-	// Only allow editing user messages
 	if (message.role !== 'user') {
 		logger.warn('Only user messages can be edited', { messageId, role: message.role });
 		return;
 	}
 	
-	// Update the message content and timestamp
 	messages[messageIndex] = {
 		...message,
 		content: newContent,
 		timestamp: new Date()
 	};
 	
-	// Remove all messages after the edited message (assistant responses)
 	chatState.messages = messages.slice(0, messageIndex + 1);
 	
 	logger.info('Message edited', { messageId, contentLength: newContent.length });
 }
 
-/**
- * Export all actions as a single object for convenient importing
- */
 export const chatActions = {
 	sendMessage,
 	stopGeneration,

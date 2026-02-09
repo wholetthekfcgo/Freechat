@@ -7,11 +7,11 @@
 	import ChatMessageList from './chat/ChatMessageList.svelte';
 	import { chatActions, chatHistory, tokenUsage } from '$lib/stores/chat';
 	import { browser } from '$app/environment';
-	import { announce, announceError, initAnnouncer } from '$lib/utils/announcer';
-	import { onMount } from 'svelte';
-	import { tick } from 'svelte';
+	import { announce, initAnnouncer } from '$lib/utils/announcer';
+	import { onMount, onDestroy } from 'svelte';
 	import { ConfirmDialog, KeyboardShortcutsDialog } from '$lib/components/ui/dialog';
 	import BuyCreditsModal from '$lib/components/BuyCreditsModal.svelte';
+
 
 	let {
 		messages = [],
@@ -47,10 +47,43 @@
 	let showBuyCreditsModal = $state(false);
 	let showKeyboardShortcuts = $state(false);
 	let conversationToDelete: string | null = null;
+	let keydownHandler: ((e: KeyboardEvent) => void) | undefined;
 
 	onMount(() => {
 		if (browser) {
 			initAnnouncer();
+			
+			keydownHandler = (e: KeyboardEvent) => {
+				if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+					e.preventDefault();
+					announce('Input focused');
+				}
+				if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+					e.preventDefault();
+					if (inputMessage.trim() && !isLoading) {
+						handleSubmit();
+					}
+				}
+				if (e.key === 'Escape') {
+					e.preventDefault();
+					if (isLoading) {
+						chatActions.stopGeneration();
+						announce('Generation stopped');
+					}
+				}
+				if ((e.ctrlKey || e.metaKey) && e.key === '/') {
+					e.preventDefault();
+					showKeyboardShortcuts = true;
+				}
+			};
+			
+			window.addEventListener('keydown', keydownHandler);
+		}
+	});
+	
+	onDestroy(() => {
+		if (keydownHandler) {
+			window.removeEventListener('keydown', keydownHandler);
 		}
 	});
 
@@ -72,7 +105,7 @@
 		await onSendMessage(message);
 	}
 
-	async function handleStopGeneration() {
+	function handleStopGeneration() {
 		chatActions.stopGeneration();
 		announce('Generation stopped');
 	}
@@ -117,119 +150,26 @@
 		if (packageId === 'starter') {
 			const currentTime = Date.now();
 			const refillTime = localStorage.getItem('freeCreditRefillTime');
-			
+
 			if (refillTime && currentTime < parseInt(refillTime)) {
 				const timeLeft = Math.ceil((parseInt(refillTime) - currentTime) / 1000 / 60);
 				announce(`Please wait ${timeLeft} minutes before claiming free credits again.`);
 				return;
 			}
-			
+
 			const nextRefill = Date.now() + (60 * 60 * 1000);
 			localStorage.setItem('freeCreditRefillTime', nextRefill.toString());
 		}
-		
+
 		tokenUsage.requestCount = 0;
 		announce('30 credits redeemed! You can now continue chatting.');
 		console.log('Redeemed credits via modal:', packageId);
 	}
-
-	function handleKeyDown(event: KeyboardEvent) {
-		if ((event.ctrlKey || event.metaKey) && event.key === 'k') {
-			event.preventDefault();
-			announce('Input focused');
-		}
-
-		if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
-			event.preventDefault();
-			if (inputMessage.trim() && !isLoading) {
-				handleSubmit();
-			}
-		}
-
-		if (event.key === 'Escape' && isLoading) {
-			handleStopGeneration();
-		}
-
-		if ((event.ctrlKey || event.metaKey) && event.key === '/') {
-			event.preventDefault();
-			showKeyboardShortcuts = true;
-		}
-	}
-
-	let wasLoading = $state(false);
-
-	const loadingAnnouncement = $derived.by(() => {
-		if (isLoading && !wasLoading) {
-			return 'Generating response';
-		}
-		if (!isLoading && wasLoading) {
-			return error ? `Error: ${error}` : 'Response complete';
-		}
-		return null;
-	});
-
-	$effect(() => {
-		const announcement = loadingAnnouncement;
-		if (announcement) {
-			announce(announcement);
-			wasLoading = isLoading;
-		}
-	});
-
-	let prevLength = $state(0);
-
-	const messageAnnouncement = $derived.by(() => {
-		if (messages.length > prevLength) {
-			const newMessage = messages[messages.length - 1];
-			return `New ${newMessage.role === 'user' ? 'You' : 'Assistant'} message`;
-		}
-		return null;
-	});
-
-	$effect(() => {
-		const announcement = messageAnnouncement;
-		if (announcement) {
-			announce(announcement);
-			prevLength = messages.length;
-		}
-	});
-
-	let keyboardHandlerAttached = $state(false);
-
-	$effect(() => {
-		if (browser && !keyboardHandlerAttached) {
-			window.addEventListener('keydown', handleKeyDown);
-			keyboardHandlerAttached = true;
-
-			return () => {
-				window.removeEventListener('keydown', handleKeyDown);
-			};
-		}
-	});
-
-	$effect.pre(() => {
-		messages.length;
-
-		if (scrollAreaElement) {
-			const shouldScroll =
-				scrollAreaElement.offsetHeight + scrollAreaElement.scrollTop >
-				scrollAreaElement.scrollHeight - 50;
-
-			if (shouldScroll) {
-				tick().then(() => {
-					if (scrollAreaElement) {
-						scrollAreaElement.scrollTo(0, scrollAreaElement.scrollHeight);
-					}
-				});
-			}
-		}
-	});
 </script>
 
 <div class="flex flex-col h-screen bg-background overflow-hidden">
-	<!-- Grid Decoration Background -->
 	<div class="grid-decoration"></div>
-	<!-- Mobile Sidebar Overlay -->
+
 	{#if showSidebar}
 		<div 
 			class="mobile-sidebar-overlay"
@@ -239,7 +179,6 @@
 		></div>
 	{/if}
 	
-	<!-- Header -->
 	<ChatHeader
 		bind:showBuyCreditsModal
 		onMobileMenuToggle={toggleSidebar}
@@ -248,7 +187,6 @@
 	/>
 
 	<div class="flex-1 flex overflow-hidden relative">
-		<!-- Sidebar -->
 		<ChatSidebar
 			bind:showSidebar
 			conversations={chatHistory?.conversations ?? []}
@@ -260,7 +198,6 @@
 			onClose={closeSidebar}
 		/>
 
-		<!-- Chat Messages -->
 		<div class="flex-1 overflow-hidden relative">
 			{#if messages.length === 0}
 				<ChatEmptyState onShowShortcuts={() => (showKeyboardShortcuts = true)} />
@@ -276,7 +213,6 @@
 		</div>
 	</div>
 
-	<!-- Input Area -->
 	<FloatingInput
 		bind:value={inputMessage}
 		onSubmit={handleSubmit}
@@ -288,7 +224,6 @@
 		onThinkingChange={onThinkingChange}
 	/>
 
-	<!-- Confirmation Dialogs -->
 	<ConfirmDialog
 		open={showClearDialog}
 		title="Clear all messages?"

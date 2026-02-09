@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { browser } from '$app/environment';
 	import { X, Check, Clock, Info } from '@lucide/svelte';
-	import Button from '$lib/components/ui/button/button.svelte';
+	import { useCredits, CREDIT_PACKAGES } from '$lib/composables/useCredits';
 
 	interface Props {
 		open?: boolean;
@@ -15,81 +15,8 @@
 	let previousFocus = $state<HTMLElement | null>(null);
 	let selectedPackage = $state<string | null>(null);
 	let isProcessing = $state(false);
-	let nextRefillTime = $state<number>(Date.now() + 60 * 60 * 1000); // 1 hour from now
-	let canRefillFree = $derived(nextRefillTime < Date.now());
 
-	// Credit packages
-	const packages = [
-		{
-			id: 'starter',
-			name: 'Free Refill',
-			credits: 30,
-			price: 0,
-			popular: false,
-			description: 'Free 30 credits every hour',
-			isFree: true
-		},
-		{
-			id: 'standard',
-			name: 'Standard',
-			credits: 100,
-			price: 5,
-			popular: true,
-			description: 'Best value for regular users',
-			isFree: false
-		},
-		{
-			id: 'premium',
-			name: 'Premium',
-			credits: 250,
-			price: 10,
-			popular: false,
-			description: 'For power users',
-			isFree: false
-		}
-	];
-
-	// Update timer every second and make time reactive
-	let timeRemaining = $state(getTimeRemaining());
-	
-	$effect(() => {
-		const interval = setInterval(() => {
-			timeRemaining = getTimeRemaining();
-			if (nextRefillTime < Date.now()) {
-				canRefillFree = true;
-			}
-		}, 1000);
-		return () => clearInterval(interval);
-	});
-
-	// Focus trap and previous focus management
-	$effect(() => {
-		if (open && browser) {
-			// Save previously focused element
-			previousFocus = document.activeElement as HTMLElement;
-
-			// Focus dialog
-			dialogRef?.focus();
-
-			// Prevent body scroll
-			document.body.style.overflow = 'hidden';
-
-			// Add focus trap listener
-			dialogRef?.addEventListener('keydown', handleFocusTrap);
-		} else {
-			// Remove focus trap listener
-			dialogRef?.removeEventListener('keydown', handleFocusTrap);
-
-			// Restore focus
-			if (previousFocus) {
-				previousFocus.focus();
-				previousFocus = null;
-			}
-
-			// Restore body scroll
-			document.body.style.overflow = '';
-		}
-	});
+	const credits = useCredits();
 
 	function handleClose() {
 		selectedPackage = null;
@@ -99,25 +26,19 @@
 	async function handlePurchase(packageId: string) {
 		if (isProcessing) return;
 
-		// Check if this is the free tier and timer hasn't expired
-		const pkg = packages.find(p => p.id === packageId);
-		if (pkg?.isFree && !canRefillFree) {
-			announce('Please wait for the timer to expire before claiming free credits again.');
-			return;
-		}
+		const canRedeem = await credits.canRedeem(packageId);
+		if (!canRedeem) return;
 
 		selectedPackage = packageId;
 		isProcessing = true;
 
 		try {
 			await onPurchase?.(packageId);
-			
-			// Reset timer for free tier
-			if (pkg?.isFree) {
-				nextRefillTime = Date.now() + 60 * 60 * 1000; // 1 hour from now
+			const success = await credits.redeem(packageId);
+
+			if (success) {
+				handleClose();
 			}
-			
-			handleClose();
 		} catch (error) {
 			console.error('Purchase failed:', error);
 		} finally {
@@ -126,17 +47,6 @@
 		}
 	}
 
-	// Format time remaining as HH:MM:SS
-	function getTimeRemaining(): string {
-		const now = Date.now();
-		const diff = Math.max(0, nextRefillTime - now);
-		const hours = Math.floor(diff / (1000 * 60 * 60));
-		const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-		const seconds = Math.floor((diff % (1000 * 60)) / 1000);
-		return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-	}
-
-	// Focus trap within dialog
 	function handleFocusTrap(event: KeyboardEvent) {
 		if (event.key !== 'Tab') return;
 
@@ -168,6 +78,22 @@
 			handleClose();
 		}
 	}
+
+	$effect(() => {
+		if (open && browser) {
+			previousFocus = document.activeElement as HTMLElement;
+			dialogRef?.focus();
+			document.body.style.overflow = 'hidden';
+			dialogRef?.addEventListener('keydown', handleFocusTrap);
+		} else {
+			dialogRef?.removeEventListener('keydown', handleFocusTrap);
+			if (previousFocus) {
+				previousFocus.focus();
+				previousFocus = null;
+			}
+			document.body.style.overflow = '';
+		}
+	});
 </script>
 
 <svelte:window onkeydown={handleKeydown} />
@@ -185,7 +111,6 @@
 			aria-modal="true"
 			aria-labelledby="dialog-title"
 		>
-			<!-- Header -->
 			<div class="flex items-start justify-between mb-6">
 				<div>
 					<h2 id="dialog-title" class="text-display-lg text-foreground font-semibold mb-2">
@@ -204,21 +129,20 @@
 				</button>
 			</div>
 
-			<!-- Credit Packages Grid -->
 			<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-				{#each packages as pkg}
+				{#each CREDIT_PACKAGES as pkg}
 					<button
-						disabled={isProcessing || (pkg.isFree && !canRefillFree)}
+						disabled={isProcessing || (pkg.isFree && !credits.canRefillFree)}
 						onclick={() => handlePurchase(pkg.id)}
 						class="relative p-6 text-left border-2 transition-all duration-200 hover-lift {pkg.popular
 							? 'border-primary bg-primary/5 shadow-glow'
 							: 'border-border bg-card hover:border-primary/50'} {selectedPackage ===
 							pkg.id
 							? 'ring-2 ring-primary'
-							: ''} {(isProcessing || (pkg.isFree && !canRefillFree)) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}"
+							: ''} {(isProcessing || (pkg.isFree && !credits.canRefillFree)) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}"
 						aria-label="Buy {pkg.name} - {pkg.credits} credits for ${pkg.price}"
 					>
-						{#if pkg.isFree && !canRefillFree}
+						{#if pkg.isFree && !credits.canRefillFree}
 							<div
 								class="absolute inset-0 flex flex-col items-center justify-center bg-card/95 rounded z-10"
 							>
@@ -227,7 +151,7 @@
 										<Clock class="w-6 h-6 mx-auto mb-2" />
 									</div>
 									<p class="text-body-sm text-foreground font-semibold">Next free in:</p>
-									<p class="text-display-md text-primary">{timeRemaining}</p>
+									<p class="text-display-md text-primary">{credits.timeRemaining}</p>
 								</div>
 							</div>
 						{/if}
@@ -277,7 +201,6 @@
 				{/each}
 			</div>
 
-			<!-- Footer Info -->
 			<div class="border-t border-border pt-6">
 				<div class="flex items-start gap-3">
 					<div class="flex-shrink-0 w-5 h-5 text-primary">
@@ -291,7 +214,6 @@
 					</div>
 				</div>
 			</div>
-
 
 		</div>
 	</div>
