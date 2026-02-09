@@ -3,7 +3,17 @@ import { streamProvider } from '$lib/utils/provider-router';
 import { logger } from '$lib/utils/logger';
 import { validateChatRequest } from '$lib/backend/middleware/request-validator';
 import { withTimeout } from '$lib/backend/middleware/timeout';
-import { generateUUID } from '$lib/utils/uuid';
+
+const generateUUID = (): string => {
+	if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+		return crypto.randomUUID();
+	}
+	return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+		const r = Math.random() * 16 | 0;
+		const v = c === 'x' ? r : (r & 0x3 | 0x8);
+		return v.toString(16);
+	});
+};
 
 const baseHandler: RequestHandler = async ({ request }) => {
 	try {

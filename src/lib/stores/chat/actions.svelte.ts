@@ -13,10 +13,64 @@ import { withRateLimitAndRetry } from '$lib/utils/rate-limiter';
 import { save as saveChatHistory } from '../persistence.svelte.js';
 import { calculateTokenUsage } from '$lib/utils/token-tracker';
 import { prependSystemPrompt } from '$lib/utils/system-prompt';
-import { generateUUID } from '$lib/utils/uuid';
 import { handleStreamResponse } from '$lib/utils/stream-handler';
-import { createDebouncedFunction } from '$lib/utils/debounce';
 import { errorTracker } from '$lib/utils/error-tracker';
+
+const generateUUID = (): string => {
+	if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+		return crypto.randomUUID();
+	}
+	return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+		const r = Math.random() * 16 | 0;
+		const v = c === 'x' ? r : (r & 0x3 | 0x8);
+		return v.toString(16);
+	});
+};
+
+function createDebouncedFunction<T extends (...args: any[]) => any>(
+	fn: T,
+	delay: number
+): T & { flush: () => void; cancel: () => void } {
+	let timeoutId: ReturnType<typeof setTimeout> | null = null;
+	let lastArgs: Parameters<T> | null = null;
+
+	const debounced = ((...args: Parameters<T>) => {
+		lastArgs = args;
+		
+		if (timeoutId) {
+			clearTimeout(timeoutId);
+		}
+		
+		timeoutId = setTimeout(() => {
+			if (lastArgs !== null) {
+				fn(...lastArgs);
+				lastArgs = null;
+			}
+			timeoutId = null;
+		}, delay);
+	}) as T & { flush: () => void; cancel: () => void };
+
+	debounced.flush = () => {
+		if (timeoutId) {
+			clearTimeout(timeoutId);
+			timeoutId = null;
+			if (lastArgs !== null) {
+				fn(...lastArgs);
+				lastArgs = null;
+			}
+		}
+	};
+
+	debounced.cancel = () => {
+		if (timeoutId) {
+			clearTimeout(timeoutId);
+			timeoutId = null;
+			lastArgs = null;
+		}
+	};
+
+	return debounced;
+}
 
 interface QueuedRequest<T = unknown> {
 	id: string;

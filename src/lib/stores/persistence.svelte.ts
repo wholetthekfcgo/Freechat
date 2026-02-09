@@ -10,8 +10,18 @@ import { logger } from '$lib/utils/logger';
 import { encrypt, decrypt } from '$lib/utils/encryption';
 import { idb, STORES } from '$lib/utils/indexeddb';
 import type { ChatHistory } from '$lib/types/chat';
-import { generateUUID } from '$lib/utils/uuid';
 import { errorTracker } from '$lib/utils/error-tracker';
+
+const generateUUID = (): string => {
+	if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+		return crypto.randomUUID();
+	}
+	return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+		const r = Math.random() * 16 | 0;
+		const v = c === 'x' ? r : (r & 0x3 | 0x8);
+		return v.toString(16);
+	});
+};
 
 const STORAGE_VERSION = 'v1';
 const STORAGE_KEY = 'chat-history';

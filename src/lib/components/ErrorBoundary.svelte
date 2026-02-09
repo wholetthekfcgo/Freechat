@@ -23,12 +23,22 @@
  * ```
  */
 
- <script lang="ts">
- 	import { onMount, onDestroy } from 'svelte';
- 	import { browser } from '$app/environment';
- 	import type { Snippet } from 'svelte';
- 	import { generateUUID } from '$lib/utils/uuid';
- 	import './ui/error-boundary/error-boundary.css';
+  <script lang="ts">
+  	import { onMount, onDestroy } from 'svelte';
+  	import { browser } from '$app/environment';
+  	import type { Snippet } from 'svelte';
+  	import './ui/error-boundary/error-boundary.css';
+
+	const generateUUID = (): string => {
+		if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+			return crypto.randomUUID();
+		}
+		return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+			const r = Math.random() * 16 | 0;
+			const v = c === 'x' ? r : (r & 0x3 | 0x8);
+			return v.toString(16);
+		});
+	};
 
 	interface ErrorContext {
 		error: Error | null;

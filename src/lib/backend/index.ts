@@ -8,14 +8,7 @@
 // Middleware
 export {
 	withTimeout,
-	withTimeoutDecorator,
-	createTimeoutPromise,
-	withPromiseTimeout,
-	fetchWithTimeout,
-	TimeoutManager,
-	apiTimeoutManager,
-	withLoadTimeout,
-	getProgressiveTimeout
+	fetchWithTimeout
 } from './middleware/timeout.js';
 
 export {
@@ -24,11 +17,7 @@ export {
 } from './middleware/request-validator.js';
 
 export {
-	handleSecurityHeaders,
 	sanitizeError,
-	validateOrigin,
-	handleCSRF,
-	checkRateLimit,
 	handleSecurity
 } from './middleware/security.js';
 
