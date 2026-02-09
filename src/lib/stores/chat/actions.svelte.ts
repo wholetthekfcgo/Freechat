@@ -8,14 +8,73 @@
 import type { Message, ChatConversation } from '$lib/types/chat';
 import { chatState, chatHistory, tokenUsage, tokenBucket } from './state.svelte.js';
 import { logger } from '$lib/utils/logger';
-import { queueRequest, abortAllRequests } from '$lib/utils/request-queue';
+import { AsyncQueuer } from '@tanstack/pacer';
 import { withRateLimitAndRetry } from '$lib/utils/rate-limiter';
-import { save as saveChatHistory, load as loadChatHistory, clear as clearChatHistory } from '../persistence.svelte.js';
-import { calculateTokenUsage, formatTokenCount, formatCost } from '$lib/utils/token-tracker';
+import { save as saveChatHistory } from '../persistence.svelte.js';
+import { calculateTokenUsage } from '$lib/utils/token-tracker';
 import { prependSystemPrompt } from '$lib/utils/system-prompt';
 import { generateUUID } from '$lib/utils/uuid';
 import { handleStreamResponse } from '$lib/utils/stream-handler';
 import { createDebouncedFunction } from '$lib/utils/debounce';
+
+interface QueuedRequest<T = unknown> {
+	id: string;
+	execute: () => Promise<T>;
+	abort: () => void;
+	priority: number;
+}
+
+const requestQueuer = new AsyncQueuer<QueuedRequest>(
+	async (item) => {
+		logger.info('Processing request', { id: item.id, priority: item.priority });
+		const signal = requestQueuer.getAbortSignal();
+		
+		if (signal?.aborted) {
+			item.abort();
+			throw new DOMException('Request was aborted', 'AbortError');
+		}
+		
+		return await item.execute();
+	},
+	{
+		concurrency: 1,
+		started: true,
+		onError: (error, item) => {
+			logger.error('Request failed', { id: item.id, error });
+		},
+		onSuccess: (result, item) => {
+			logger.debug('Request succeeded', { id: item.id });
+		}
+	}
+);
+
+async function queueRequest<T>(
+	execute: () => Promise<T>,
+	abort: () => void,
+	priority = 0
+): Promise<T> {
+	const requestId = `req-${Date.now()}-${generateUUID().slice(0, 8)}`;
+	
+	return new Promise((resolve, reject) => {
+		const queuedItem: QueuedRequest<T> = {
+			id: requestId,
+			execute: async () => {
+				try {
+					const result = await execute();
+					resolve(result);
+					return result;
+				} catch (error) {
+					reject(error);
+					throw error;
+				}
+			},
+			abort,
+			priority
+		};
+		
+		requestQueuer.addItem(queuedItem);
+	});
+}
 
 /**
  * Generate a title for the conversation based on first message

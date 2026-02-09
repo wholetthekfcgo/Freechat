@@ -109,7 +109,8 @@ export async function handleStreamResponse(
 							// Immutable update - create new object
 							messages[messages.length - 1] = {
 								...lastMessage,
-								content: assistantContent
+								content: assistantContent,
+								encodedTokens: undefined
 							};
 						} else {
 							messages.push({

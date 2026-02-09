@@ -70,7 +70,13 @@ export interface CumulativeTokenUsage {
  * @returns Number of tokens
  */
 export function countMessageTokens(message: Message): number {
-	return encode(message.content).length;
+	if (message.encodedTokens) {
+		return message.encodedTokens.length;
+	}
+
+	const encoded = encode(message.content);
+	(message as any).encodedTokens = encoded;
+	return encoded.length;
 }
 
 /**

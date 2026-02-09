@@ -7,7 +7,6 @@
 
 import type { ChatState, ChatHistory } from '$lib/types/chat';
 import { apiRetryerState, streamingRetryerState } from '$lib/utils/rate-limiter';
-import { queueState } from '$lib/utils/request-queue';
 
 /**
  * Current chat session state
@@ -96,9 +95,5 @@ export function getApiRetryerStatus() {
 
 export function getStreamingRetryerStatus() {
 	return streamingRetryerState;
-}
-
-export function getRequestQueueStatus() {
-	return queueState;
 }
 

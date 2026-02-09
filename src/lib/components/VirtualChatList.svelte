@@ -97,21 +97,22 @@
 		}
 	});
 
+	// Use derived ID string for efficient change detection
+	const messagesIdString = $derived.by(() => messages.map(m => m.id).join(','));
+
 	// Recalculate when messages change - FIXED: Only track actual changes
 	$effect(() => {
-		// Only recalculate when message count or IDs change, not array references
-		messages.length;
-		messages.map(m => m.id).join(',');
+		messagesIdString;
 		recalculateOffsets();
 	});
 
 	// Auto-scroll to bottom when new messages arrive
 	$effect(() => {
-		const lastMessage = messages[messages.length - 1];
-		if (lastMessage && container) {
+		const lastMessageId = messages[messages.length - 1]?.id;
+		if (lastMessageId && container) {
 			// Check if user is near bottom
 			const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 200;
-			
+
 			if (isNearBottom) {
 				// Wait for DOM to update
 				tick().then(() => {

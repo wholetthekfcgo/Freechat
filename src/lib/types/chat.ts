@@ -4,6 +4,7 @@ export interface Message {
 	content: string;
 	timestamp: Date;
 	isPartial?: boolean;
+	encodedTokens?: number[];
 }
 
 export interface ChatRequest {
