@@ -1,7 +1,6 @@
-<script lang="ts">
+ <script lang="ts">
 	import type { Message } from '$lib/types/chat';
 	import FloatingInput from '$lib/components/FloatingInput.svelte';
-	import ChatHeader from './chat/ChatHeader.svelte';
 	import ChatSidebar from './chat/ChatSidebar.svelte';
 	import ChatEmptyState from './chat/ChatEmptyState.svelte';
 	import ChatMessageList from './chat/ChatMessageList.svelte';
@@ -11,6 +10,7 @@
 	import { onMount, onDestroy } from 'svelte';
 	import { ConfirmDialog, KeyboardShortcutsDialog } from '$lib/components/ui/dialog';
 	import BuyCreditsModal from '$lib/components/BuyCreditsModal.svelte';
+	import { Menu } from '@lucide/svelte';
 
 
 	let {
@@ -24,7 +24,8 @@
 		onExport,
 		onRegenerate,
 		onModelChange,
-		onThinkingChange
+		onThinkingChange,
+		requestCount = 0
 	}: {
 		messages: Message[];
 		isLoading: boolean;
@@ -37,11 +38,12 @@
 		onExport?: (format: 'markdown' | 'json') => void;
 		onModelChange?: (model: string) => void;
 		onThinkingChange?: (enabled: boolean) => void;
+		requestCount?: number;
 	} = $props();
 
-	let inputMessage = $state('');
-	let scrollAreaElement: HTMLElement = $state();
-	let showSidebar = $state(false);
+ 	let inputMessage = $state('');
+ 	let scrollAreaElement: HTMLElement | undefined;
+ 	let showSidebar = $state(false);
 	let showClearDialog = $state(false);
 	let showDeleteDialog = $state(false);
 	let showBuyCreditsModal = $state(false);
@@ -177,24 +179,18 @@
 	<div class="grid-decoration"></div>
 
 	{#if showSidebar}
-		<div 
-			class="mobile-sidebar-overlay"
+		<div
+			class="sidebar-overlay"
 			class:open={showSidebar}
 			onclick={closeSidebar}
 			aria-hidden="true"
 		></div>
 	{/if}
-	
-	<ChatHeader
-		bind:showBuyCreditsModal
-		onMobileMenuToggle={toggleSidebar}
-		onBuyCredits={() => (showBuyCreditsModal = true)}
-		showSidebar={showSidebar}
-	/>
 
 	<div class="flex-1 flex overflow-hidden relative">
 		<ChatSidebar
 			bind:showSidebar
+			onBuyCredits={() => (showBuyCreditsModal = true)}
 			conversations={chatHistory?.conversations ?? []}
 			currentConversationId={chatHistory?.currentConversationId ?? null}
 			onLoadConversation={chatActions.loadConversation}
@@ -202,20 +198,35 @@
 			onDeleteConversation={handleDeleteRequest}
 			onExportConversation={() => onExport?.('markdown')}
 			onClose={closeSidebar}
+			{requestCount}
 		/>
 
-		<div class="flex-1 overflow-hidden relative">
-			{#if messages.length === 0}
-				<ChatEmptyState onShowShortcuts={() => (showKeyboardShortcuts = true)} />
-			{:else}
-				<ChatMessageList
-					bind:scrollAreaElement
-					{messages}
-					{isLoading}
-					{error}
-					{onRegenerate}
-				/>
-			{/if}
+		<div class="flex-1 overflow-hidden relative flex flex-col">
+			<div class="flex items-center justify-start p-4">
+				<button
+					onclick={toggleSidebar}
+					class="mobile-icon-btn touch-target"
+					title="Toggle menu"
+					aria-label="Toggle menu"
+					aria-pressed={showSidebar}
+				>
+					<Menu class="w-6 h-6" />
+				</button>
+			</div>
+
+			<div class="flex-1 overflow-hidden relative">
+				{#if messages.length === 0}
+					<ChatEmptyState onShowShortcuts={() => (showKeyboardShortcuts = true)} />
+				{:else}
+					<ChatMessageList
+						bind:scrollAreaElement
+						{messages}
+						{isLoading}
+						{error}
+						onRegenerate={handleRegenerate}
+					/>
+				{/if}
+			</div>
 		</div>
 	</div>
 

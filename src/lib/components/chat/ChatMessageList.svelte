@@ -11,7 +11,7 @@
 		error = null,
 		onRegenerate = undefined
 	}: {
-		scrollAreaElement: HTMLElement;
+		scrollAreaElement: HTMLElement | undefined;
 		messages: Message[];
 		isLoading: boolean;
 		error: string | null;
