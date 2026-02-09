@@ -7,7 +7,7 @@
 	import ChatMessageList from './chat/ChatMessageList.svelte';
 	import { chatActions, chatHistory, tokenUsage } from '$lib/stores/chat';
 	import { browser } from '$app/environment';
-	import { announce, initAnnouncer } from '$lib/utils/announcer';
+	import { announce, initAnnouncer, clearAnnouncements } from '$lib/utils/announcer';
 	import { onMount, onDestroy } from 'svelte';
 	import { ConfirmDialog, KeyboardShortcutsDialog } from '$lib/components/ui/dialog';
 	import BuyCreditsModal from '$lib/components/BuyCreditsModal.svelte';
@@ -102,7 +102,13 @@
 		const message = inputMessage.trim();
 		inputMessage = '';
 		announce('Sending message');
-		await onSendMessage(message);
+		try {
+			await onSendMessage(message);
+		} catch (error) {
+			announce('Failed to send message');
+			throw error;
+		}
+		clearAnnouncements();
 	}
 
 	function handleStopGeneration() {

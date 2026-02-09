@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { Message } from '$lib/types/chat';
 	import MessageBubble from '$lib/components/MessageBubble.svelte';
-	import VirtualChatList from '$lib/components/VirtualChatList.svelte';
+	import VirtualList from '$lib/components/ui/virtual-list/VirtualList.svelte';
 	import ScrollArea from '$lib/components/ui/scroll-area/scroll-area.svelte';
 
 	let {
@@ -17,6 +17,10 @@
 		error: string | null;
 		onRegenerate?: () => void;
 	} = $props();
+
+	function keyExtractor(message: Message) {
+		return message.id;
+	}
 </script>
 
 <ScrollArea class="h-full">
@@ -25,12 +29,25 @@
 			<!-- Empty state rendered by parent component -->
 		{:else if messages.length > 100}
 			<!-- Use virtual scrolling for large conversations -->
-			<VirtualChatList {messages} {onRegenerate} />
+			<VirtualList
+				{messages}
+				keyExtractor={keyExtractor}
+				estimatedItemHeight={150}
+				let:item
+				let:index
+			>
+				{#snippet renderItem(item, index)}
+					<MessageBubble
+						message={item}
+						onRegenerate={item.role === 'assistant' ? onRegenerate : undefined}
+					/>
+				{/snippet}
+			</VirtualList>
 		{:else}
 			<!-- Regular rendering for small conversations -->
 			{#each messages as message (message.id)}
-				<MessageBubble 
-					{message} 
+				<MessageBubble
+					{message}
 					onRegenerate={message.role === 'assistant' ? onRegenerate : undefined}
 				/>
 			{/each}
