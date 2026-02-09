@@ -27,8 +27,8 @@
 	import { onMount, onDestroy } from 'svelte';
 	import { browser } from '$app/environment';
 	import type { Snippet } from 'svelte';
+	import './ui/error-boundary/error-boundary.css';
 
-	// Define errorContext type first
 	interface ErrorContext {
 		error: Error | null;
 		errorInfo: ErrorInfo | null;
@@ -38,15 +38,10 @@
 	}
 
 	interface Props {
-		/** Fallback snippet to render on error */
 		fallback?: Snippet<[ErrorContext]>;
-		/** Callback when error is caught */
 		onError?: (error: Error, errorInfo: ErrorInfo) => void;
-		/** Whether to reset error on route change */
 		resetOnRouteChange?: boolean;
-		/** Child components */
 		children: Snippet;
-		/** Custom error boundary name for tracking */
 		name?: string;
 	}
 
@@ -58,10 +53,10 @@
 		url: string;
 	}
 
-	let { 
-		fallback = undefined, 
-		onError, 
-		resetOnRouteChange = true, 
+	let {
+		fallback = undefined,
+		onError,
+		resetOnRouteChange = true,
 		children,
 		name = 'ErrorBoundary'
 	}: Props = $props();
@@ -284,160 +279,4 @@
 	{/if}
 {:else}
 	{@render children()}
-{/if}
-
-<style>
-	.error-boundary-fallback {
-		padding: 2.5rem;
-		text-align: center;
-		border: 2px solid var(--color-accent, #e65c25);
-		background: var(--color-background, #1a1a1a);
-		color: var(--color-foreground, #f5f0e8);
-		margin: 2rem;
-		max-width: 600px;
-		margin-left: auto;
-		margin-right: auto;
-		border-radius: 8px;
-		box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
-	}
-
-	.error-icon {
-		color: var(--color-accent, #e65c25);
-		margin-bottom: 1rem;
-		display: flex;
-		justify-content: center;
-	}
-
-	.error-boundary-fallback h2 {
-		color: var(--color-accent, #e65c25);
-		margin-bottom: 1rem;
-		font-size: 1.5rem;
-		font-weight: 600;
-	}
-
-	.error-message {
-		color: var(--color-foreground, #f5f0e8);
-		margin-bottom: 1.5rem;
-		font-size: 1rem;
-		line-height: 1.5;
-	}
-
-	.error-details {
-		margin: 1.5rem 0;
-		text-align: left;
-		border: 1px solid var(--color-border, #333);
-		border-radius: 4px;
-		padding: 1rem;
-		background: rgba(0, 0, 0, 0.2);
-	}
-
-	.error-details summary {
-		cursor: pointer;
-		font-weight: 500;
-		margin-bottom: 1rem;
-		user-select: none;
-	}
-
-	.error-details summary:hover {
-		color: var(--color-accent, #e65c25);
-	}
-
-	.error-stack {
-		font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-		font-size: 0.85rem;
-		color: #ff6b6b;
-		white-space: pre-wrap;
-		word-wrap: break-word;
-		margin: 0;
-		overflow-x: auto;
-	}
-
-	.error-id {
-		margin-top: 1rem;
-		font-size: 0.85rem;
-		color: var(--color-muted, #888);
-	}
-
-	.error-id code {
-		background: rgba(0, 0, 0, 0.3);
-		padding: 0.2rem 0.4rem;
-		border-radius: 3px;
-		font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-	}
-
-	.error-actions {
-		display: flex;
-		gap: 1rem;
-		justify-content: center;
-		flex-wrap: wrap;
-		margin-top: 1.5rem;
-	}
-
-	.btn-primary,
-	.btn-secondary {
-		padding: 0.75rem 1.5rem;
-		border: none;
-		cursor: pointer;
-		font-size: 1rem;
-		font-weight: 500;
-		border-radius: 4px;
-		transition: all 0.2s ease;
-	}
-
-	.btn-primary {
-		background: var(--color-accent, #e65c25);
-		color: var(--color-background, #0a0a0a);
-	}
-
-	.btn-primary:hover {
-		background: color-mix(in srgb, var(--color-accent, #e65c25) 90%, black);
-		transform: translateY(-1px);
-		box-shadow: 0 4px 12px rgba(230, 92, 37, 0.3);
-	}
-
-	.btn-secondary {
-		background: transparent;
-		color: var(--color-foreground, #f5f0e8);
-		border: 1px solid var(--color-border, #333);
-	}
-
-	.btn-secondary:hover {
-		background: rgba(255, 255, 255, 0.05);
-		border-color: var(--color-muted, #888);
-	}
-
-	.btn-primary:focus,
-	.btn-secondary:focus {
-		outline: 2px solid var(--color-accent, #e65c25);
-		outline-offset: 2px;
-	}
-
-	.retry-info {
-		margin-top: 1rem;
-		font-size: 0.85rem;
-		color: var(--color-muted, #888);
-	}
-
-	/* Accessibility improvements */
-	.error-boundary-fallback:focus-visible {
-		outline: 2px solid var(--color-accent, #e65c25);
-		outline-offset: 4px;
-	}
-
-	/* Responsive adjustments */
-	@media (max-width: 640px) {
-		.error-boundary-fallback {
-			margin: 1rem;
-			padding: 1.5rem;
-		}
-
-		.error-actions {
-			flex-direction: column;
-		}
-
-		.btn-primary,
-		.btn-secondary {
-			width: 100%;
-		}
-	}
-</style>
+ {/if}

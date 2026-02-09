@@ -90,6 +90,176 @@ function generateTitle(messages: Message[]): string {
 }
 
 /**
+ * Update token usage statistics from a message
+ * 
+ * @param promptMessages - Messages in the prompt (excluding the assistant response)
+ * @param assistantMessage - The assistant response message
+ * @param model - Model identifier for pricing
+ */
+function updateTokenUsage(promptMessages: Message[], assistantMessage: Message, model: string): void {
+	const usageData = calculateTokenUsage(promptMessages, assistantMessage, model);
+
+	tokenUsage.totalPromptTokens += usageData.promptTokens;
+	tokenUsage.totalCompletionTokens += usageData.completionTokens;
+	tokenUsage.totalTokens += usageData.totalTokens;
+	tokenUsage.totalCost += usageData.estimatedCost;
+	tokenUsage.requestCount += 1;
+	tokenUsage.lastUpdated = new Date();
+
+	logger.info('Token usage updated', {
+		promptTokens: usageData.promptTokens,
+		completionTokens: usageData.completionTokens,
+		totalTokens: usageData.totalTokens,
+		cost: usageData.estimatedCost,
+		cumulativeCost: tokenUsage.totalCost
+	});
+}
+
+/**
+ * Handle network errors with stream recovery
+ * 
+ * @param error - The error that occurred
+ * @returns Error message to display
+ */
+function handleNetworkError(error: unknown): string {
+	if (error instanceof Error && error.name === 'AbortError') {
+		return 'Generation stopped by user';
+	}
+
+	if (error instanceof Error && (error.message.includes('network') || error.message.includes('fetch'))) {
+		logger.warn('Network error detected, attempting stream recovery', { error: error.message });
+
+		const messages = [...chatState.messages];
+		const lastMessage = messages[messages.length - 1];
+
+		if (lastMessage?.role === 'assistant' && lastMessage.content && lastMessage.content.length > 0) {
+			logger.info('Recovering partial stream content', {
+				contentLength: lastMessage.content.length
+			});
+
+			const partialMessage: Message & { isPartial: true } = {
+				...lastMessage,
+				isPartial: true
+			};
+
+			chatState.messages = messages.map(m =>
+				m.id === lastMessage.id ? partialMessage : m
+			);
+
+			return 'Response was interrupted. Some content may be incomplete. Click regenerate to try again.';
+		}
+	}
+
+	return error instanceof Error ? error.message : 'Unknown error occurred';
+}
+
+/**
+ * Handle streaming response from AI model
+ * 
+ * @param model - Model identifier
+ * @param enableThinking - Whether thinking mode is enabled
+ * @param abortController - Abort controller for the request
+ */
+async function handleStreamingResponse(
+	model: string,
+	enableThinking: boolean,
+	abortController: AbortController
+): Promise<void> {
+	logger.streamStart();
+	const messagesWithSystem = prependSystemPrompt(chatState.messages);
+
+	const response = await queueRequest(
+		() => fetch('/api/chat/stream', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({
+				model,
+				messages: messagesWithSystem,
+				enableThinking
+			}),
+			signal: abortController.signal
+		}),
+		() => abortController.abort(),
+		0
+	);
+
+	await handleStreamResponse(
+		response,
+		{
+			abortController,
+			onMessageUpdate: (messages) => {
+				chatState.messages = messages;
+			},
+			onUsage: (usage) => {
+				logger.info('Usage statistics received', usage);
+
+				const promptMessages = chatState.messages.slice(0, -1);
+				const assistantMessage = chatState.messages[chatState.messages.length - 1];
+
+				if (assistantMessage) {
+					updateTokenUsage(promptMessages, assistantMessage, model);
+				}
+			},
+			onComplete: () => {
+				logger.info('Stream completed successfully');
+			},
+			onError: (error) => {
+				throw error;
+			}
+		},
+		chatState.messages
+	);
+}
+
+/**
+ * Handle non-streaming response from AI model
+ * 
+ * @param model - Model identifier
+ * @param enableThinking - Whether thinking mode is enabled
+ * @param abortController - Abort controller for the request
+ */
+async function handleNonStreamingResponse(
+	model: string,
+	enableThinking: boolean,
+	abortController: AbortController
+): Promise<void> {
+	const messagesWithSystem = prependSystemPrompt(chatState.messages);
+
+	const response = await queueRequest(
+		() => fetch('/api/chat', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({
+				model,
+				messages: messagesWithSystem,
+				enableThinking
+			}),
+			signal: abortController.signal
+		}),
+		() => abortController.abort(),
+		0
+	);
+
+	if (!response.ok) {
+		throw new Error('Failed to get response');
+	}
+
+	const data = await response.json();
+	const assistantMessage = data.choices?.[0]?.message?.content || 'No response';
+
+	chatState.messages = [
+		...chatState.messages,
+		{ id: generateUUID(), role: 'assistant', content: assistantMessage, timestamp: new Date() }
+	];
+
+	const promptMessages = chatState.messages.slice(0, -1);
+	const assistantMsg = chatState.messages[chatState.messages.length - 1];
+	if (assistantMsg) {
+		updateTokenUsage(promptMessages, assistantMsg, model);
+	}
+}
+
+/**
  * Save chat history to IndexedDB with encryption
  * Implements fallback mechanism for encryption failures
  */
@@ -158,149 +328,13 @@ export async function sendMessage(content: string, stream = true): Promise<void>
 			}
 			
 			if (stream) {
-				logger.streamStart();
-				const messagesWithSystem = prependSystemPrompt(chatState.messages);
-
-				const response = await queueRequest(
-					() => fetch('/api/chat/stream', {
-						method: 'POST',
-						headers: { 'Content-Type': 'application/json' },
-						body: JSON.stringify({
-							model,
-							messages: messagesWithSystem,
-							enableThinking
-						}),
-						signal: abortController.signal
-					}),
-					() => abortController.abort(),
-					0
-				);
-
-				await handleStreamResponse(
-					response,
-					{
-						abortController,
-						onMessageUpdate: (messages) => {
-							chatState.messages = messages;
-						},
-						onUsage: (usage) => {
-							logger.info('Usage statistics received', usage);
-
-							const promptMessages = chatState.messages.slice(0, -1);
-							const assistantMessage = chatState.messages[chatState.messages.length - 1];
-
-							if (assistantMessage) {
-								const usageData = calculateTokenUsage(
-									promptMessages,
-									assistantMessage,
-									model
-								);
-
-								tokenUsage.totalPromptTokens += usageData.promptTokens;
-								tokenUsage.totalCompletionTokens += usageData.completionTokens;
-								tokenUsage.totalTokens += usageData.totalTokens;
-								tokenUsage.totalCost += usageData.estimatedCost;
-								tokenUsage.requestCount += 1;
-								tokenUsage.lastUpdated = new Date();
-
-								logger.info('Token usage updated', {
-									promptTokens: usageData.promptTokens,
-									completionTokens: usageData.completionTokens,
-									totalTokens: usageData.totalTokens,
-									cost: usageData.estimatedCost,
-									cumulativeCost: tokenUsage.totalCost
-								});
-							}
-						},
-						onComplete: () => {
-							logger.info('Stream completed successfully');
-						},
-						onError: (error) => {
-							throw error;
-						}
-					},
-					chatState.messages
-				);
+				await handleStreamingResponse(model, enableThinking, abortController);
 			} else {
-				// Handle non-streaming
-				// Prepend system prompt to messages for API call
-				const messagesWithSystem = prependSystemPrompt(chatState.messages);
-
-				const response = await queueRequest(
-					() => fetch('/api/chat', {
-						method: 'POST',
-						headers: { 'Content-Type': 'application/json' },
-						body: JSON.stringify({
-							model,
-							messages: messagesWithSystem,
-							enableThinking
-						}),
-						signal: abortController.signal
-					}),
-					() => abortController.abort(),
-					0
-				);
-
-				if (!response.ok) {
-					throw new Error('Failed to get response');
-				}
-
-				const data = await response.json();
-				const assistantMessage = data.choices?.[0]?.message?.content || 'No response';
-
-				chatState.messages = [
-					...chatState.messages,
-					{ id: generateUUID(), role: 'assistant', content: assistantMessage, timestamp: new Date() }
-				];
-				
-				// Track token usage for non-streaming responses
-				const promptMessages = chatState.messages.slice(0, -1);
-				const assistantMsg = chatState.messages[chatState.messages.length - 1];
-				const usage = calculateTokenUsage(promptMessages, assistantMsg, model);
-				
-				tokenUsage.totalPromptTokens += usage.promptTokens;
-				tokenUsage.totalCompletionTokens += usage.completionTokens;
-				tokenUsage.totalTokens += usage.totalTokens;
-				tokenUsage.totalCost += usage.estimatedCost;
-				tokenUsage.requestCount += 1;
-				tokenUsage.lastUpdated = new Date();
+				await handleNonStreamingResponse(model, enableThinking, abortController);
 			}
 		}, 3); // Max 3 retries
 	} catch (error) {
-		if (error instanceof Error && error.name === 'AbortError') {
-			chatState.error = 'Generation stopped by user';
-		} else {
-			// Network error - attempt stream recovery
-			if (error instanceof Error && (error.message.includes('network') || error.message.includes('fetch'))) {
-				logger.warn('Network error detected, attempting stream recovery', { error: error.message });
-				
-				// Check if we have partial content to recover
-				const messages = [...chatState.messages];
-				const lastMessage = messages[messages.length - 1];
-				
-				if (lastMessage?.role === 'assistant' && lastMessage.content && lastMessage.content.length > 0) {
-					logger.info('Recovering partial stream content', { 
-						contentLength: lastMessage.content.length 
-					});
-					
-					// Mark as partial but keep the content - use proper type
-					const partialMessage: Message & { isPartial: true } = {
-						...lastMessage,
-						isPartial: true
-					};
-					
-					chatState.messages = messages.map(m => 
-						m.id === lastMessage.id ? partialMessage : m
-					);
-					
-					chatState.error = 'Response was interrupted. Some content may be incomplete. Click regenerate to try again.';
-				} else {
-					chatState.error = error instanceof Error ? error.message : 'Unknown error occurred';
-				}
-			} else {
-				chatState.error = error instanceof Error ? error.message : 'Unknown error occurred';
-			}
-		}
+		chatState.error = handleNetworkError(error);
 		chatState.isLoading = false;
 		chatState.canStopGeneration = false;
 		chatState.abortController = null;
@@ -519,78 +553,15 @@ export async function editAndRegenerate(messageId: string, newContent: string): 
 	chatState.error = null;
 
 	try {
-		// Wrap API call with rate limiting and retry logic
 		await withRateLimitAndRetry(async () => {
-			// Check if user aborted before starting the request
 			if (abortController.signal.aborted) {
 				throw new DOMException('Request was aborted', 'AbortError');
 			}
 
-			const messagesWithSystem = prependSystemPrompt(chatState.messages);
-
-			const response = await queueRequest(
-				() => fetch('/api/chat/stream', {
-					method: 'POST',
-					headers: { 'Content-Type': 'application/json' },
-					body: JSON.stringify({
-						model: chatState.currentModel,
-						messages: messagesWithSystem,
-						enableThinking: chatState.enableThinking
-					}),
-					signal: abortController.signal
-				}),
-				() => abortController.abort(),
-				0
-			);
-
-			await handleStreamResponse(
-				response,
-				{
-					abortController,
-					onMessageUpdate: (messages) => {
-						chatState.messages = messages;
-					},
-					onUsage: (usage) => {
-						logger.info('Usage statistics received', usage);
-					},
-					onComplete: () => {
-						logger.info('Stream completed successfully');
-					},
-					onError: (error) => {
-						throw error;
-					}
-				},
-				chatState.messages
-			);
-		}, 3); // Max 3 retries
+			await handleStreamingResponse(chatState.currentModel, chatState.enableThinking, abortController);
+		}, 3);
 	} catch (error) {
-		if (error instanceof Error && error.name === 'AbortError') {
-			chatState.error = 'Generation stopped by user';
-		} else {
-			// Network error - attempt stream recovery
-			if (error instanceof Error && (error.message.includes('network') || error.message.includes('fetch'))) {
-				logger.warn('Network error detected, attempting stream recovery', { error: error.message });
-				
-				// Check if we have partial content to recover
-				const currentMessages = [...chatState.messages];
-				const lastMessage = currentMessages[currentMessages.length - 1];
-				
-				if (lastMessage?.role === 'assistant' && lastMessage.content && lastMessage.content.length > 0) {
-					logger.info('Recovering partial stream content', { 
-						contentLength: lastMessage.content.length 
-					});
-					
-					// Mark as partial but keep the content
-					(lastMessage as any).isPartial = true;
-					chatState.messages = currentMessages;
-					chatState.error = 'Response was interrupted. Some content may be incomplete. Click regenerate to try again.';
-				} else {
-					chatState.error = error instanceof Error ? error.message : 'Unknown error occurred';
-				}
-			} else {
-				chatState.error = error instanceof Error ? error.message : 'Unknown error occurred';
-			}
-		}
+		chatState.error = handleNetworkError(error);
 		chatState.isLoading = false;
 		chatState.canStopGeneration = false;
 		chatState.abortController = null;
