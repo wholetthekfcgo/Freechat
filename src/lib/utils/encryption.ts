@@ -36,7 +36,7 @@ export async function encrypt(data: unknown): Promise<string> {
 		const binaryString = String.fromCharCode(...dataBytes);
 		return btoa(binaryString);
 	} catch (error) {
-		logger.error('Encoding failed:', error);
+		logger.error('Encoding failed:', error instanceof Error ? error : undefined);
 		throw new Error('Failed to encode data');
 	}
 }
@@ -64,39 +64,9 @@ export async function decrypt<T>(encodedData: string): Promise<T | null> {
 
 		return JSON.parse(jsonString) as T;
 	} catch (error) {
-		logger.error('Decoding failed:', error);
+		logger.error('Decoding failed:', error instanceof Error ? error : undefined);
 		throw new Error('Decoding failed: ' + (error instanceof Error ? error.message : 'Unknown error'));
 	}
 }
 
-/**
- * Hash a string using SHA-256 (for one-way transformations)
- * @param data - The data to hash
- * @returns Hex-encoded hash
- */
-export async function hash(data: string): Promise<string> {
-	if (typeof window === 'undefined' || !window.crypto) {
-		throw new Error('Web Crypto API not available');
-	}
 
-	const dataBytes = new TextEncoder().encode(data);
-	const hashBuffer = await window.crypto.subtle.digest('SHA-256', dataBytes);
-	const hashArray = Array.from(new Uint8Array(hashBuffer));
-	return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-}
-
-/**
- * Generate a secure random token
- * @param bytes - Number of bytes (default: 16)
- * @returns Hex-encoded random token
- */
-export async function generateToken(bytes = 16): Promise<string> {
-	if (typeof window === 'undefined' || !window.crypto) {
-		throw new Error('Web Crypto API not available');
-	}
-
-	const randomBytes = window.crypto.getRandomValues(new Uint8Array(bytes));
-	return Array.from(randomBytes)
-		.map(b => b.toString(16).padStart(2, '0'))
-		.join('');
-}

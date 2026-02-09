@@ -144,38 +144,4 @@ export function getQueueStatus(): QueueStatus {
 	};
 }
 
-// ============================================================================
-// EXPORTS FOR BACKWARD COMPATIBILITY
-// ============================================================================
 
-// Legacy class wrapper for backward compatibility
-export class PacerRequestQueue {
-	async add<T>(execute: () => Promise<T>, abort: () => void, priority = 0): Promise<T> {
-		return queueRequest(execute, abort, priority);
-	}
-	
-	abortAll(): void {
-		abortAllRequests();
-	}
-	
-	abort(requestId: string): boolean {
-		// Can't abort specific queued items in Pacer
-		logger.warn('Cannot abort specific queued item', { id: requestId });
-		return false;
-	}
-	
-	getStatus(): QueueStatus {
-		return getQueueStatus();
-	}
-	
-	clear(): void {
-		requestQueuer.clear?.() || requestQueuer.reset();
-	}
-	
-	setTimeout(ms: number): void {
-		logger.debug('Timeout set (not implemented in Pacer version)', { ms });
-	}
-}
-
-// Legacy singleton instance
-export const requestQueue = new PacerRequestQueue();

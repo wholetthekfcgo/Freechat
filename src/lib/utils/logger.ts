@@ -241,28 +241,3 @@ export const logger = {
 		});
 	}
 };
-
-/**
- * Create child logger with preset context
- */
-export function createLogger(defaultContext: LogContext): typeof logger {
-	return {
-		trace: (message: string, context?: LogContext) => 
-			logger.trace(message, { ...defaultContext, ...context }),
-		debug: (message: string, context?: LogContext) => 
-			logger.debug(message, { ...defaultContext, ...context }),
-		info: (message: string, context?: LogContext) => 
-			logger.info(message, { ...defaultContext, ...context }),
-		warn: (message: string, context?: LogContext) => 
-			logger.warn(message, { ...defaultContext, ...context }),
-		error: (message: string, error?: Error, context?: LogContext) => 
-			logger.error(message, error, { ...defaultContext, ...context }),
-		fatal: (message: string, error?: Error, context?: LogContext) => 
-			logger.fatal(message, error, { ...defaultContext, ...context }),
-		startTimer: (name: string) => logger.startTimer(name),
-		streamStart: () => logger.streamStart(),
-		streamComplete: (duration: number) => logger.streamComplete(duration),
-		streamChunk: (chunkCount: number, content: string, totalLength: number) => 
-			logger.streamChunk(chunkCount, content, totalLength)
-	};
-}
