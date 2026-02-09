@@ -3,6 +3,7 @@ import { streamProvider } from '$lib/utils/provider-router';
 import { logger } from '$lib/utils/logger';
 import { validateChatRequest } from '$lib/backend/middleware/request-validator';
 import { withTimeout } from '$lib/backend/middleware/timeout';
+import { generateUUID } from '$lib/utils/uuid';
 
 const baseHandler: RequestHandler = async ({ request }) => {
 	try {
@@ -10,7 +11,7 @@ const baseHandler: RequestHandler = async ({ request }) => {
 		const enableThinking = body.enableThinking || false;
 
 		const messagesWithIds = body.messages.map(msg => ({
-			id: crypto.randomUUID(),
+			id: generateUUID(),
 			role: msg.role,
 			content: msg.content,
 			timestamp: new Date()
@@ -128,7 +129,7 @@ const baseHandler: RequestHandler = async ({ request }) => {
 			error: error instanceof Error ? error.message : String(error)
 		});
 
-		const correlationId = crypto.randomUUID();
+		const correlationId = generateUUID();
 		return new Response(
 			JSON.stringify({
 				error: error instanceof Error ? error.message : 'Unknown error',

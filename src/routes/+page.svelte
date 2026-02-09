@@ -1,10 +1,11 @@
-<script lang="ts">
-	import { browser } from '$app/environment';
-	import ChatInterface from '$lib/components/ChatInterface.svelte';
-	import { chatState, chatActions, tokenUsage } from '$lib/stores/chat';
-	import { errorTracker } from '$lib/utils/error-tracker';
-	import { persistence } from '$lib/stores/persistence.svelte.js';
-	import type { PageData } from './$types';
+ <script lang="ts">
+ 	import { browser } from '$app/environment';
+ 	import ChatInterface from '$lib/components/ChatInterface.svelte';
+ 	import { chatState, chatActions, tokenUsage } from '$lib/stores/chat';
+ 	import { errorTracker } from '$lib/utils/error-tracker';
+ 	import { persistence } from '$lib/stores/persistence.svelte.js';
+ 	import { generateUUID } from '$lib/utils/uuid';
+ 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
 
@@ -109,7 +110,7 @@
 					
 					if (role === 'user' || role === 'assistant') {
 						importedMessages.push({
-							id: typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `msg-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`,
+							id: generateUUID(),
 							role,
 							content: content_text,
 							timestamp: new Date(),

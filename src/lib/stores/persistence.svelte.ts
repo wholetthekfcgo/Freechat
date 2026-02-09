@@ -11,6 +11,7 @@ import { encrypt, decrypt } from '$lib/utils/encryption';
 import { idb, STORES } from '$lib/utils/indexeddb';
 import type { ChatHistory } from '$lib/types/chat';
 import { generateUUID } from '$lib/utils/uuid';
+import { errorTracker } from '$lib/utils/error-tracker';
 
 const STORAGE_VERSION = 'v1';
 const STORAGE_KEY = 'chat-history';
@@ -65,6 +66,10 @@ export async function load(): Promise<ChatHistory> {
 				// Decryption failed - data was encrypted with old key, clear it
 				logger.warn('Decryption failed - data encrypted with incompatible key, clearing old data', { error: decryptError });
 				
+				if (decryptError instanceof Error) {
+					errorTracker.captureError(decryptError, 'persistence-load-decrypt');
+				}
+				
 				// Clear the corrupted encrypted data and the salt so new data can be encrypted
 				await idb.delete(STORES.CHAT_HISTORY, STORAGE_KEY);
 				await idb.delete(STORES.ENCRYPTION_SALT, 'encryption-salt');
@@ -97,6 +102,10 @@ export async function load(): Promise<ChatHistory> {
 		return { conversations: [], currentConversationId: null };
 	} catch (error) {
 		logger.error('Failed to load chat history', error);
+		
+		if (error instanceof Error) {
+			errorTracker.captureError(error, 'persistence-load');
+		}
 		
 		// Don't auto-delete data - notify user instead
 		// Clearing corrupted data causes data loss without user consent
@@ -152,6 +161,10 @@ export async function save(history: ChatHistory): Promise<void> {
 			// Encryption failed - save unencrypted with warning
 			logger.error('Encryption failed, saving unencrypted', encryptionError);
 			
+			if (encryptionError instanceof Error) {
+				errorTracker.captureError(encryptionError, 'persistence-save-encrypt');
+			}
+			
 			const fallbackData = {
 				id: UNENCRYPTED_KEY,
 				...dataToSave,
@@ -186,6 +199,9 @@ export async function save(history: ChatHistory): Promise<void> {
 		const conversationCount = history?.conversations?.length ?? 0;
 		logger.debug('Chat history encrypted and saved', { conversationCount });
 	} catch (error) {
+		if (error instanceof Error) {
+			errorTracker.captureError(error, 'persistence-save');
+		}
 		logger.error('Failed to save chat history', error);
 	}
 }
@@ -236,6 +252,9 @@ export async function clearDatabase(): Promise<void> {
 			};
 		});
 	} catch (error) {
+		if (error instanceof Error) {
+			errorTracker.captureError(error, 'persistence-clear-database');
+		}
 		logger.error('Failed to clear database', error);
 		throw error;
 	}

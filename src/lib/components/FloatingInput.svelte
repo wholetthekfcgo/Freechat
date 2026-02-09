@@ -5,7 +5,7 @@
 	import { ChevronUp } from '@lucide/svelte';
 	import { draftManager } from '$lib/utils/draft';
 	import { onMount } from 'svelte';
-	import { encode } from 'gpt-tokenizer';
+	import { countTokensInString } from '$lib/utils/token-tracker';
 
 	let {
 		value = $bindable(),
@@ -102,8 +102,7 @@
 		});
 	}
 
-	const tokens = $derived(encode(value));
-	const tokenCount = $derived(tokens.length);
+	const tokenCount = $derived(countTokensInString(value));
 	const maxTokens = 16000;
 	const tokenPercent = $derived((tokenCount / maxTokens) * 100);
 	const showTokenCounter = $derived(tokenPercent >= 95);

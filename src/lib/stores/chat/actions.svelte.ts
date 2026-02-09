@@ -16,6 +16,7 @@ import { prependSystemPrompt } from '$lib/utils/system-prompt';
 import { generateUUID } from '$lib/utils/uuid';
 import { handleStreamResponse } from '$lib/utils/stream-handler';
 import { createDebouncedFunction } from '$lib/utils/debounce';
+import { errorTracker } from '$lib/utils/error-tracker';
 
 interface QueuedRequest<T = unknown> {
 	id: string;
@@ -55,7 +56,7 @@ async function queueRequest<T>(
 ): Promise<T> {
 	const requestId = `req-${Date.now()}-${generateUUID().slice(0, 8)}`;
 	
-	return new Promise((resolve, reject) => {
+		return new Promise((resolve, reject) => {
 		const queuedItem: QueuedRequest<T> = {
 			id: requestId,
 			execute: async () => {
@@ -64,6 +65,9 @@ async function queueRequest<T>(
 					resolve(result);
 					return result;
 				} catch (error) {
+					if (error instanceof Error) {
+						errorTracker.captureError(error, 'chat-actions-queue');
+					}
 					reject(error);
 					throw error;
 				}
@@ -334,6 +338,9 @@ export async function sendMessage(content: string, stream = true): Promise<void>
 			}
 		}, 3); // Max 3 retries
 	} catch (error) {
+		if (error instanceof Error) {
+			errorTracker.captureError(error, 'chat-actions-send-message');
+		}
 		chatState.error = handleNetworkError(error);
 		chatState.isLoading = false;
 		chatState.canStopGeneration = false;
@@ -561,6 +568,9 @@ export async function editAndRegenerate(messageId: string, newContent: string): 
 			await handleStreamingResponse(chatState.currentModel, chatState.enableThinking, abortController);
 		}, 3);
 	} catch (error) {
+		if (error instanceof Error) {
+			errorTracker.captureError(error, 'chat-actions-edit-regenerate');
+		}
 		chatState.error = handleNetworkError(error);
 		chatState.isLoading = false;
 		chatState.canStopGeneration = false;

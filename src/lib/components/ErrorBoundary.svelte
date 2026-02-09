@@ -23,11 +23,12 @@
  * ```
  */
 
-<script lang="ts">
-	import { onMount, onDestroy } from 'svelte';
-	import { browser } from '$app/environment';
-	import type { Snippet } from 'svelte';
-	import './ui/error-boundary/error-boundary.css';
+ <script lang="ts">
+ 	import { onMount, onDestroy } from 'svelte';
+ 	import { browser } from '$app/environment';
+ 	import type { Snippet } from 'svelte';
+ 	import { generateUUID } from '$lib/utils/uuid';
+ 	import './ui/error-boundary/error-boundary.css';
 
 	interface ErrorContext {
 		error: Error | null;
@@ -92,8 +93,7 @@
 			url: browser ? window.location.href : 'unknown'
 		};
 		
-		// Generate UUID safely for both client and server
-		errorId = browser && typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `err-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
+		errorId = generateUUID();
 		
 		// Simple console logging for now (avoiding logger dependency during SSR)
 		if (browser) {

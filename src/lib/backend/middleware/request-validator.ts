@@ -8,6 +8,7 @@
 import { ChatRequestSchema } from '$lib/backend/schemas/validation';
 import { logger } from '$lib/utils/logger';
 import type { z } from 'zod';
+import { generateUUID } from '$lib/utils/uuid';
 
 export interface ValidatedRequest {
 	body: z.infer<typeof ChatRequestSchema>;
@@ -18,7 +19,7 @@ export interface ValidatedRequest {
  * Extract or generate correlation ID from request headers
  */
 function getOrCreateCorrelationId(headers: Headers): string {
-	return headers.get('x-correlation-id') || crypto.randomUUID();
+	return headers.get('x-correlation-id') || generateUUID();
 }
 
 /**

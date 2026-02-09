@@ -92,6 +92,17 @@ export function countTotalTokens(messages: Message[]): number {
 }
 
 /**
+ * Calculate tokens for a plain string
+ * 
+ * @param text - Text to count tokens for
+ * @returns Number of tokens
+ */
+export function countTokensInString(text: string): number {
+	const encoded = encode(text);
+	return encoded.length;
+}
+
+/**
  * Get pricing for a specific model
  * 
  * @param model - Model identifier
