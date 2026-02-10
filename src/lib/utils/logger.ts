@@ -114,7 +114,7 @@ function logToConsole(entry: LogEntry): void {
 			console.debug(message);
 			break;
 		case 'info':
-			console.log(message);
+			console.info(message);
 			break;
 		case 'warn':
 			console.warn(message);

@@ -8,48 +8,60 @@ import DOMPurify from 'dompurify';
 import { logger } from './logger';
 
 let purify: typeof DOMPurify | null = null;
+let initialized = false;
 
-if (typeof window !== 'undefined') {
-	purify = DOMPurify;
+function initializePurify() {
+	if (initialized) {
+		return;
+	}
 
-	purify.setConfig({
-		ALLOWED_TAGS: [
-			'p', 'br', 'strong', 'b', 'em', 'i', 'u', 'a', 'code', 'pre',
-			'blockquote', 'ul', 'ol', 'li', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
-			'table', 'thead', 'tbody', 'tr', 'td', 'th', 'span', 'div', 'hr', 'img'
-		],
-		ALLOWED_ATTR: [
-			'href', 'title', 'alt', 'src', 'class', 'id', 'lang', 'dir', 'target', 'rel'
-		],
-		ADD_ATTR: ['target'],
-		FORCE_BODY: false,
-		ALLOW_DATA_ATTR: false,
-		ALLOW_UNKNOWN_PROTOCOLS: false,
-		ALLOWED_URI_REGEXP: /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|sms|cid|xmpp|data):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i
-	});
+	if (DOMPurify) {
+		purify = DOMPurify;
 
-	purify.addHook('uponSanitizeAttribute', (node, data) => {
-		if (data.attrName === 'href' && data.attrValue.startsWith('http')) {
-			node.setAttribute('rel', 'noopener noreferrer');
-			node.setAttribute('target', '_blank');
+		try {
+			purify.setConfig({
+				ALLOWED_TAGS: [
+					'p', 'br', 'strong', 'b', 'em', 'i', 'u', 'a', 'code', 'pre',
+					'blockquote', 'ul', 'ol', 'li', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+					'table', 'thead', 'tbody', 'tr', 'td', 'th', 'span', 'div', 'hr', 'img'
+				],
+				ALLOWED_ATTR: [
+					'href', 'title', 'alt', 'src', 'class', 'id', 'lang', 'dir', 'target', 'rel'
+				],
+				ADD_ATTR: ['target'],
+				FORCE_BODY: false,
+				ALLOW_DATA_ATTR: false,
+				ALLOW_UNKNOWN_PROTOCOLS: false,
+				ALLOWED_URI_REGEXP: /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|sms|cid|xmpp|data):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i
+			});
+
+			purify.addHook('uponSanitizeAttribute', (node, data) => {
+				if (data.attrName === 'href' && data.attrValue.startsWith('http')) {
+					node.setAttribute('rel', 'noopener noreferrer');
+					node.setAttribute('target', '_blank');
+				}
+			});
+
+			initialized = true;
+			logger.info('DOMPurify initialized with secure configuration');
+		} catch (e) {
+			logger.error('Failed to configure DOMPurify', e instanceof Error ? e : new Error(String(e)));
 		}
-	});
-
-	logger.info('DOMPurify initialized with secure configuration');
+	}
 }
+
+initializePurify();
 
 export function sanitizeHTML(dirty: string, options?: {
 	allowTags?: string[];
 	allowAttributes?: string[];
 }): string {
-	if (typeof window === 'undefined') {
-		logger.warn('sanitizeHTML called on server-side');
-		return '';
-	}
-
 	if (!purify) {
-		logger.error('DOMPurify not initialized');
-		return '';
+		initializePurify();
+		if (!purify) {
+			logger.error('DOMPurify not initialized');
+			return '';
+		}
 	}
 
 	if (typeof dirty !== 'string') {

@@ -3,50 +3,9 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+
+// Now import chat state after mocks are set up
 import { chatState, chatHistory, chatActions } from '../chat/chat.svelte';
-
-// Mock dependencies
-vi.mock('$app/environment', () => ({
-	browser: true
-}));
-
-vi.mock('$lib/utils/logger', () => ({
-	logger: {
-		info: vi.fn(),
-		warn: vi.fn(),
-		error: vi.fn(),
-		debug: vi.fn(),
-		streamStart: vi.fn(),
-		streamChunk: vi.fn(),
-		streamComplete: vi.fn()
-	}
-}));
-
-vi.mock('$lib/utils/encryption', () => ({
-	encrypt: (data: any) => JSON.stringify(data),
-	decrypt: (data: any) => JSON.parse(data)
-}));
-
-vi.mock('$lib/utils/storage-quota', () => ({
-	safeSaveToStorage: () => true,
-	safeLoadFromStorage: () => null
-}));
-
-vi.mock('$lib/utils/request-queue', () => ({
-	queueRequest: async (fn: any) => fn(),
-	abortAllRequests: () => {}
-}));
-
-vi.mock('$lib/utils/rate-limiter', () => ({
-	withRateLimitAndRetry: async (fn: any) => fn(),
-	recordApiRequest: () => {}
-}));
-
-vi.mock('$lib/stores/persistence.svelte.js', () => ({
-	load: vi.fn(() => ({ conversations: [], currentConversationId: null })),
-	save: vi.fn(),
-	__esModule: true
-}));
 
 describe('Chat Store Integration', () => {
 	beforeEach(() => {

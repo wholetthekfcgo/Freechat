@@ -104,7 +104,7 @@ describe('Rate Limiting Middleware', () => {
 		const response = await protectedHandler(createMockEvent());
 
 		expect(response.headers.get('X-RateLimit-Limit')).toBe('10');
-		expect(response.headers.get('X-RateLimit-Remaining')).toBe('8');
+		expect(response.headers.get('X-RateLimit-Remaining')).toBe('9');
 		expect(response.headers.get('X-RateLimit-Reset')).toBeTruthy();
 	});
 

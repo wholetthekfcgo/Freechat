@@ -41,7 +41,26 @@ export function rateLimit(config: RateLimitConfig) {
 					resetTime: now + config.windowMs
 				};
 				rateLimitStore.set(key, newEntry);
-				return handler(event);
+
+				// Get response from handler and add headers
+				const response = await handler(event);
+				const headers = new Headers();
+
+				// Copy all existing headers
+				for (const [key, value] of response.headers.entries()) {
+					headers.set(key, value);
+				}
+
+				// Add rate limit headers
+				headers.set('X-RateLimit-Limit', config.maxRequests.toString());
+				headers.set('X-RateLimit-Remaining', (config.maxRequests - 1).toString());
+				headers.set('X-RateLimit-Reset', newEntry.resetTime.toString());
+
+				return new Response(response.body, {
+					status: response.status,
+					statusText: response.statusText,
+					headers
+				});
 			}
 
 			if (entry.count >= config.maxRequests) {

@@ -2,6 +2,8 @@
  * DOMPurify Mock for Tests
  */
 
+import { vi } from 'vitest';
+
 const mockSanitize = function(dirty: string): string {
 	// Simple sanitization for testing
 	return dirty
@@ -10,11 +12,12 @@ const mockSanitize = function(dirty: string): string {
 		.replace(/<a\s+href="([^"]*)"[^>]*>/gi, '<a href="$1" rel="noopener noreferrer">');
 };
 
-export const mockDOMPurify = {
+const mockDOMPurify = {
 	isSupported: true,
 	sanitize: mockSanitize,
-	setConfig: () => {},
-	addHook: () => {}
+	setConfig: vi.fn(),
+	addHook: vi.fn()
 };
 
+// Export as default for commonjs compatibility
 export default mockDOMPurify;

@@ -1,40 +1,16 @@
 /**
  * Stream Recovery Tests
- * 
+ *
  * Tests for stream interruption recovery mechanism to ensure:
  * - Partial content is preserved on network failure
  * - Users can regenerate interrupted responses
  * - Error states are properly communicated
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
+
+// Now import chat state after mocks are set up
 import { chatState } from '../chat/chat.svelte';
-
-// Mock dependencies
-vi.mock('$lib/utils/logger', () => ({
-	logger: {
-		warn: vi.fn(),
-		info: vi.fn(),
-		error: vi.fn(),
-		streamStart: vi.fn(),
-		streamComplete: vi.fn(),
-		streamChunk: vi.fn()
-	}
-}));
-
-vi.mock('$lib/utils/request-queue', () => ({
-	queueRequest: vi.fn((fn) => fn())
-}));
-
-vi.mock('$lib/utils/rate-limiter', () => ({
-	withRateLimitAndRetry: vi.fn((fn) => fn())
-}));
-
-vi.mock('$lib/stores/persistence.svelte.js', () => ({
-	load: vi.fn(() => ({ conversations: [], currentConversationId: null })),
-	save: vi.fn(),
-	__esModule: true
-}));
 
 describe('Stream Recovery', () => {
 	beforeEach(() => {

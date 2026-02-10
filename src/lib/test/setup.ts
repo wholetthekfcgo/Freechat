@@ -1,55 +1,90 @@
- import '@testing-library/jest-dom';
- import { beforeEach, vi } from 'vitest';
+import '@testing-library/jest-dom';
+import { beforeEach, vi } from 'vitest';
 
- // Ensure window is defined before any code runs
- global.window = global.window || {};
+// Set DEV environment for tests to enable debug logging
+process.env.DEV = 'true';
+(import.meta as any).env.DEV = true;
 
- // Set DEV environment for tests to enable debug logging
- (import.meta as any).env.DEV = true;
-
- // Mock DOMPurify BEFORE any imports
- const mockSanitize = vi.fn((dirty: string) => {
-	 // Simple sanitization for testing
+// Mock DOMPurify BEFORE any imports
+const mockSanitize = vi.fn((dirty: string) => {
 	 return dirty
 		 .replace(/<script\b[^>]*>([\s\S]*?)<\/script>/gim, '')
 		 .replace(/<iframe\b[^>]*>([\s\S]*?)<\/iframe>/gim, '')
 		 .replace(/<a\s+href="([^"]*)"[^>]*>/gi, '<a href="$1" rel="noopener noreferrer">');
- });
+});
 
- const mockDOMPurify = {
+const mockDOMPurify = {
 	isSupported: true,
 	sanitize: mockSanitize,
 	setConfig: vi.fn(),
 	addHook: vi.fn()
- };
+};
 
- vi.mock('dompurify', () => ({
-		default: mockDOMPurify
- }));
+vi.mock('dompurify', () => ({
+	 default: mockDOMPurify
+}));
 
- // Make DOMPurify available globally
- (global.window as any).DOMPurify = mockDOMPurify;
+// Make DOMPurify available globally
+(global.window as any).DOMPurify = mockDOMPurify;
 
- // Mock $app/environment for SvelteKit environment checks
- vi.mock('$app/environment', () => ({
- 	browser: true
- }));
+// jsdom should provide window and document, but if not, set up minimal mocks
+if (typeof window === 'undefined') {
+	(global as any).window = {};
+	(global as any).window.addEventListener = vi.fn();
+	(global as any).window.removeEventListener = vi.fn();
+	(global as any).window.dispatchEvent = vi.fn();
+	(global as any).window.location = { href: 'http://localhost:5173' };
+}
+if (typeof document === 'undefined') {
+	(global as any).document = {};
+	(global as any).document.body = {};
+	(global as any).document.getElementById = vi.fn(() => null);
+	(global as any).document.createElement = vi.fn(() => ({}));
+	(global as any).document.appendChild = vi.fn();
+	(global as any).document.removeChild = vi.fn();
+	(global as any).document.body.appendChild = vi.fn();
+	(global as any).document.body.removeChild = vi.fn();
+}
 
- // Mock $env/dynamic/private for API keys
- vi.mock('$env/dynamic/private', () => ({
- 	env: {
- 		ZAI_API_KEY: 'test-zai-api-key-12345',
- 		OPENROUTER_API_KEY: 'test-openrouter-api-key-12345'
- 	}
- }));
+// Mock $app/environment and $env/dynamic/private
+vi.mock('$app/environment', () => ({
+	browser: true,
+	building: false,
+	dev: true,
+	version: '1.0.0'
+}));
 
-// Mock $env/dynamic/private for API keys
 vi.mock('$env/dynamic/private', () => ({
 	env: {
-		ZAI_API_KEY: 'test-zai-api-key-12345',
-		OPENROUTER_API_KEY: 'test-openrouter-api-key-12345'
+		ZAI_API_KEY: 'test-zai-api-key',
+		OPENROUTER_API_KEY: 'test-openrouter-api-key'
 	}
 }));
+
+// Mock the env module that imports $env/dynamic/private
+vi.mock('$lib/env', () => ({
+	validateEnv: vi.fn(() => true),
+	getZaiKey: vi.fn(() => 'test-zai-api-key'),
+	getOpenRouterKey: vi.fn(() => 'test-openrouter-api-key')
+}));
+
+// Mock console methods before logger is imported in any test file
+const consoleDebug = vi.fn();
+const consoleInfo = vi.fn();
+const consoleWarn = vi.fn();
+const consoleError = vi.fn();
+
+global.console.debug = consoleDebug as any;
+global.console.info = consoleInfo as any;
+global.console.warn = consoleWarn as any;
+global.console.error = consoleError as any;
+
+beforeEach(() => {
+	consoleDebug.mockClear();
+	consoleInfo.mockClear();
+	consoleWarn.mockClear();
+	consoleError.mockClear();
+});
 
 // Mock IndexedDB for test environment
 class IndexedDBMock {
@@ -165,13 +200,10 @@ Object.defineProperty(navigator, 'storage', {
 	writable: true
 });
 
-// Mock window.location
-Object.defineProperty(window, 'location', {
-	value: {
-		href: 'http://localhost:5173'
-	},
-	writable: true
-});
+// Ensure window.location is set (if not already set by jsdom)
+if (window && typeof (window as any).location === 'undefined') {
+	(window as any).location = { href: 'http://localhost:5173' };
+}
 
 // Reset IndexedDB before each test
 beforeEach(() => {

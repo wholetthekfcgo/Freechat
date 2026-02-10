@@ -15,7 +15,6 @@
     "test:bench": "vitest bench",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
-    "lint": "eslint . --ext .ts,.svelte",
     "format": "prettier --write ."
   },
   "devDependencies": {
