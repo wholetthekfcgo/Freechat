@@ -71,10 +71,8 @@ export const GET: RequestHandler = async () => {
 				'Content-Type': 'application/json'
 			}
 		});
-	} catch (error) {
-		logger.error('Health check error', {
-			error: error instanceof Error ? error.message : String(error)
-		});
+ 	} catch (error) {
+		logger.error('Health check error', error instanceof Error ? error : undefined);
 
 		return json({
 			status: 'unhealthy',

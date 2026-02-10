@@ -45,11 +45,10 @@ class ErrorTracker {
 
 		// In development, show full details
 		if (this.isDevelopment) {
-			logger.error('Error captured', { report });
+			logger.error('Error captured', report as any);
 		}
-
+		
 		// TODO: Send to error reporting service (e.g., Sentry)
-		// this.sendToErrorService(report);
 	}
 
 	/**
@@ -122,29 +121,6 @@ class ErrorTracker {
 		];
 
 		return retryablePatterns.some((pattern) => pattern.test(error.message));
-	}
-
-	/**
-	 * Send error to external service (e.g., Sentry)
-	 * TODO: Implement with actual service integration
-	 */
-	private sendToErrorService(report: ErrorReport): void {
-		// Example implementation for Sentry:
-		// Sentry.captureException(new Error(report.message), {
-		//   tags: {
-		//     component: report.component,
-		//     url: report.url
-		//   },
-		//   extra: {
-		//     stack: report.stack,
-		//     userAgent: report.userAgent
-		//   }
-		// });
-
-		logger.info('Error would be sent to service', { 
-			component: report.component,
-			message: report.message 
-		});
 	}
 }
 

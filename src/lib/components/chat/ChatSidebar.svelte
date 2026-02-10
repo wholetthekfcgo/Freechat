@@ -2,7 +2,6 @@
  	import type { ChatConversation } from '$lib/types/chat';
  	import { Trash2, Download, Plus, X, TrendingUp, HelpCircle, Clock } from '@lucide/svelte';
  	import Button from '$lib/components/ui/button/button.svelte';
- 	import { tokenUsage } from '$lib/stores/chat';
 
  	let {
   		showSidebar = $bindable(false),
@@ -50,6 +49,7 @@
 	function getConversationPreview(conv: ChatConversation): string {
 		if (conv.messages.length === 0) return 'No messages';
 		const lastMessage = conv.messages[conv.messages.length - 1];
+		if (!lastMessage) return 'No messages';
 		const preview = lastMessage.content.trim();
 		return preview.length > 50 ? preview.substring(0, 50) + '...' : preview;
 	}

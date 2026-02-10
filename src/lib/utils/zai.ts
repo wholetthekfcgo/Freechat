@@ -2,7 +2,7 @@ import type { ChatRequest, ChatResponse } from '$lib/types/chat';
 import { logger } from '$lib/utils/logger';
 import OpenAI from 'openai';
 
-function createZaiClient(apiKey: string): OpenAI {
+export function createZaiClient(apiKey: string): OpenAI {
 	return new OpenAI({
 		apiKey,
 		baseURL: 'https://api.z.ai/api/paas/v4/'

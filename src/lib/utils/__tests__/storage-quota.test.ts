@@ -2,7 +2,7 @@
  * Unit tests for IndexedDB storage quota utilities
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import {
 	getStorageInfo,
 	hasStorageSpace,

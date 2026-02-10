@@ -8,7 +8,7 @@ interface RateLimitEntry {
 	resetTime: number;
 }
 
-const rateLimitStore = new Map<string, RateLimitEntry>();
+export const rateLimitStore = new Map<string, RateLimitEntry>();
 
 export interface RateLimitConfig {
 	maxRequests: number;
@@ -70,15 +70,23 @@ export function rateLimit(config: RateLimitConfig) {
 			entry.count++;
 			rateLimitStore.set(key, entry);
 
-			// Add rate limit headers to response
+			// Get the response from the handler
 			const response = await handler(event);
-			
-			// Clone response to add headers
-			const headers = new Headers(response.headers);
+
+			// Create new Headers object
+			const headers = new Headers();
+
+			// Copy all existing headers from the response first
+			for (const [key, value] of response.headers.entries()) {
+				headers.set(key, value);
+			}
+
+			// Add rate limit headers (these will override if they exist)
 			headers.set('X-RateLimit-Limit', config.maxRequests.toString());
 			headers.set('X-RateLimit-Remaining', (config.maxRequests - entry.count).toString());
 			headers.set('X-RateLimit-Reset', entry.resetTime.toString());
 
+			// Return new response with combined headers
 			return new Response(response.body, {
 				status: response.status,
 				statusText: response.statusText,

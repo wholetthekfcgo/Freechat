@@ -52,7 +52,7 @@ export async function getStorageInfo(): Promise<StorageInfo | null> {
 			availableBytes
 		};
 	} catch (error) {
-		logger.error('Failed to get storage info', error);
+		logger.error('Failed to get storage info', error instanceof Error ? error : new Error(String(error)));
 		return null;
 	}
 }
@@ -116,7 +116,7 @@ export async function cleanupOldEntries(): Promise<boolean> {
 
 		return true;
 	} catch (error) {
-		logger.error('Failed to cleanup storage', error);
+		logger.error('Failed to cleanup storage', error instanceof Error ? error : new Error(String(error)));
 		return false;
 	}
 }

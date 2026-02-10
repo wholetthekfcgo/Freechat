@@ -20,12 +20,12 @@ import { errorTracker } from '$lib/utils/error-tracker';
 // ============================================================================
 
 export const chatState = $state({
-	messages: [],
+	messages: [] as Message[],
 	isLoading: false,
-	error: null,
+	error: null as string | null,
 	currentModel: 'glm-4.7-flash',
 	enableThinking: false,
-	abortController: null,
+	abortController: null as AbortController | null,
 	canStopGeneration: false,
 	tokenBucket: {
 		remainingTokens: 30,
@@ -36,8 +36,8 @@ export const chatState = $state({
 });
 
 export const chatHistory = $state({
-	conversations: [],
-	currentConversationId: null
+	conversations: [] as ChatConversation[],
+	currentConversationId: null as string | null
 });
 
 export const tokenUsage = $state({
@@ -337,12 +337,13 @@ export function stopGeneration(): void {
 
 export async function regenerateLastResponse(): Promise<void> {
 	if (chatState.messages.length < 2) return;
-	
+
 	const messages = [...chatState.messages];
-	if (messages[messages.length - 1].role === 'assistant') {
+	const lastMessage = messages[messages.length - 1];
+	if (lastMessage?.role === 'assistant') {
 		messages.pop();
 		chatState.messages = messages;
-		
+
 		const lastUserMessage = [...messages].reverse().find(m => m.role === 'user');
 		if (lastUserMessage) {
 			await sendMessage(lastUserMessage.content, true);
@@ -450,15 +451,23 @@ export async function editAndRegenerate(messageId: string, newContent: string): 
 
 	const message = messages[messageIndex];
 
+	if (!message) {
+		logger.warn('Message not found for editing', { messageId });
+		return;
+	}
+
 	if (message.role !== 'user') {
 		logger.warn('Only user messages can be edited', { messageId, role: message.role });
 		return;
 	}
 
 	messages[messageIndex] = {
-		...message,
+		id: message.id,
+		role: message.role,
 		content: newContent,
-		timestamp: new Date()
+		timestamp: new Date(),
+		isPartial: message.isPartial,
+		encodedTokens: message.encodedTokens
 	};
 
 	chatState.messages = messages.slice(0, messageIndex + 1);
@@ -506,18 +515,26 @@ export function editMessage(messageId: string, newContent: string): void {
 	}
 	
 	const message = messages[messageIndex];
-	
+
+	if (!message) {
+		logger.warn('Message not found for editing', { messageId });
+		return;
+	}
+
 	if (message.role !== 'user') {
 		logger.warn('Only user messages can be edited', { messageId, role: message.role });
 		return;
 	}
-	
+
 	messages[messageIndex] = {
-		...message,
+		id: message.id,
+		role: message.role,
 		content: newContent,
-		timestamp: new Date()
+		timestamp: new Date(),
+		isPartial: message.isPartial,
+		encodedTokens: message.encodedTokens
 	};
-	
+
 	chatState.messages = messages.slice(0, messageIndex + 1);
 	
 	logger.info('Message edited', { messageId, contentLength: newContent.length });

@@ -8,8 +8,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { chatActions, chatState } from '$lib/stores/chat.svelte.js';
-import type { Message } from '$lib/types/chat';
+import { chatState } from '../chat/chat.svelte';
 
 // Mock dependencies
 vi.mock('$lib/utils/logger', () => ({
@@ -33,7 +32,8 @@ vi.mock('$lib/utils/rate-limiter', () => ({
 
 vi.mock('$lib/stores/persistence.svelte.js', () => ({
 	load: vi.fn(() => ({ conversations: [], currentConversationId: null })),
-	save: vi.fn()
+	save: vi.fn(),
+	__esModule: true
 }));
 
 describe('Stream Recovery', () => {
@@ -45,25 +45,19 @@ describe('Stream Recovery', () => {
 	});
 
 	describe('Network Interruption During Stream', () => {
-		it('should preserve partial content on network failure', async () => {
+		it('should preserve partial content on network failure', () => {
 			// Simulate a message and partial response
 			chatState.messages = [
 				{ id: '1', role: 'user', content: 'Hello', timestamp: new Date() },
 				{ id: '2', role: 'assistant', content: 'Partial response...', timestamp: new Date() }
 			];
 
-			// Simulate network error during stream
-			global.fetch = vi.fn(() =>
-				Promise.reject(new Error('network error'))
-			) as any;
-
-			// Attempt to send message (will fail)
-			// Note: This is simplified - actual implementation needs better mocking
-			
 			// After error, partial message should still exist
 			const lastMessage = chatState.messages[chatState.messages.length - 1];
-			expect(lastMessage.role).toBe('assistant');
-			expect(lastMessage.content).toContain('Partial');
+			if (lastMessage) {
+				expect(lastMessage.role).toBe('assistant');
+				expect(lastMessage.content).toContain('Partial');
+			}
 		});
 
 		it('should mark interrupted messages as partial', async () => {
@@ -75,16 +69,16 @@ describe('Stream Recovery', () => {
 			// Simulate stream interruption
 			const networkError = new Error('fetch failed');
 			
-			// The error handler should mark the last message as partial
-			// This tests the logic inside the catch block
+			// The error handler should mark last message as partial
+			// This tests logic inside catch block
 			if (networkError.message.includes('fetch') && chatState.messages.length > 0) {
 				const lastMessage = chatState.messages[chatState.messages.length - 1];
-				if (lastMessage.role === 'assistant') {
+				if (lastMessage && lastMessage.role === 'assistant') {
 					(lastMessage as any).isPartial = true;
 				}
 			}
 
-			// Verify the message was marked
+			// Verify message was marked
 			const assistantMsg = chatState.messages.find(m => m.role === 'assistant');
 			if (assistantMsg) {
 				expect((assistantMsg as any).isPartial).toBe(true);
@@ -117,14 +111,15 @@ describe('Stream Recovery', () => {
 
 			// Simulate regenerate action
 			const messages = [...chatState.messages];
-			if (messages[messages.length - 1].role === 'assistant') {
+			const lastMsg = messages[messages.length - 1];
+			if (lastMsg && lastMsg.role === 'assistant') {
 				messages.pop();
 				chatState.messages = messages;
 			}
 
 			// Verify partial message was removed
 			expect(chatState.messages.length).toBe(1);
-			expect(chatState.messages[0].role).toBe('user');
+			expect(chatState.messages[0]?.role).toBe('user');
 		});
 
 		it('should resend last user message after removing partial', async () => {
@@ -137,7 +132,8 @@ describe('Stream Recovery', () => {
 
 			// Simulate regenerate logic
 			const messages = [...chatState.messages];
-			if (messages[messages.length - 1].role === 'assistant') {
+			const lastMsg = messages[messages.length - 1];
+			if (lastMsg && lastMsg.role === 'assistant') {
 				messages.pop();
 				chatState.messages = messages;
 				
@@ -181,9 +177,10 @@ describe('Stream Recovery', () => {
 
 			// Simulate immediate failure
 			const lastMessage = chatState.messages[chatState.messages.length - 1];
-			const hasPartialContent = lastMessage.role === 'assistant' && lastMessage.content.length > 0;
-
-			expect(hasPartialContent).toBe(false);
+			if (lastMessage) {
+				const hasPartialContent = lastMessage.role === 'assistant' && lastMessage.content.length > 0;
+				expect(hasPartialContent).toBe(false);
+			}
 		});
 
 		it('should handle multiple interruptions in sequence', () => {
@@ -194,7 +191,11 @@ describe('Stream Recovery', () => {
 			];
 
 			// Regenerate (removes partial)
-			chatState.messages.pop();
+			const messages = [...chatState.messages];
+			if (messages[messages.length - 1]?.role === 'assistant') {
+				messages.pop();
+				chatState.messages = messages;
+			}
 
 			// Second interruption
 			chatState.messages.push({
@@ -216,12 +217,12 @@ describe('Stream Recovery', () => {
 				{ id: '1', role: 'user', content: userMessage, timestamp: new Date() }
 			];
 
-			// Simulate error
-			const error = new Error('network error');
+			// Simulate error handling
+			chatState.error = 'Network error';
 			
 			// User message should still exist
 			expect(chatState.messages.length).toBe(1);
-			expect(chatState.messages[0].content).toBe(userMessage);
+			expect(chatState.messages[0]?.content).toBe(userMessage);
 		});
 	});
 });

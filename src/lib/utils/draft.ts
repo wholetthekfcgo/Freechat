@@ -18,13 +18,13 @@ export class DraftManager {
 	/**
 	 * Save draft message to sessionStorage
 	 */
-	save(message: string): void {
+		save(message: string): void {
 		if (!this.isAvailable) return;
 
 		try {
 			sessionStorage.setItem(DRAFT_KEY, message);
-		} catch (error) {
-			logger.warn('Failed to save draft', error);
+		} catch {
+			logger.warn('Failed to save draft');
 			// Silently fail - quota exceeded or privacy mode
 		}
 	}
@@ -32,13 +32,13 @@ export class DraftManager {
 	/**
 	 * Load draft message from sessionStorage
 	 */
-	load(): string {
+		load(): string {
 		if (!this.isAvailable) return '';
 
 		try {
 			return sessionStorage.getItem(DRAFT_KEY) || '';
-		} catch (error) {
-			logger.warn('Failed to load draft', error);
+		} catch {
+			logger.warn('Failed to load draft');
 			return '';
 		}
 	}
@@ -46,13 +46,13 @@ export class DraftManager {
 	/**
 	 * Clear draft message from sessionStorage
 	 */
-	clear(): void {
+		clear(): void {
 		if (!this.isAvailable) return;
 
 		try {
 			sessionStorage.removeItem(DRAFT_KEY);
-		} catch (error) {
-			logger.warn('Failed to clear draft', error);
+		} catch {
+			logger.warn('Failed to clear draft');
 		}
 	}
 

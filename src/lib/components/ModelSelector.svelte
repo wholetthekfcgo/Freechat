@@ -28,7 +28,7 @@
 		onModelChange?.(modelId);
 	}
 
-	const selectedModelName = $derived(models.find((m) => m.id === model)?.name || models[0].name);
+	const selectedModelName = $derived(models.find((m) => m.id === model)?.name ?? models[0]?.name ?? '');
 
 	// Close dropdown when clicking outside
 	function handleClickOutside(event: MouseEvent) {

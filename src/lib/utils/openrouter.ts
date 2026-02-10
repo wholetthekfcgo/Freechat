@@ -2,7 +2,7 @@ import type { ChatRequest, ChatResponse } from '$lib/types/chat';
 import { logger } from '$lib/utils/logger';
 import OpenAI from 'openai';
 
-function createOpenRouterClient(apiKey: string): OpenAI {
+export function createOpenRouterClient(apiKey: string): OpenAI {
 	return new OpenAI({
 		apiKey,
 		baseURL: 'https://openrouter.ai/api/v1',

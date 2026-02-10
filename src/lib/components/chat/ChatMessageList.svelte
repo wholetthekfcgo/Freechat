@@ -18,9 +18,10 @@
 		onRegenerate?: () => void;
 	} = $props();
 
-	function keyExtractor(message: Message) {
-		return message.id;
-	}
+ 	function keyExtractor(item: unknown, _index: number) {
+ 		const message = item as Message;
+ 		return message.id;
+ 	}
 </script>
 
 <ScrollArea class="h-full">
@@ -28,21 +29,19 @@
 		{#if messages.length === 0}
 			<!-- Empty state rendered by parent component -->
 		{:else if messages.length > 100}
-			<!-- Use virtual scrolling for large conversations -->
-			<VirtualList
-				{messages}
-				keyExtractor={keyExtractor}
-				estimatedItemHeight={150}
-				let:item
-				let:index
-			>
-				{#snippet renderItem(item, index)}
-					<MessageBubble
-						message={item}
-						onRegenerate={item.role === 'assistant' ? onRegenerate : undefined}
-					/>
-				{/snippet}
-			</VirtualList>
+ 			<!-- Use virtual scrolling for large conversations -->
+ 			<VirtualList
+ 				items={messages}
+ 				keyExtractor={keyExtractor}
+ 				estimatedItemHeight={150}
+ 			>
+ 				{#snippet renderItem(item)}
+ 					<MessageBubble
+ 						message={item as Message}
+ 						onRegenerate={(item as Message).role === 'assistant' ? onRegenerate : undefined}
+ 					/>
+ 				{/snippet}
+ 			</VirtualList>
 		{:else}
 			<!-- Regular rendering for small conversations -->
 			{#each messages as message (message.id)}

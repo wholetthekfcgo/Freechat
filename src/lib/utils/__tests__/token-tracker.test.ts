@@ -3,7 +3,7 @@
  * Tests token caching functionality
  */
 
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { countMessageTokens, countTotalTokens } from '../token-tracker';
 import type { Message } from '$lib/types/chat';
 

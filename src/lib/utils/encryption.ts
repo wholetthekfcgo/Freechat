@@ -48,6 +48,10 @@ export async function encrypt(data: unknown): Promise<string> {
  */
 export async function decrypt<T>(encodedData: string): Promise<T | null> {
 	try {
+		if (!encodedData || encodedData.trim().length === 0) {
+			return null;
+		}
+
 		// Decode from base64
 		const binaryString = atob(encodedData);
 		// Convert binary string back to bytes, then decode as UTF-8
@@ -65,7 +69,7 @@ export async function decrypt<T>(encodedData: string): Promise<T | null> {
 		return JSON.parse(jsonString) as T;
 	} catch (error) {
 		logger.error('Decoding failed:', error instanceof Error ? error : undefined);
-		throw new Error('Decoding failed: ' + (error instanceof Error ? error.message : 'Unknown error'));
+		return null;
 	}
 }
 

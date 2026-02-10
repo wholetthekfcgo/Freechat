@@ -37,7 +37,7 @@ export function withTimeout<T extends RequestEvent = RequestEvent>(
 		const controller = new AbortController();
 		const timeoutId = setTimeout(() => {
 			controller.abort();
-			logger.error('Request timeout', { timeoutMs, method: event.request.method });
+			logger.error('Request timeout', new Error(`Request timeout after ${timeoutMs}ms`), { timeoutMs, method: event.request.method });
 		}, timeoutMs);
 
 		try {
@@ -64,7 +64,7 @@ export function withTimeout<T extends RequestEvent = RequestEvent>(
 			return response;
 		} catch (error) {
 			if (error instanceof Error && error.name === 'AbortError') {
-				logger.error('Request aborted due to timeout', { timeoutMs });
+				logger.error('Request aborted due to timeout', error, { timeoutMs });
 				return json(
 					{ error: 'Request timeout', details: `The request took longer than ${timeoutMs}ms to complete`, timeout: timeoutMs },
 					{ status: 408 }

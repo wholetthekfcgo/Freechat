@@ -7,7 +7,7 @@
  */
 
 import { persistence } from '$lib/stores/persistence.svelte.js';
-import type { ChatConversation, ChatHistory } from '$lib/types/chat';
+import type { ChatHistory } from '$lib/types/chat';
 import { browser } from '$app/environment';
 
 // Reactive state
@@ -55,7 +55,7 @@ async function handleDelete(conversationId: string) {
 		// Update current conversation ID if needed
 		if (history.currentConversationId === conversationId) {
 			history.currentConversationId = history.conversations.length > 0 
-				? history.conversations[history.conversations.length - 1].id 
+				? history.conversations[history.conversations.length - 1]?.id ?? null
 				: null;
 		}
 		
@@ -294,8 +294,7 @@ function formatDate(date: Date): string {
 		margin: 0.5rem 0 1rem 0;
 	}
 
-	.error-state button,
-	.empty-state button {
+	.error-state button {
 		background: var(--accent);
 		color: white;
 		border: none;

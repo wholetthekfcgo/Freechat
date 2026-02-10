@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { chatState, chatHistory, chatActions } from '../chat.svelte';
+import { chatState, chatHistory, chatActions } from '../chat/chat.svelte';
 
 // Mock dependencies
 vi.mock('$app/environment', () => ({
@@ -42,6 +42,12 @@ vi.mock('$lib/utils/rate-limiter', () => ({
 	recordApiRequest: () => {}
 }));
 
+vi.mock('$lib/stores/persistence.svelte.js', () => ({
+	load: vi.fn(() => ({ conversations: [], currentConversationId: null })),
+	save: vi.fn(),
+	__esModule: true
+}));
+
 describe('Chat Store Integration', () => {
 	beforeEach(() => {
 		// Reset state
@@ -66,27 +72,22 @@ describe('Chat Store Integration', () => {
 			await chatActions.sendMessage('Hello');
 
 			expect(chatState.messages).toHaveLength(1);
-			expect(chatState.messages[0].role).toBe('user');
-			expect(chatState.messages[0].content).toBe('Hello');
+			expect(chatState.messages[0]?.role).toBe('user');
+			expect(chatState.messages[0]?.content).toBe('Hello');
 		});
 
 		it('should handle loading state', async () => {
-			let isLoading = false;
-			
-			global.fetch = vi.fn().mockImplementation(() => {
-				isLoading = chatState.isLoading;
-				return Promise.resolve({
-					ok: true,
-					body: {
-						getReader: () => ({
-							read: async () => ({ done: true, value: null })
-						})
-					}
-				});
+			global.fetch = vi.fn().mockResolvedValue({
+				ok: true,
+				body: {
+					getReader: () => ({
+						read: async () => ({ done: true, value: null })
+					})
+				}
 			}) as any;
 
 			const promise = chatActions.sendMessage('Test');
-			
+
 			expect(chatState.isLoading).toBe(true);
 			await promise;
 			expect(chatState.isLoading).toBe(false);
@@ -111,7 +112,7 @@ describe('Chat Store Integration', () => {
 			chatActions.saveCurrentConversation();
 
 			expect(chatHistory.conversations).toHaveLength(1);
-			expect(chatHistory.conversations[0].id).toBeDefined();
+			expect(chatHistory.conversations[0]?.id).toBeDefined();
 		});
 
 		it('should generate title from first message', () => {
@@ -121,7 +122,7 @@ describe('Chat Store Integration', () => {
 
 			chatActions.saveCurrentConversation();
 
-			expect(chatHistory.conversations[0].title).toBe('This is a very long message that shou...');
+			expect(chatHistory.conversations[0]?.title).toBe('This is a very long message that shou...');
 		});
 	});
 
@@ -158,7 +159,7 @@ describe('Chat Store Integration', () => {
 			chatActions.deleteConversation('conv-1');
 
 			expect(chatHistory.conversations).toHaveLength(1);
-			expect(chatHistory.conversations[0].id).toBe('conv-2');
+			expect(chatHistory.conversations[0]?.id).toBe('conv-2');
 		});
 
 		it('should start new chat if deleting current', () => {
@@ -183,7 +184,7 @@ describe('Chat Store Integration', () => {
 
 			chatActions.renameConversation('conv-1', 'New Title');
 
-			expect(chatHistory.conversations[0].title).toBe('New Title');
+			expect(chatHistory.conversations[0]?.title).toBe('New Title');
 		});
 	});
 });

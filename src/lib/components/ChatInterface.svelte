@@ -22,7 +22,6 @@
 		onSendMessage,
 		onClear,
 		onExport,
-		onRegenerate,
 		onModelChange,
 		onThinkingChange,
 		requestCount = 0
@@ -34,7 +33,6 @@
 		thinkingEnabled?: boolean;
 		onSendMessage: (message: string) => void;
 		onClear?: () => void;
-		onRegenerate?: () => Promise<void>;
 		onExport?: (format: 'markdown' | 'json') => void;
 		onModelChange?: (model: string) => void;
 		onThinkingChange?: (enabled: boolean) => void;
@@ -118,18 +116,9 @@
 		announce('Generation stopped');
 	}
 
-	async function handleRegenerate() {
-		await chatActions.regenerateLastResponse();
-		announce('Regenerating response');
-	}
-
 	function handleNewChat() {
 		chatActions.startNewChat();
 		announce('Started new chat');
-	}
-
-	function handleClearRequest() {
-		showClearDialog = true;
 	}
 
 	function handleClearConfirm() {
@@ -226,7 +215,6 @@
 						{messages}
 						{isLoading}
 						{error}
-						onRegenerate={handleRegenerate}
 					/>
 				{/if}
 			</div>

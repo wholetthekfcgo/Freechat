@@ -7,14 +7,12 @@
 import { tick } from 'svelte';
 import { onDestroy } from 'svelte';
 
-export function useAutoScroll(scrollArea: HTMLElement | undefined, messages: { length: number }) {
-	let lastLength = messages.length;
-
+export function useAutoScroll(scrollArea: HTMLElement | undefined, _messages: { length: number }) {
 	function handleScroll() {
 		if (!scrollArea) return;
-		
-		const shouldScroll = 
-			scrollArea.offsetHeight + scrollArea.scrollTop > 
+
+		const shouldScroll =
+			scrollArea.offsetHeight + scrollArea.scrollTop >
 			scrollArea.scrollHeight - 50;
 
 		if (shouldScroll) {
@@ -24,8 +22,6 @@ export function useAutoScroll(scrollArea: HTMLElement | undefined, messages: { l
 				}
 			});
 		}
-		
-		lastLength = messages.length;
 	}
 
 	if (scrollArea) {

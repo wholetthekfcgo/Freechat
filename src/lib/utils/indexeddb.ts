@@ -45,7 +45,7 @@ class IndexedDBWrapper {
 			const request = indexedDB.open(DB_NAME, DB_VERSION);
 
 			request.onerror = () => {
-				logger.error('Failed to open IndexedDB', request.error);
+				logger.error('Failed to open IndexedDB', request.error instanceof Error ? request.error : new Error(String(request.error)));
 				reject(new Error('Failed to open IndexedDB: ' + request.error?.message));
 			};
 
@@ -96,12 +96,12 @@ class IndexedDBWrapper {
 					resolve(request.result || null);
 				};
 				request.onerror = () => {
-					logger.error('Failed to get from IndexedDB', { storeName, key, error: request.error });
+					logger.error('Failed to get from IndexedDB', request.error instanceof Error ? request.error : new Error(String(request.error)), { storeName, key });
 					reject(new Error('Failed to get value: ' + request.error?.message));
 				};
 			});
 		} catch (error) {
-			logger.error('IndexedDB get error', { storeName, key, error });
+			logger.error('IndexedDB get error', error instanceof Error ? error : new Error(String(error)), { storeName, key });
 			return null;
 		}
 	}
@@ -124,17 +124,17 @@ class IndexedDBWrapper {
 				};
 				
 				transaction.onerror = () => {
-					logger.error('Transaction failed to save to IndexedDB', { storeName, error: transaction.error });
+					logger.error('Transaction failed to save to IndexedDB', transaction.error instanceof Error ? transaction.error : new Error(String(transaction.error)), { storeName });
 					reject(new Error('Transaction failed: ' + transaction.error?.message));
 				};
-				
+
 				request.onerror = () => {
-					logger.error('Request failed to save to IndexedDB', { storeName, error: request.error });
+					logger.error('Request failed to save to IndexedDB', request.error instanceof Error ? request.error : new Error(String(request.error)), { storeName });
 					reject(new Error('Request failed: ' + request.error?.message));
 				};
 			});
 		} catch (error) {
-			logger.error('IndexedDB set error', { storeName, error });
+			logger.error('IndexedDB set error', error instanceof Error ? error : new Error(String(error)), { storeName });
 			return false;
 		}
 	}
@@ -155,12 +155,12 @@ class IndexedDBWrapper {
 					resolve(true);
 				};
 				request.onerror = () => {
-					logger.error('Failed to delete from IndexedDB', { storeName, key, error: request.error });
+					logger.error('Failed to delete from IndexedDB', request.error instanceof Error ? request.error : new Error(String(request.error)), { storeName, key });
 					reject(new Error('Failed to delete value: ' + request.error?.message));
 				};
 			});
 		} catch (error) {
-			logger.error('IndexedDB delete error', { storeName, key, error });
+			logger.error('IndexedDB delete error', error instanceof Error ? error : new Error(String(error)), { storeName, key });
 			return false;
 		}
 	}
@@ -180,12 +180,12 @@ class IndexedDBWrapper {
 					resolve(request.result || []);
 				};
 				request.onerror = () => {
-					logger.error('Failed to get all from IndexedDB', { storeName, error: request.error });
+					logger.error('Failed to get all from IndexedDB', request.error instanceof Error ? request.error : new Error(String(request.error)), { storeName });
 					reject(new Error('Failed to get all values: ' + request.error?.message));
 				};
 			});
 		} catch (error) {
-			logger.error('IndexedDB getAll error', { storeName, error });
+			logger.error('IndexedDB getAll error', error instanceof Error ? error : new Error(String(error)), { storeName });
 			return [];
 		}
 	}
@@ -206,12 +206,12 @@ class IndexedDBWrapper {
 					resolve(true);
 				};
 				request.onerror = () => {
-					logger.error('Failed to clear store', { storeName, error: request.error });
+					logger.error('Failed to clear store', request.error instanceof Error ? request.error : new Error(String(request.error)), { storeName });
 					reject(new Error('Failed to clear store: ' + request.error?.message));
 				};
 			});
 		} catch (error) {
-			logger.error('IndexedDB clear error', { storeName, error });
+			logger.error('IndexedDB clear error', error instanceof Error ? error : new Error(String(error)), { storeName });
 			return false;
 		}
 	}
@@ -228,7 +228,7 @@ class IndexedDBWrapper {
 					quota: estimate.quota || 0
 				};
 			} catch (error) {
-				logger.error('Failed to get storage estimate', error);
+				logger.error('Failed to get storage estimate', error instanceof Error ? error : new Error(String(error)));
 			}
 		}
 		return null;

@@ -1,26 +1,14 @@
 /**
  * Error Boundary Component
- * 
- * Provides graceful error handling for component trees
+ *
+ * Provides graceful error handling for component trees.
  * Catches JavaScript errors anywhere in the child component tree,
- * logs them, and displays a fallback UI instead of crashing the app
- * 
- * @example
- * ```svelte
- * <ErrorBoundary>
- *   <YourComponent />
- * </ErrorBoundary>
- * ```
- * 
- * With custom fallback:
- * ```svelte
- * <ErrorBoundary fallback={{ error, reset }}>
- *   <div>
- *     <p>Custom error: {error.message}</p>
- *     <button onclick={reset}>Retry</button>
- *   </div>
- * </ErrorBoundary>
- * ```
+ * logs them, and displays a fallback UI instead of crashing the app.
+ *
+ * Basic usage: Wrap your components to catch errors
+ *
+ * With custom fallback: Provide a fallback snippet to render custom error UI
+ * The fallback receives an error context with error, reset function, and retry count
  */
 
   <script lang="ts">
@@ -64,9 +52,8 @@
 		url: string;
 	}
 
-	let {
+ 	let {
 		fallback = undefined,
-		onError,
 		resetOnRouteChange = true,
 		children,
 		name = 'ErrorBoundary'

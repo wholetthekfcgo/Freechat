@@ -50,7 +50,7 @@ const createChatStore = (): MockChatStore => {
 	return {
 		getMessages: () => messages,
 		setMessages: (newMessages: MockMessage[]) => { messages = newMessages; },
-		clearMessages: () => { messages = []; },
+		clearMessages: () => { messages = []; error = null; },
 		getIsLoading: () => isLoading,
 		setIsLoading: (value: boolean) => { isLoading = value; },
 		getError: () => error,

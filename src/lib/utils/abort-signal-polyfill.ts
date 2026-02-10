@@ -43,7 +43,6 @@ export function timeoutPolyfill(ms: number): AbortSignal {
 	});
 	
 	// Make the timeout reason match the spec
-	const originalAbort = signal.abort.bind(signal);
 	Object.defineProperty(signal, 'reason', {
 		get() {
 			return new DOMException(`Aborted due to timeout after ${ms}ms`, 'TimeoutError');

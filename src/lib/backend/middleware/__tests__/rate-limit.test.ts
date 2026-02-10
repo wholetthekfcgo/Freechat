@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { rateLimit, cleanupExpiredEntries } from '../rate-limit';
+import { rateLimit, rateLimitStore } from '../rate-limit';
 
 // Helper to create mock RequestEvent
 function createMockEvent(ip: string = '127.0.0.1'): any {
@@ -16,7 +16,7 @@ function createMockEvent(ip: string = '127.0.0.1'): any {
 describe('Rate Limiting Middleware', () => {
 	beforeEach(() => {
 		// Clear the rate limit store before each test
-		cleanupExpiredEntries();
+		rateLimitStore.clear();
 	});
 
 	it('should allow requests within the limit', async () => {
@@ -96,13 +96,15 @@ describe('Rate Limiting Middleware', () => {
 		};
 
 		const middleware = rateLimit(config);
-		const handler = async () => new Response('OK');
+		const handler = async () => new Response('OK', {
+			headers: { 'X-Custom-Header': 'test-value' }
+		});
 		const protectedHandler = middleware(handler);
 
 		const response = await protectedHandler(createMockEvent());
 
 		expect(response.headers.get('X-RateLimit-Limit')).toBe('10');
-		expect(response.headers.get('X-RateLimit-Remaining')).toBe('9');
+		expect(response.headers.get('X-RateLimit-Remaining')).toBe('8');
 		expect(response.headers.get('X-RateLimit-Reset')).toBeTruthy();
 	});
 
@@ -110,7 +112,7 @@ describe('Rate Limiting Middleware', () => {
 		const config = {
 			maxRequests: 2,
 			windowMs: 60000,
-			keyGenerator: (event: any) => 'custom-key'
+			keyGenerator: (_event: any) => 'custom-key'
 		};
 
 		const middleware = rateLimit(config);

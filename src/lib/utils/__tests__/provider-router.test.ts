@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { getProviderForModel, Provider } from '../provider-router';
+import { getProviderForModel } from '../provider-router';
 
 describe('Provider Router', () => {
 	it('should route GLM models to Z.AI', () => {

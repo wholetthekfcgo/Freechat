@@ -111,7 +111,7 @@ export async function load(): Promise<ChatHistory> {
 		// No data found
 		return { conversations: [], currentConversationId: null };
 	} catch (error) {
-		logger.error('Failed to load chat history', error);
+		logger.error('Failed to load chat history', error instanceof Error ? error : new Error(String(error)));
 		
 		if (error instanceof Error) {
 			errorTracker.captureError(error, 'persistence-load');
@@ -123,9 +123,7 @@ export async function load(): Promise<ChatHistory> {
 		
 		return { 
 			conversations: [], 
-			currentConversationId: null,
-			hasCorruptedData: true,
-			loadError: error instanceof Error ? error.message : 'Unknown error'
+			currentConversationId: null
 		};
 	}
 }
@@ -169,7 +167,7 @@ export async function save(history: ChatHistory): Promise<void> {
 			encrypted = await encrypt(dataToSave);
 		} catch (encryptionError) {
 			// Encryption failed - save unencrypted with warning
-			logger.error('Encryption failed, saving unencrypted', encryptionError);
+			logger.error('Encryption failed, saving unencrypted', encryptionError instanceof Error ? encryptionError : new Error(String(encryptionError)));
 			
 			if (encryptionError instanceof Error) {
 				errorTracker.captureError(encryptionError, 'persistence-save-encrypt');
@@ -185,7 +183,7 @@ export async function save(history: ChatHistory): Promise<void> {
 			const success = await idb.set(STORES.CHAT_HISTORY, fallbackData);
 			
 			if (!success) {
-				logger.error('Failed to save unencrypted fallback');
+				logger.error('Failed to save unencrypted fallback', new Error('Storage quota exceeded'));
 			} else {
 				logger.warn('Data saved without encryption due to encryption failure');
 			}
@@ -212,7 +210,7 @@ export async function save(history: ChatHistory): Promise<void> {
 		if (error instanceof Error) {
 			errorTracker.captureError(error, 'persistence-save');
 		}
-		logger.error('Failed to save chat history', error);
+		logger.error('Failed to save chat history', error instanceof Error ? error : new Error(String(error)));
 	}
 }
 
@@ -230,7 +228,7 @@ export async function clear(): Promise<void> {
 		await idb.delete(STORES.CHAT_HISTORY, UNENCRYPTED_KEY);
 		logger.info('Cleared chat history from storage');
 	} catch (error) {
-		logger.error('Failed to clear chat history', error);
+		logger.error('Failed to clear chat history', error instanceof Error ? error : new Error(String(error)));
 	}
 }
 
@@ -253,7 +251,7 @@ export async function clearDatabase(): Promise<void> {
 				resolve();
 			};
 			request.onerror = () => {
-				logger.error('Failed to clear IndexedDB database', request.error);
+				logger.error('Failed to clear IndexedDB database', request.error instanceof Error ? request.error : new Error(String(request.error)));
 				reject(new Error('Failed to clear database: ' + request.error?.message));
 			};
 			request.onblocked = () => {
@@ -265,7 +263,7 @@ export async function clearDatabase(): Promise<void> {
 		if (error instanceof Error) {
 			errorTracker.captureError(error, 'persistence-clear-database');
 		}
-		logger.error('Failed to clear database', error);
+		logger.error('Failed to clear database', error instanceof Error ? error : new Error(String(error)));
 		throw error;
 	}
 }

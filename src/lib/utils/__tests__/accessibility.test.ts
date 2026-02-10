@@ -9,7 +9,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { render, fireEvent, waitFor } from '@testing-library/svelte';
+import { fireEvent, waitFor } from '@testing-library/svelte';
 import { announce, announceError, initAnnouncer } from '$lib/utils/announcer';
 
 describe('Accessibility - ARIA Announcer', () => {
@@ -93,7 +93,7 @@ describe('Accessibility - ARIA Announcer', () => {
 				cancelable: true
 			});
 			
-			const defaultPrevented = fireEvent(window, event);
+			fireEvent(window, event);
 			
 			// Check if default was prevented (depends on implementation)
 			expect(event.ctrlKey).toBe(true);
@@ -147,7 +147,6 @@ describe('Accessibility - ARIA Announcer', () => {
 			button.focus();
 			
 			// Check if :focus styles would apply
-			const styles = window.getComputedStyle(button);
 			expect(button).toHaveProperty('focus');
 
 			document.body.removeChild(button);
@@ -195,7 +194,7 @@ describe('Accessibility - ARIA Announcer', () => {
 	describe('Color Contrast', () => {
 		it('should have sufficient contrast for text', () => {
 			// This would typically use a contrast calculation library
-			// For now, we test the concept
+			// For now, we test concept
 			
 			const getContrastRatio = (foreground: number[], background: number[]): number => {
 				const getLuminance = (rgb: number[]) => {
@@ -203,7 +202,7 @@ describe('Accessibility - ARIA Announcer', () => {
 						c /= 255;
 						return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
 					});
-					return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+					return 0.2126 * (r ?? 0) + 0.7152 * (g ?? 0) + 0.0722 * (b ?? 0);
 				};
 
 				const l1 = getLuminance(foreground);
@@ -233,7 +232,7 @@ describe('Accessibility - ARIA Announcer', () => {
 					c /= 255;
 					return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
 				});
-				return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+				return 0.2126 * (r ?? 0) + 0.7152 * (g ?? 0) + 0.0722 * (b ?? 0);
 			};
 
 			const l1 = getLuminance(primary);
