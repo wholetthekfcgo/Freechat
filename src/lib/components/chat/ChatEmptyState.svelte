@@ -56,14 +56,15 @@
 
 		<!-- Right: Vertical Value Props as Annotations -->
 		<div class="space-y-4 animate-stagger-entry" style="animation-delay: 100ms;">
-			{#each featurePrompts as feature, index}
-				<button
-					onclick={() => onSendMessage(feature.prompt)}
-					class="w-full text-left border-l-2 {index === 0 ? 'border-primary' : 'border-border'} pl-4 py-2 hover-glow hover:border-primary/50 transition-all group"
-					aria-label="Chat about {feature.title}"
-				>
-					<div class="flex items-start gap-3">
-						<svelte:component this={feature.icon} class="w-5 h-5 text-primary mt-0.5 flex-shrink-0 group-hover:scale-110 transition-transform" />
+		{#each featurePrompts as feature, index}
+			{@const Icon = feature.icon}
+			<button
+				onclick={() => onSendMessage(feature.prompt)}
+				class="w-full text-left border-l-2 {index === 0 ? 'border-primary' : 'border-border'} pl-4 py-2 hover-glow hover:border-primary/50 transition-all group"
+				aria-label="Chat about {feature.title}"
+			>
+				<div class="flex items-start gap-3">
+					<Icon class="w-5 h-5 text-primary mt-0.5 flex-shrink-0 group-hover:scale-110 transition-transform" />
 						<div class="flex-1">
 							<h3 class="uppercase-label text-foreground mb-1 group-hover:text-primary transition-colors">{feature.title}</h3>
 							<p class="text-body-sm text-muted-foreground group-hover:text-muted-foreground/80 transition-colors">{feature.description}</p>

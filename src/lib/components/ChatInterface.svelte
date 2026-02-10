@@ -41,9 +41,9 @@
 		requestCount?: number;
 	} = $props();
 
- 	let inputMessage = $state('');
- 	let scrollAreaElement: HTMLElement | undefined;
- 	let showSidebar = $state(false);
+	let inputMessage = $state('');
+	let scrollAreaElement = $state.raw<HTMLElement | undefined>(undefined);
+	let showSidebar = $state(false);
 	let showClearDialog = $state(false);
 	let showDeleteDialog = $state(false);
 	let showBuyCreditsModal = $state(false);

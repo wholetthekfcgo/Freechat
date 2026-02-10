@@ -20,18 +20,7 @@
 		class: className = ''
 	}: Props = $props();
 
-	let container: HTMLElement;
-
-	$effect(() => {
-		virtualizer.setOptions({
-			get count() {
-				return items.length;
-			},
-			getScrollElement: () => container,
-			estimateSize: () => estimatedItemHeight,
-			overscan
-		});
-	});
+ 	let container: HTMLElement;
 
 	const virtualizer = createVirtualizer({
 		get count() {
@@ -39,7 +28,9 @@
 		},
 		getScrollElement: () => container,
 		estimateSize: () => estimatedItemHeight,
-		overscan
+		get overscan() {
+			return overscan;
+		}
 	});
 </script>
 
