@@ -11,7 +11,18 @@ const apiRetryer = new AsyncRetryer(
 		maxAttempts: 3,
 		maxExecutionTime: 30000,
 		onSuccess: () => logger.debug('API request succeeded'),
-		onError: (error) => logger.warn('API request failed', { error })
+		onError: (error) => {
+			const isAbort = error?.name === 'AbortError' ||
+				error instanceof DOMException ||
+				typeof error?.message === 'string' && error.message.includes('aborted') ||
+				JSON.stringify(error).includes('aborted');
+
+			if (isAbort) {
+				logger.debug('Request aborted by user');
+			} else {
+				logger.warn('API request failed', { error });
+			}
+		}
 	}
 );
 
@@ -21,7 +32,18 @@ const streamingRetryer = new AsyncRetryer(
 		maxAttempts: 3,
 		maxExecutionTime: 60000,
 		onSuccess: () => logger.debug('Streaming request succeeded'),
-		onError: (error) => logger.warn('Streaming request failed', { error })
+		onError: (error) => {
+			const isAbort = error?.name === 'AbortError' ||
+				error instanceof DOMException ||
+				typeof error?.message === 'string' && error.message.includes('aborted') ||
+				JSON.stringify(error).includes('aborted');
+
+			if (isAbort) {
+				logger.debug('Streaming aborted by user');
+			} else {
+				logger.warn('Streaming request failed', { error });
+			}
+		}
 	}
 );
 

@@ -2,10 +2,39 @@
 	import { Shield, Info, Zap, Layers } from '@lucide/svelte';
 
 	let {
-		onShowShortcuts = () => {}
+		onShowShortcuts = () => {},
+		onSendMessage = () => {}
 	}: {
 		onShowShortcuts: () => void;
+		onSendMessage: (message: string) => void;
 	} = $props();
+
+	const featurePrompts = [
+		{
+			icon: Shield,
+			title: 'Privacy First',
+			description: 'Local encrypted storage keeps your data yours',
+			prompt: 'Tell me more about how my data is protected and encrypted in this chat.'
+		},
+		{
+			icon: Info,
+			title: 'Freedom of Choice',
+			description: 'Access any AI model without lock-in',
+			prompt: 'What AI models can I use and how do I switch between them?'
+		},
+		{
+			icon: Zap,
+			title: 'Lightning Fast',
+			description: 'Optimized token speed with streaming responses',
+			prompt: 'How does streaming responses work and why is it faster?'
+		},
+		{
+			icon: Layers,
+			title: 'Zero Data Retention',
+			description: 'Your conversations are never stored on servers',
+			prompt: 'Explain how zero data retention works and why it matters for privacy.'
+		}
+	];
 </script>
 
 <!-- BRUTALIST EDITORIAL EMPTY STATE -->
@@ -27,45 +56,22 @@
 
 		<!-- Right: Vertical Value Props as Annotations -->
 		<div class="space-y-4 animate-stagger-entry" style="animation-delay: 100ms;">
-			<div class="border-l-2 border-primary pl-4 py-2 hover-glow transition-all">
-				<div class="flex items-start gap-3">
-					<Shield class="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-					<div>
-						<h3 class="uppercase-label text-foreground mb-1">Privacy First</h3>
-						<p class="text-body-sm text-muted-foreground">Local encrypted storage keeps your data yours</p>
+			{#each featurePrompts as feature, index}
+				<button
+					onclick={() => onSendMessage(feature.prompt)}
+					class="w-full text-left border-l-2 {index === 0 ? 'border-primary' : 'border-border'} pl-4 py-2 hover-glow hover:border-primary/50 transition-all group"
+					aria-label="Chat about {feature.title}"
+				>
+					<div class="flex items-start gap-3">
+						<svelte:component this={feature.icon} class="w-5 h-5 text-primary mt-0.5 flex-shrink-0 group-hover:scale-110 transition-transform" />
+						<div class="flex-1">
+							<h3 class="uppercase-label text-foreground mb-1 group-hover:text-primary transition-colors">{feature.title}</h3>
+							<p class="text-body-sm text-muted-foreground group-hover:text-muted-foreground/80 transition-colors">{feature.description}</p>
+						</div>
+						<span class="text-xs text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity">→</span>
 					</div>
-				</div>
-			</div>
-
-			<div class="border-l-2 border-border pl-4 py-2 hover-glow transition-all">
-				<div class="flex items-start gap-3">
-					<Info class="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-					<div>
-						<h3 class="uppercase-label text-foreground mb-1">Freedom of Choice</h3>
-						<p class="text-body-sm text-muted-foreground">Access any AI model without lock-in</p>
-					</div>
-				</div>
-			</div>
-
-			<div class="border-l-2 border-border pl-4 py-2 hover-glow transition-all">
-				<div class="flex items-start gap-3">
-					<Zap class="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-					<div>
-						<h3 class="uppercase-label text-foreground mb-1">Lightning Fast</h3>
-						<p class="text-body-sm text-muted-foreground">Optimized token speed with streaming responses</p>
-					</div>
-				</div>
-			</div>
-
-			<div class="border-l-2 border-border pl-4 py-2 hover-glow transition-all">
-				<div class="flex items-start gap-3">
-					<Layers class="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-					<div>
-						<h3 class="uppercase-label text-foreground mb-1">Zero Data Retention</h3>
-						<p class="text-body-sm text-muted-foreground">Your conversations are never stored on servers</p>
-					</div>
-				</div>
-			</div>
+				</button>
+			{/each}
 
 			<!-- Keyboard shortcuts hint -->
 			<div class="pt-4 border-l-2 border-muted pl-4">

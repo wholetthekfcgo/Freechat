@@ -123,7 +123,7 @@
 
 <svelte:window onclick={handleClickOutside} />
 
-<div class="floating-input bg-background sticky bottom-0 z-50">
+ <div class="floating-input bg-background sticky bottom-0 z-[100]">
 	<div class="max-w-4xl mx-auto px-2 sm:px-4">
 		<div class="flex items-center justify-center bg-card shadow-lg rounded-lg p-2 sm:p-4">
 			<!-- Textarea with inline buttons -->
@@ -163,7 +163,7 @@
 								role="listbox"
 								tabindex="0"
 								aria-label="Select AI model"
-								class="absolute bottom-full left-0 mb-2 w-64 sm:w-72 bg-card border border-border shadow-dramatic z-50 animate-fade-in glass"
+								class="absolute bottom-full left-0 mb-2 w-64 sm:w-72 bg-card border border-border shadow-dramatic z-[100] animate-fade-in glass"
 								onkeydown={handleModelKeydown}
 							>
 								<div class="p-2" role="presentation">

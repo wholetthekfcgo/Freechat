@@ -1,21 +1,23 @@
-  <script lang="ts">
+<script lang="ts">
   	import { browser } from '$app/environment';
   	import ChatInterface from '$lib/components/ChatInterface.svelte';
 	import { chatState, chatActions, tokenUsage } from '$lib/stores/chat';
 	import { errorTracker } from '$lib/utils/error-tracker';
 	import { persistence } from '$lib/stores/persistence.svelte';
+	import { announce } from '$lib/utils/announcer';
 	import type { PageData } from './$types';
+	import type { Message } from '$lib/types/chat';
 
-  	const generateUUID = (): string => {
-  		if (typeof crypto !== 'undefined' && crypto.randomUUID) {
-  			return crypto.randomUUID();
-  		}
-  		return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-  			const r = Math.random() * 16 | 0;
-  			const v = c === 'x' ? r : (r & 0x3 | 0x8);
-  			return v.toString(16);
-  		});
-  	};
+   	const generateUUID = (): string => {
+   		if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+   			return crypto.randomUUID();
+   		}
+   		return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+   			const r = Math.random() * 16 | 0;
+   			const v = c === 'x' ? r : (r & 0x3 | 0x8);
+   			return v.toString(16);
+   		});
+   	};
 
 	let { data }: { data: PageData } = $props();
 
@@ -48,7 +50,7 @@
 	});
 
 	// Create reactive derived values
-	const messages = $derived(chatState.messages);
+	const messages = $derived(chatState.messages as Message[]);
 	const isLoading = $derived(chatState.isLoading);
 	const error = $derived(chatState.error);
 	const currentModel = $derived(chatState.currentModel);
@@ -82,7 +84,7 @@
 
 		if (format === 'markdown') {
 			content = exportMessages
-				.map((m) => `## ${m.role.toUpperCase()}\n\n${m.content}\n\n`)
+				.map((m: Message) => `## ${m.role.toUpperCase()}\n\n${m.content}\n\n`)
 				.join('---\n\n');
 			filename = `chat-export-${Date.now()}.md`;
 			type = 'text/markdown';
@@ -99,12 +101,16 @@
 		a.download = filename;
 		a.click();
 		URL.revokeObjectURL(url);
+
+		if (browser) {
+			announce('Conversation exported successfully');
+		}
 	}
 
 	async function handleImport(file: File) {
 		try {
 			const content = await file.text();
-			let importedMessages: any[] = [];
+			let importedMessages: Message[] = [];
 
 			// Determine format and parse accordingly
 			if (file.name.endsWith('.json')) {
@@ -117,7 +123,7 @@
 
 					const role = (lines[0] || '').toLowerCase().replace(':', '').trim();
 					const content_text = lines.slice(1).join('\n').trim();
-					
+
 					if (role === 'user' || role === 'assistant') {
 						importedMessages.push({
 							id: generateUUID(),
@@ -141,7 +147,7 @@
 			await chatActions.startNewChat();
 			chatState.messages = importedMessages;
 			await chatActions.saveCurrentConversation();
-			
+
 			return true;
 		} catch (error) {
 			console.error('Import failed:', error);
@@ -179,12 +185,6 @@
 				handleRegenerate();
 				chatActions.stopGeneration();
 			}
-
-			// Ctrl+/ or Cmd+/ - Show keyboard shortcuts help
-			if ((e.ctrlKey || e.metaKey) && e.key === '/') {
-				e.preventDefault();
-				alert('Keyboard Shortcuts:\nCtrl+Enter: Send message\nCtrl+K: Clear input\nEscape: Stop generation');
-			}
 		};
 
 		window.addEventListener('keydown', handleKeydown);
@@ -200,7 +200,6 @@
 		onSendMessage={handleSendMessage}
 		onClear={handleClear}
 		onExport={handleExport}
-		onImport={handleImport}
 		onRegenerate={handleRegenerate}
 		onModelChange={handleModelChange}
 		{thinkingEnabled}

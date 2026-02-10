@@ -56,19 +56,26 @@
 		{#if isLoading}
 			<div class="mb-8 flex gap-4 animate-fade-in">
 				<div
-					class="flex-shrink-0 w-10 h-10 flex items-center justify-center border border-border bg-card text-foreground shadow-subtle overflow-hidden"
+					class="flex-shrink-0 w-10 h-10 flex items-center justify-center border border-border bg-card text-foreground shadow-subtle overflow-hidden relative"
 				>
-					<img src="/favicon.png" alt="Loading" class="w-full h-full object-cover" />
+					<img src="/favicon.png" alt="AI" class="w-full h-full object-cover" />
+					<div class="absolute inset-0 flex items-center justify-center">
+						<div class="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+					</div>
 				</div>
-				<div class="px-5 py-4 bg-card text-foreground border border-border shadow-subtle">
+				<div class="px-5 py-4 bg-card text-foreground border border-border shadow-subtle flex-1">
+					<div class="flex items-center gap-2 mb-2">
+						<div class="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
+						<span class="text-xs text-muted-foreground font-mono">Generating response...</span>
+					</div>
 					<div class="flex items-center gap-3">
-						<div class="w-12 h-[2px] bg-primary animate-pulse"></div>
+						<div class="w-12 h-[2px] bg-primary/30 animate-pulse"></div>
 						<div
-							class="w-12 h-[2px] bg-primary animate-pulse"
+							class="w-12 h-[2px] bg-primary/30 animate-pulse"
 							style="animation-delay: 0.1s"
 						></div>
 						<div
-							class="w-12 h-[2px] bg-primary animate-pulse"
+							class="w-12 h-[2px] bg-primary/30 animate-pulse"
 							style="animation-delay: 0.2s"
 						></div>
 					</div>

@@ -216,7 +216,10 @@
 
 			<div class="flex-1 overflow-hidden relative">
 				{#if messages.length === 0}
-					<ChatEmptyState onShowShortcuts={() => (showKeyboardShortcuts = true)} />
+					<ChatEmptyState
+						onShowShortcuts={() => (showKeyboardShortcuts = true)}
+						onSendMessage={handleSubmit}
+					/>
 				{:else}
 					<ChatMessageList
 						bind:scrollAreaElement
