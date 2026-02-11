@@ -1,7 +1,9 @@
 <script lang="ts">
-	import { browser } from '$app/environment';
-	import { X, Check, Clock, Info } from '@lucide/svelte';
-	import { useCredits, CREDIT_PACKAGES } from '$lib/composables/useCredits';
+ 	import { browser } from '$app/environment';
+ 	import { X, Check, Clock, Info } from '@lucide/svelte';
+ 	import { useCredits, CREDIT_PACKAGES } from '$lib/composables/useCredits';
+ 	import Badge from '$lib/components/ui/badge/badge.svelte';
+ 	import Separator from '$lib/components/ui/separator/separator.svelte';
 
 	interface Props {
 		open?: boolean;
@@ -156,13 +158,11 @@
 							</div>
 						{/if}
 
-						{#if pkg.popular}
-							<div
-								class="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-primary text-primary-foreground text-body-xs font-semibold uppercase tracking-wide"
-							>
-								Most Popular
-							</div>
-						{/if}
+ 						{#if pkg.popular}
+ 							<div class="absolute -top-3 left-1/2 -translate-x-1/2">
+ 								<Badge variant="default">Most Popular</Badge>
+ 							</div>
+ 						{/if}
 
 						<div class="text-center mb-4">
 							<div class="text-display-md text-primary font-bold mb-1">{pkg.credits}</div>
@@ -198,11 +198,12 @@
 							</div>
 						{/if}
 					</button>
-				{/each}
-			</div>
+ 				{/each}
+ 			</div>
 
-			<div class="border-t border-border pt-6">
-				<div class="flex items-start gap-3">
+ 			<Separator />
+ 			<div class="pt-6">
+ 				<div class="flex items-start gap-3">
 					<div class="flex-shrink-0 w-5 h-5 text-primary">
 						<Info class="w-5 h-5" />
 					</div>

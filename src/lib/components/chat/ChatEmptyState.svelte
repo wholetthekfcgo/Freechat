@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { Shield, Info, Zap, Layers } from '@lucide/svelte';
+ 	import { Shield, Info, Zap, Layers } from '@lucide/svelte';
+ 	import Kbd from '$lib/components/ui/kbd/kbd.svelte';
 
 	let {
 		onShowShortcuts = () => {},
@@ -78,16 +79,16 @@
 			<div class="pt-4 border-l-2 border-muted pl-4">
 				<button
 					onclick={onShowShortcuts}
-					class="flex items-center gap-3 text-body-sm text-muted-foreground hover:text-foreground transition-colors group"
-					aria-label="View keyboard shortcuts"
-				>
-					<div class="flex items-center gap-1">
-						<kbd class="px-1.5 py-0.5 text-xs font-mono bg-background border border-border rounded group-hover:border-primary/50 transition-colors">Ctrl</kbd>
-						<span class="text-xs">+</span>
-						<kbd class="px-1.5 py-0.5 text-xs font-mono bg-background border border-border rounded group-hover:border-primary/50 transition-colors">/</kbd>
-					</div>
-					<span>for keyboard shortcuts</span>
-				</button>
+ 					class="flex items-center gap-3 text-body-sm text-muted-foreground hover:text-foreground transition-colors group"
+ 					aria-label="View keyboard shortcuts"
+ 				>
+ 					<div class="flex items-center gap-1">
+ 						<Kbd class="group-hover:border-primary/50 transition-colors">Ctrl</Kbd>
+ 						<span class="text-xs">+</span>
+ 						<Kbd class="group-hover:border-primary/50 transition-colors">/</Kbd>
+ 					</div>
+ 					<span>for keyboard shortcuts</span>
+ 				</button>
 			</div>
 
 			<!-- Diagnostic-style call to action -->

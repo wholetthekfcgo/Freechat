@@ -1,6 +1,7 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
-	import { X } from '@lucide/svelte';
+ 	import { onMount } from 'svelte';
+ 	import { X } from '@lucide/svelte';
+ 	import Badge from '$lib/components/ui/badge/badge.svelte';
 
 	let isVisible = $state(true);
 	let timeLeft = $state(7);
@@ -32,9 +33,9 @@
 		role="banner"
 		aria-label="Alpha development notice"
 	>
-		<div class="container mx-auto px-4 py-3 flex items-center justify-center">
-			<div class="flex items-center gap-3">
-				<span class="text-lg font-bold uppercase tracking-wider">⚠️ Alpha Dev</span>
+ 		<div class="container mx-auto px-4 py-3 flex items-center justify-center">
+ 			<div class="flex items-center gap-3">
+ 				<Badge variant="destructive">Alpha Dev</Badge>
 				<span class="hidden sm:inline text-sm opacity-90">This is an early development version. Features may change.</span>
 			</div>
 			

@@ -1,7 +1,9 @@
 <script lang="ts">
-	import { browser } from '$app/environment';
-	import { X } from '@lucide/svelte';
-	import { announce } from '$lib/utils/announcer';
+ 	import { browser } from '$app/environment';
+ 	import { X } from '@lucide/svelte';
+ 	import { announce } from '$lib/utils/announcer';
+ 	import Separator from '$lib/components/ui/separator/separator.svelte';
+ 	import Kbd from '$lib/components/ui/kbd/kbd.svelte';
 
 	interface Props {
 		open?: boolean;
@@ -136,42 +138,43 @@
 			<!-- Shortcuts List -->
 			<div class="space-y-6">
 				{#each Object.entries(groupedShortcuts) as [category, categoryShortcuts]}
-					<div>
-						<h3 class="text-label-lg text-foreground uppercase-label tracking-wider mb-3 border-b border-border pb-2">
-							{category}
-						</h3>
+ 					<div>
+ 						<h3 class="text-label-lg text-foreground uppercase-label tracking-wider mb-3">
+ 							{category}
+ 						</h3>
 						<div class="space-y-2">
 							{#each categoryShortcuts as shortcut}
-								<div class="flex items-center justify-between py-2 px-3 rounded bg-muted/30 hover:bg-muted/50 transition-colors">
-									<span class="text-body-md text-foreground">
-										{shortcut.description}
-									</span>
-									<div class="flex items-center gap-2">
-										<!-- Windows/Linux -->
-										<kbd class="hidden sm:inline-flex px-2 py-1 text-body-sm font-mono bg-background border border-border rounded shadow-sm">
-											{shortcut.key}
-										</kbd>
-										<!-- macOS -->
-										<kbd class="hidden md:inline-flex px-2 py-1 text-body-sm font-mono bg-background border border-border rounded shadow-sm">
-											{shortcut.macKey}
-										</kbd>
-										<!-- Mobile: Show first option only -->
-										<kbd class="sm:hidden px-2 py-1 text-body-sm font-mono bg-background border border-border rounded shadow-sm">
-											{shortcut.key}
-										</kbd>
-									</div>
-								</div>
+ 								<div class="flex items-center justify-between py-2 px-3 rounded bg-muted/30 hover:bg-muted/50 transition-colors">
+ 									<span class="text-body-md text-foreground">
+ 										{shortcut.description}
+ 									</span>
+ 									<div class="flex items-center gap-2">
+ 										<!-- Windows/Linux -->
+ 										<Kbd class="hidden sm:inline-flex">
+ 											{shortcut.key}
+ 										</Kbd>
+ 										<!-- macOS -->
+ 										<Kbd class="hidden md:inline-flex">
+ 											{shortcut.macKey}
+ 										</Kbd>
+ 										<!-- Mobile: Show first option only -->
+ 										<Kbd class="sm:hidden">
+ 											{shortcut.key}
+ 										</Kbd>
+ 									</div>
+ 								</div>
 							{/each}
 						</div>
 					</div>
-				{/each}
-			</div>
+ 				{/each}
+ 			</div>
 
-			<!-- Footer -->
-			<div class="mt-6 pt-4 border-t border-border flex items-center justify-between">
-				<p class="text-body-sm text-muted-foreground">
-					Press <kbd class="px-1.5 py-0.5 text-xs font-mono bg-background border border-border rounded">Escape</kbd> to close
-				</p>
+ 			<!-- Footer -->
+ 			<Separator />
+ 			<div class="mt-4 pt-4 flex items-center justify-between">
+ 				<p class="text-body-sm text-muted-foreground">
+ 					Press <Kbd>Escape</Kbd> to close
+ 				</p>
 				<button
 					onclick={handleClose}
 					class="px-4 py-2 text-body-md bg-primary text-primary-foreground border-0 shadow-medium click-shrink hover:bg-primary/90 transition-colors"
@@ -179,13 +182,7 @@
 					Got it
 				</button>
 			</div>
-		</div>
-	</div>
-{/if}
+ 		</div>
+ 	</div>
+ {/if}
 
-<style>
-	kbd {
-		font-family: 'Courier New', Courier, monospace;
-		font-variant-numeric: tabular-nums;
-	}
-</style>

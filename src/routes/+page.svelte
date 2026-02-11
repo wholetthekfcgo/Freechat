@@ -84,18 +84,18 @@
  		}
  	}
 
- 	function handleModelChange(model: string) {
- 		chatActions.setModel(model);
- 	}
+  	function handleModelChange(model: string) {
+  		chatActions.setModel(model);
+  	}
 
- 	function handleThinkingChange(enabled: boolean) {
- 		thinkingEnabled = enabled;
- 		chatState.enableThinking = enabled;
- 		// Save to cookie for persistence
- 		document.cookie = `thinking-mode=${enabled}; path=/; max-age=31536000`;
- 	}
+ 		$effect(() => {
+  		if (browser) {
+  			chatState.enableThinking = thinkingEnabled;
+  			document.cookie = `thinking-mode=${thinkingEnabled}; path=/; max-age=31536000`;
+  		}
+  	});
 
-		$effect(() => {
+ 		$effect(() => {
  		if (!browser) return;
 
  		const handleKeydown = (e: KeyboardEvent) => {
@@ -119,16 +119,15 @@
 	});
 </script>
 
-<ChatInterface
-		messages={chatState.messages}
-		isLoading={chatState.isLoading}
-		error={chatState.error}
-		currentModel={chatState.currentModel}
-		onSendMessage={handleSendMessage}
-		onClear={handleClear}
-		onExport={handleExport}
-		onModelChange={handleModelChange}
-		thinkingEnabled={thinkingEnabled}
-		onThinkingChange={handleThinkingChange}
-		requestCount={tokenUsage.requestCount}
-	/>
+ <ChatInterface
+ 		messages={chatState.messages}
+ 		isLoading={chatState.isLoading}
+ 		error={chatState.error}
+ 		currentModel={chatState.currentModel}
+ 		onSendMessage={handleSendMessage}
+ 		onClear={handleClear}
+ 		onExport={handleExport}
+ 		onModelChange={handleModelChange}
+ 		thinkingEnabled={thinkingEnabled}
+ 		requestCount={tokenUsage.requestCount}
+ 	/>

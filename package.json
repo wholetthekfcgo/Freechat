@@ -18,7 +18,8 @@
     "format": "prettier --write ."
   },
   "devDependencies": {
-    "@lucide/svelte": "^0.563.1",
+    "@internationalized/date": "^3.10.0",
+    "@lucide/svelte": "^0.561.0",
     "@playwright/test": "^1.58.0",
     "@sveltejs/adapter-auto": "^7.0.0",
     "@sveltejs/adapter-node": "^5.5.2",
@@ -34,6 +35,7 @@
     "bits-ui": "^2.15.4",
     "clsx": "^2.1.1",
     "jsdom": "^27.4.0",
+    "shadcn-svelte": "^1.1.1",
     "svelte": "^5.48.2",
     "svelte-check": "^4.3.5",
     "tailwind-merge": "^3.4.0",

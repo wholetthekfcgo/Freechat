@@ -7,28 +7,26 @@
 	import { onMount } from 'svelte';
 	import { countTokensInString } from '$lib/utils/token-tracker';
 
-	let {
-		value = $bindable(),
-		onSubmit,
-		onStopGeneration,
-		isLoading = false,
-		currentModel = 'glm-4.7-flash',
-		onModelChange,
-		thinkingEnabled,
-		onThinkingChange,
-		models = [
-			{ id: 'glm-4.7-flash', name: 'GLM-4.7-Flash (Default)' },
-			{ id: 'glm-4.5-flash', name: 'GLM-4.5-Flash (Fast)' }
-		]
-	}: {
-		value: string;
-		onSubmit: () => void;
-		onStopGeneration?: () => void;
-		isLoading?: boolean;
-		currentModel?: string;
-		onModelChange?: (model: string) => void;
-		thinkingEnabled?: boolean;
-		onThinkingChange?: (enabled: boolean) => void;
+ 	let {
+ 		value = $bindable(),
+ 		onSubmit,
+ 		onStopGeneration,
+ 		isLoading = false,
+ 		currentModel = 'glm-4.7-flash',
+ 		onModelChange,
+ 		thinkingEnabled,
+ 		models = [
+ 			{ id: 'glm-4.7-flash', name: 'GLM-4.7-Flash (Default)' },
+ 			{ id: 'glm-4.5-flash', name: 'GLM-4.5-Flash (Fast)' }
+ 		]
+ 	}: {
+ 		value: string;
+ 		onSubmit: () => void;
+ 		onStopGeneration?: () => void;
+ 		isLoading?: boolean;
+ 		currentModel?: string;
+ 		onModelChange?: (model: string) => void;
+ 		thinkingEnabled?: boolean;
 		models?: Array<{ id: string; name: string }>;
 	} = $props();
 	let isModelOpen = $state(false);
@@ -189,10 +187,7 @@
 					</div>
 
 					<!-- Thinking Toggle -->
-					<ThinkingToggle
-						bind:enabled={thinkingEnabled}
-						onToggle={(enabled) => onThinkingChange?.(enabled)}
-					/>
+					<ThinkingToggle bind:enabled={thinkingEnabled} />
 
 					<!-- Action buttons and token counter -->
 					<InputActions

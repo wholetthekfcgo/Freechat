@@ -2,6 +2,10 @@
  	import type { ChatConversation } from '$lib/types/chat';
  	import { Trash2, Download, Plus, X, TrendingUp, HelpCircle, Clock } from '@lucide/svelte';
  	import Button from '$lib/components/ui/button/button.svelte';
+ 	import Separator from '$lib/components/ui/separator/separator.svelte';
+ 	import Popover from '$lib/components/ui/popover/popover.svelte';
+ 	import PopoverContent from '$lib/components/ui/popover/popover-content.svelte';
+ 	import PopoverTrigger from '$lib/components/ui/popover/popover-trigger.svelte';
 
  	let {
   		showSidebar = $bindable(false),
@@ -27,11 +31,10 @@
   		requestCount?: number;
   	} = $props();
 
- 	const capacity = 60;
- 	const remainingTokens = $derived(capacity - requestCount);
- 	let showCreditsTooltip = $state(false);
+  	const capacity = 60;
+  	const remainingTokens = $derived(capacity - requestCount);
 
-	function formatRelativeTime(date: Date): string {
+ 	function formatRelativeTime(date: Date): string {
 		const now = new Date();
 		const diffMs = now.getTime() - new Date(date).getTime();
 		const diffMins = Math.floor(diffMs / 60000);
@@ -57,38 +60,40 @@
 
  {#if showSidebar}
  	<aside class="sidebar-drawer glass flex flex-col {showSidebar ? 'open' : ''}">
- 		<!-- Branding Section (Top) -->
- 		<div class="sidebar-branding flex items-center justify-between p-4 border-b border-border">
- 			<div class="flex items-center gap-3">
- 				<img src="/favicon.png" alt="Freechat Logo" class="w-8 h-8" />
- 				<div class="flex flex-col">
- 					<h1 class="text-display-sm text-foreground tracking-tight">
- 						FREECHAT<span class="text-primary">.</span>CC
- 					</h1>
- 					<p class="text-body-xs text-muted-foreground uppercase-label">// Free as in Freedom</p>
- 				</div>
- 			</div>
- 			<button
- 				onclick={onClose}
- 				class="mobile-icon-btn touch-target"
- 				aria-label="Close sidebar"
- 			>
- 				<X class="w-6 h-6" />
- 			</button>
- 		</div>
+  		<!-- Branding Section (Top) -->
+  		<div class="sidebar-branding flex items-center justify-between p-4">
+  			<div class="flex items-center gap-3">
+  				<img src="/favicon.png" alt="Freechat Logo" class="w-8 h-8" />
+  				<div class="flex flex-col">
+  					<h1 class="text-display-sm text-foreground tracking-tight">
+  						FREECHAT<span class="text-primary">.</span>CC
+  					</h1>
+  					<p class="text-body-xs text-muted-foreground uppercase-label">// Free as in Freedom</p>
+  				</div>
+  			</div>
+  			<button
+  				onclick={onClose}
+  				class="mobile-icon-btn touch-target"
+  				aria-label="Close sidebar"
+  			>
+  				<X class="w-6 h-6" />
+  			</button>
+  		</div>
+  		<Separator />
 
- 		<!-- New Chat Button -->
- 		<div class="p-4 border-b border-border">
+  		<!-- New Chat Button -->
+  		<div class="p-4">
  			<Button
  				onclick={onNewChat}
  				class="w-full h-10 bg-primary text-primary-foreground hover:bg-primary/90 click-shrink shadow-medium touch-target"
  			>
  				<Plus class="w-4 h-4 mr-2" />
- 				<span class="text-body-md uppercase-label">NEW CONVERSATION</span>
- 			</Button>
- 		</div>
+  				<span class="text-body-md uppercase-label">NEW CONVERSATION</span>
+  			</Button>
+  		</div>
+  		<Separator />
 
- 		<!-- History Section (Middle - scrollable) -->
+  		<!-- History Section (Middle - scrollable) -->
  		<div class="flex-1 overflow-y-auto p-4 space-y-3">
  			<h2 class="text-display-sm text-foreground mb-1 uppercase-label">CONVERSATION HISTORY</h2>
  			<p class="text-body-sm text-muted-foreground font-mono mb-4">{conversations.length} conversations</p>
@@ -164,53 +169,41 @@
   			{/if}
  		</div>
 
-  		<!-- Credits Section (Bottom) -->
-  		<div class="sidebar-credits p-4 border-t border-border">
-  			<div class="flex items-center gap-2 bg-card border border-border rounded-lg shadow-sm px-3 py-2 hover-glow transition-all relative">
-  				<TrendingUp class="w-4 h-4 text-primary" />
-  				<div class="flex-1 flex flex-col">
-  					<span class="text-body-xs text-muted-foreground uppercase-label flex items-center gap-1">
-  						CREDITS
-  						<button
-  							onclick={() => showCreditsTooltip = !showCreditsTooltip}
-  							class="hover:text-primary transition-colors"
-  							aria-label="What are credits?"
-  						>
-  							<HelpCircle class="w-3 h-3" />
-  						</button>
-  					</span>
-  					<span class="text-body-sm font-semibold text-foreground font-mono">
-  						{remainingTokens}<span class="text-muted-foreground">/{capacity}</span>
-  					</span>
-  				</div>
-  				<button
-  					onclick={onBuyCredits}
-  					class="h-7 w-7 touch-target flex items-center justify-center bg-primary hover:bg-primary/80 text-primary-foreground rounded click-shrink transition-colors"
-  					title="Add more credits"
-  					aria-label="Add more credits"
-  				>
-  					<Plus class="w-3.5 h-3.5" />
-  				</button>
-
-  				<!-- Tooltip -->
-  				{#if showCreditsTooltip}
-  					<div class="absolute bottom-full right-0 mb-2 w-64 p-3 bg-popover border border-border rounded-lg shadow-dramatic text-body-sm z-50 animate-fade-in">
-  						<p class="text-foreground mb-2">Credits track your API usage:</p>
-  						<ul class="space-y-1 text-muted-foreground text-xs">
-  							<li>• Each message uses ~1 credit</li>
-  							<li>• Free tier: 60 credits/day</li>
-  							<li>• Refills every 24 hours</li>
-  						</ul>
-  						<button
-  							onclick={() => showCreditsTooltip = false}
-  							class="mt-2 text-primary hover:underline text-xs"
-  							aria-label="Close tooltip"
-  						>
-  							Got it
-  						</button>
-  					</div>
-  				{/if}
-  			</div>
-  		</div>
+   		<!-- Credits Section (Bottom) -->
+   		<Separator />
+   		<div class="sidebar-credits p-4">
+   			<Popover>
+   				<PopoverTrigger>
+   					<div class="flex items-center gap-2 bg-card border border-border rounded-lg shadow-sm px-3 py-2 hover-glow transition-all cursor-pointer">
+   						<TrendingUp class="w-4 h-4 text-primary" />
+   						<div class="flex-1 flex flex-col">
+   							<span class="text-body-xs text-muted-foreground uppercase-label flex items-center gap-1">
+   								CREDITS
+   								<HelpCircle class="w-3 h-3" />
+   							</span>
+   							<span class="text-body-sm font-semibold text-foreground font-mono">
+   								{remainingTokens}<span class="text-muted-foreground">/{capacity}</span>
+   							</span>
+   						</div>
+   						<button
+   							onclick={onBuyCredits}
+   							class="h-7 w-7 touch-target flex items-center justify-center bg-primary hover:bg-primary/80 text-primary-foreground rounded click-shrink transition-colors"
+   							title="Add more credits"
+   							aria-label="Add more credits"
+   						>
+   							<Plus class="w-3.5 h-3.5" />
+   						</button>
+   					</div>
+   				</PopoverTrigger>
+   				<PopoverContent class="w-64 p-3 shadow-dramatic text-body-sm z-50">
+   					<p class="text-foreground mb-2">Credits track your API usage:</p>
+   					<ul class="space-y-1 text-muted-foreground text-xs">
+   						<li>• Each message uses ~1 credit</li>
+   						<li>• Free tier: 60 credits/day</li>
+   						<li>• Refills every 24 hours</li>
+   					</ul>
+   				</PopoverContent>
+   			</Popover>
+   		</div>
  	</aside>
  {/if}

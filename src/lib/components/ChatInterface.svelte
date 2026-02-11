@@ -13,31 +13,29 @@
 	import { Menu } from '@lucide/svelte';
 
 
-	let {
-		messages = [],
-		isLoading = false,
-		error = null,
-		currentModel = 'glm-4.7-flash',
-		thinkingEnabled = false,
-		onSendMessage,
-		onClear,
-		onExport,
-		onModelChange,
-		onThinkingChange,
-		requestCount = 0
-	}: {
-		messages: Message[];
-		isLoading: boolean;
-		error: string | null;
-		currentModel?: string;
-		thinkingEnabled?: boolean;
-		onSendMessage: (message: string) => void;
-		onClear?: () => void;
-		onExport?: (format: 'markdown' | 'json') => void;
-		onModelChange?: (model: string) => void;
-		onThinkingChange?: (enabled: boolean) => void;
-		requestCount?: number;
-	} = $props();
+ 	let {
+ 		messages = [],
+ 		isLoading = false,
+ 		error = null,
+ 		currentModel = 'glm-4.7-flash',
+ 		thinkingEnabled = false,
+ 		onSendMessage,
+ 		onClear,
+ 		onExport,
+ 		onModelChange,
+ 		requestCount = 0
+ 	}: {
+ 		messages: Message[];
+ 		isLoading: boolean;
+ 		error: string | null;
+ 		currentModel?: string;
+ 		thinkingEnabled?: boolean;
+ 		onSendMessage: (message: string) => void;
+ 		onClear?: () => void;
+ 		onExport?: (format: 'markdown' | 'json') => void;
+ 		onModelChange?: (model: string) => void;
+ 		requestCount?: number;
+ 	} = $props();
 
 	let inputMessage = $state('');
 	let scrollAreaElement = $state.raw<HTMLElement | undefined>(undefined);
@@ -221,16 +219,15 @@
 		</div>
 	</div>
 
-	<FloatingInput
-		bind:value={inputMessage}
-		onSubmit={handleSubmit}
-		onStopGeneration={handleStopGeneration}
-		{isLoading}
-		{currentModel}
-		onModelChange={onModelChange}
-		{thinkingEnabled}
-		onThinkingChange={onThinkingChange}
-	/>
+ 	<FloatingInput
+ 		bind:value={inputMessage}
+ 		onSubmit={handleSubmit}
+ 		onStopGeneration={handleStopGeneration}
+ 		{isLoading}
+ 		{currentModel}
+ 		onModelChange={onModelChange}
+ 		{thinkingEnabled}
+ 	/>
 
 	<ConfirmDialog
 		open={showClearDialog}
