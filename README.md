@@ -1,348 +1,99 @@
 # FREECHAT.CC
 
-**Free as in Freedom** - A modern, production-hardened AI chatbot built with SvelteKit, powered by Z.AI GLM models and OpenRouter API.
+**Free as in Freedom** — a browser-based AI workspace built with SvelteKit. Bring your own keys, talk to any model through Z.AI or OpenRouter, and keep your conversations encrypted on your own device.
 
-## 🎯 Why FREECHAT.CC?
+## Why
 
-In a world of walled gardens and locked-down AI platforms, FREECHAT.CC stands for something different:
+AI platforms are walled gardens: locked models, server-stored conversations, forced ecosystems. FREECHAT.CC stands for the opposite:
 
- - **Freedom of Choice** - Access Z.AI GLM models or any AI model through OpenRouter without lock-in
-- **Privacy First** - Local encrypted storage, your data never leaves your device unprotected
-- **Zero Data Retention** - Your conversations are never stored on servers
-- **Lightning Fast** - Optimized token speed with streaming responses
+- **Freedom of choice** — Z.AI GLM models by default, any OpenRouter model beside them. No lock-in.
+- **Privacy first** — chat history is encrypted client-side and stored in IndexedDB on your device. Nothing is retained server-side.
+- **Bring your own keys** — your API keys, your models, your billing. The platform locks you into nothing.
 
-We believe AI tools should empower you, not restrict you. That's what "free as in freedom" means to us.
+## Features
 
-## 🛡️ Production-Ready Features
+**Multi-provider, BYOK**
+- Provider router sends `glm-*` models to Z.AI, everything else to OpenRouter (`src/lib/utils/provider-router.ts`)
+- Thinking mode for deeper reasoning on supported models, preference persisted
 
-### Security & Safety
-- **XSS Protection**: All user content sanitized with DOMPurify
-- **IndexedDB Storage**: Secure, persistent data storage with encryption
-- **Request Queueing**: Prevents concurrent API calls
-- **Rate Limiting**: Built-in throttling (20 req/min, 2 req/sec)
-- **Stream Recovery**: Prevents data loss on network failures
-- **BeforeUnload Protection**: Warns before losing unsaved data
+**Private by architecture**
+- Chat history encrypted with `src/lib/utils/encryption.ts` before it touches IndexedDB — keys never leave the device
+- All rendered content sanitized with DOMPurify (XSS protection)
+- Zero server-side conversation retention — the server streams, it does not store
 
-### Performance
-- **Virtual Scrolling**: Smooth rendering of 1000s of messages
-- **Dynamic Height Measurement**: ResizeObserver for responsive layouts
-- **Optimized Re-renders**: 99% reduction in unnecessary updates
-- **CSS Containment**: Reduced repaints for 60fps scrolling
-- **TanStack Query Integration**: Automatic caching and request deduplication
+**Built like production infrastructure**
+- Streaming responses with partial-stream recovery on network failure
+- Request queueing (no concurrent API calls) and rate limiting (20 req/min, 500ms minimum interval)
+- Timeout, error-classification, and retry middleware with exponential backoff
+- Health check endpoint for orchestration
 
-### Accessibility (WCAG AA Compliant)
-- **Skip-to-Content Link**: Keyboard navigation shortcut
-- **Screen Reader Support**: ARIA live regions for all updates
-- **Keyboard Shortcuts**: 
-  - `Ctrl+K` - Focus input
-  - `Ctrl+Enter` - Send message
-  - `Escape` - Stop generation
-  - `Ctrl+/` - Show help
-- **Color Contrast**: 4.5:1 contrast ratio throughout
-- **Focus Management**: Proper tab order and focus indicators
+**Fast at scale**
+- Virtual scrolling renders thousands of messages at 60fps
+- ~99% reduction in re-renders via Svelte 5 runes + keyed lists + CSS containment
+- TanStack Query for caching and request deduplication
 
-## 🚀 Quick Start
+| Metric | Before | After |
+|--------|--------|-------|
+| Re-renders per message | 1000+ | ~10 |
+| Initial render (100 msgs) | ~2000ms | ~200ms |
+| Scroll FPS (1000 msgs) | ~15 | 60 |
 
- ### Prerequisites
- - Bun
- - Z.AI API key ([Get one here](https://z.ai))
- - OpenRouter API key (optional, for future use) ([Get one here](https://openrouter.ai/))
+**Accessible (WCAG AA)**
+- ARIA live regions, skip-to-content, full keyboard support (`Ctrl+K` focus, `Ctrl+Enter` send, `Esc` stop, `Ctrl+/` help)
+- 4.5:1 contrast throughout
 
-### Installation
+**Credit-based usage**
+- Token tracking per conversation and model, with a credits system
 
-```bash
-# Clone the repository
-git clone <your-repo-url>
-cd ai-chatbot
+## Tech Stack
 
-# Install dependencies
-bun install
+SvelteKit 2 · Svelte 5 (runes) · TypeScript (strict) · Tailwind CSS 4 · TanStack Query/Pacer · Zod · Vitest (unit, integration, benchmarks) · Playwright (E2E) · adapter-node + Docker
 
-# Set up environment variables
-cp .env.example .env
-```
-
- ### Configure Environment
-
- Edit `.env` and add your API keys:
-
- ```env
- ZAI_API_KEY=your_actual_zai_api_key_here
- OPENROUTER_API_KEY=your_actual_openrouter_api_key_here
- OPENROUTER_API_URL=https://openrouter.ai/api/v1/chat/completions
- ```
-
-### Development
+## Quick Start
 
 ```bash
-bun run dev
+git clone https://github.com/wholetthekfcgo/Freechat.git
+cd Freechat
+npm install          # or: bun install
+
+cp .env.example .env # then add your keys
+npm run dev          # http://localhost:5173
 ```
 
-Open [http://localhost:5173](http://localhost:5173) in your browser.
-
-### Building for Production
-
-```bash
-bun run build
-bun run preview
-```
-
-## 🏗️ Architecture
-
-### Project Structure
-
-```
-ai-chatbot/
-├── src/
-│   ├── lib/
-│   │   ├── components/        # Svelte components
-│   │   │   ├── ChatInterface.svelte
-│   │   │   ├── MessageBubble.svelte
-│   │   │   ├── VirtualChatList.svelte
-│   │   │   └── ui/            # Reusable UI components (button, input, dialog, etc.)
-│   │   ├── stores/           # Svelte 5 stores with runes
-│   │   │   ├── chat/
-│   │   │   │   ├── actions.svelte.ts    # Chat action methods
-│   │   │   │   ├── state.svelte.ts      # Reactive state
-│   │   │   │   └── index.ts             # Public API exports
-│   │   │   ├── commands/      # Command pattern for undo/redo (unused)
-│   │   │   ├── persistence.svelte.ts     # IndexedDB persistence layer
-│   │   │   └── chat.svelte.ts  # Legacy compatibility (deprecated)
-│   │   ├── backend/          # Backend utilities (NOT in README before)
-│   │   │   ├── core/         # Core patterns (circuit breaker)
-│   │   │   ├── middleware/   # Error handling, logging, timeout
-│   │   │   ├── integration/  # Integration tests
-│   │   │   ├── utils/        # Error classification, retry, SSE
-│   │   │   └── index.ts      # Central exports
- │   │   ├── utils/            # Utility functions
- │   │   │   ├── sanitize.ts           # XSS protection
- │   │   │   ├── indexeddb.ts          # IndexedDB wrapper
- │   │   │   ├── storage-quota.ts      # Storage quota management
- │   │   │   ├── request-queue.ts      # API concurrency control
- │   │   │   ├── rate-limiter.ts       # Rate limiting
- │   │   │   ├── stream-recovery.ts    # Partial stream recovery
- │   │   │   ├── beforeunload.ts       # Data loss prevention
- │   │   │   ├── encryption.ts         # Data encryption
- │   │   │   ├── logger.ts             # Structured logging
- │   │   │   ├── draft.ts              # Draft message management
- │   │   │   ├── error-tracker.ts      # Error tracking
- │   │   │   ├── announcer.ts          # ARIA announcements
- │   │   │   ├── zai.ts               # Z.AI API client
- │   │   │   ├── provider-router.ts    # Provider routing logic
- │   │   │   └── openrouter.ts         # OpenRouter API client
-│   │   ├── schemas/          # Zod validation schemas (NOT in README before)
-│   │   │   └── validation.ts         # Request/response validation
-│   │   ├── test/             # Test utilities and mocks
-│   │   └── types/            # TypeScript types
-│   ├── routes/               # SvelteKit routes
-│   │   ├── api/
-│   │   │   ├── chat/
-│   │   │   │   ├── +server.ts         # Non-streaming endpoint
-│   │   │   │   └── stream/
-│   │   │   │       └── +server.ts     # Streaming endpoint
-│   │   │   └── health/
-│   │   │       └── +server.ts         # Health check endpoint
-│   │   ├── +layout.svelte
-│   │   ├── +layout.ts
-│   │   ├── +page.svelte              # Main chat page
-│   │   └── +page.server.ts
-│   └── app.css
-├── static/                   # Static assets
-├── .env.example             # Environment variables template
-├── package.json
-├── svelte.config.ts
-├── vitest.config.ts         # Vitest configuration
-├── tailwind.config.js
-└── tsconfig.json
-```
-
-### Key Technologies
-
-- **SvelteKit** - Web framework
-- **Svelte 5 Runes** - Reactive state management
-- **TypeScript** - Type safety
-- **TailwindCSS** - Styling with noir aesthetic
-- **DOMPurify** - XSS protection
-- **OpenRouter API** - AI model access
-- **Vitest** - Testing framework
-
-## 🔒 Security Features
-
-### Content Sanitization
-All user-generated content is sanitized before rendering:
-
-```typescript
-import { sanitizeHTML } from '$lib/utils/sanitize';
-
-// Automatically removes:
-// - <script> tags
-// - javascript: URLs
-// - on* event handlers
-// - iframe/object/embed tags
-```
-
-### Rate Limiting
-Built-in protection against API abuse:
-
-- **Regular requests**: 20 per minute
-- **Streaming requests**: 60 per minute
-- **Minimum interval**: 500ms between requests
-- **Automatic retry**: Up to 3 attempts with exponential backoff
-
-### Data Encryption
-Chat history is encrypted before storing in IndexedDB:
-
-```typescript
-// Automatic encryption/decryption
-import { encrypt, decrypt } from '$lib/utils/encryption';
-
-const encrypted = await encrypt(chatHistory);
-const decrypted = await decrypt<ChatHistory>(encrypted);
-```
-
-## 🎨 Design Philosophy
-
-**Noir Aesthetic**: Dark, minimal, brutalist
-- Deep charcoal background (#0a0a0a)
-- Warm cream text (#f5f0e8)
-- Orange accent (#e65c25)
-- Sharp corners (no border-radius)
-- Film grain texture overlay
-- Dramatic shadows and glassmorphism
-
-## 🧪 Testing
-
-```bash
-# Run tests
-bun run test
-
-# Run tests with UI
-bun run test:ui
-
-# Generate coverage report
-bun run test:coverage
-```
-
-### Test Suites
-- **Unit tests**: Individual utility functions
-- **Integration tests**: Store and component interactions
-- **E2E tests**: Full user workflows (planned)
-
-## 📊 Performance Metrics
-
-| Metric | Before | After | Improvement |
-|--------|--------|-------|-------------|
-| Re-renders per message | 1000+ | ~10 | 99% reduction |
-| Initial render (100 msgs) | ~2000ms | ~200ms | 10x faster |
-| Scroll FPS (1000 msgs) | ~15 FPS | 60 FPS | 4x smoother |
-
- ## 🔧 Configuration
-
- ## 🤖 Available Models
-
- FREECHAT.CC supports the following models:
-
- ### Z.AI Models (Default)
- - **GLM-4.7-Flash** - High quality, fast response (default)
- - **GLM-4.5-Flash** - Lightweight, ultra-fast
-
- ### OpenRouter Models (Optional)
- - Any model from [OpenRouter](https://openrouter.ai/models) (requires OPENROUTER_API_KEY)
-   - `openai/gpt-4o`
-   - `openai/gpt-4o-mini`
-   - `anthropic/claude-3.5-sonnet`
-   - `anthropic/claude-3-haiku`
-   - `google/gemini-pro`
-   - `meta-llama/llama-3.1-405b`
-   - And many more...
-
- ## 🧠 Thinking Mode
-
- Toggle the "THINK" button to enable enhanced reasoning:
- - **Off by default** - Standard responses
- - **On** - Deeper reasoning, slightly slower
- - Preference saved in cookies for persistence
- - Ideal for complex problems requiring more analysis
- - Works with both Z.AI and OpenRouter models
-
- ## 🔧 Configuration
-
- ### Available Models
-
-Use any model from [OpenRouter](https://openrouter.ai/models):
-
-```typescript
-// Examples
-openai/gpt-3.5-turbo
-anthropic/claude-2
-meta-llama/llama-2-70b-chat
-google/palm-2-chat-bison
-```
-
-### Customization
-
-Edit `src/app.css` to customize the noir palette:
-
-```css
-:root {
-  --primary: 18 100% 55%;        /* Accent color */
-  --background: 240 10% 4%;     /* Background */
-  --foreground: 38 20% 94%;     /* Text color */
-  --border: 0 0% 20%;           /* Border color */
-}
-```
-
-## 🚦 Deployment
-
-### Static Export
-
-```bash
-bun run build
-```
-
-The output is in `.svelte-kit/output/` and can be deployed to:
-- Netlify
-- Vercel
-- GitHub Pages
-- Any static hosting service
-
-### Environment Variables
-
-Ensure these are set in your production environment:
+Environment:
 
 ```env
-OPENROUTER_API_KEY=your_key
-OPENROUTER_API_URL=https://openrouter.ai/api/v1/chat/completions
+ZAI_API_KEY=your_zai_key          # required — GLM models
+OPENROUTER_API_KEY=your_key       # optional — everything else
 ```
 
-## 🤝 Contributing
+### Models
 
-Contributions are welcome! Please:
+- **Z.AI (default)**: GLM-4.7-Flash (default), GLM-4.5-Flash
+- **OpenRouter**: any model from [openrouter.ai/models](https://openrouter.ai/models) — GPT-4o, Claude, Gemini, Llama, and more
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests if applicable
-5. Submit a Pull Request
+## Testing
 
-## 📝 License
+```bash
+npm run test             # unit + integration
+npm run test:coverage    # coverage report
+npm run test:bench       # performance benchmarks
+npm run test:e2e         # Playwright E2E
+npm run check            # svelte-check
+```
 
-MIT License - feel free to use this project for your own purposes.
+Suites cover the provider router, encryption, rate limiting, validation, streaming recovery, storage quota, accessibility, and API routes — plus performance benchmarks for the virtual list.
 
-## 🙏 Acknowledgments
+## Design
 
- - [SvelteKit](https://kit.svelte.dev/) - Web framework
- - [Z.AI](https://z.ai/) - GLM model provider
- - [OpenRouter](https://openrouter.ai/) - AI model access
- - [TailwindCSS](https://tailwindcss.com/) - Styling
- - [DOMPurify](https://github.com/cure53/DOMPurify) - XSS protection
- - [shadcn-svelte](https://www.shadcn-svelte.com/) - UI components
+Noir aesthetic — deep charcoal (`#0a0a0a`), warm cream text (`#f5f0e8`), orange accent (`#e65c25`), sharp corners, film-grain texture.
 
-## 📧 Support
+## Roadmap
 
-For issues and questions, please open an issue on GitHub.
+- [ ] Agentic coding modes — **Plan** (explore code) and **Build** (sandboxed changes)
+- [ ] Cryptocurrency payments and subscription tiers alongside credit billing
+- [ ] End-to-end encrypted sync across devices
 
----
+## License
 
-**Built with ❤️ using Svelte 5 and modern web technologies**
-
+[MIT](LICENSE) © Fahad Siddique
